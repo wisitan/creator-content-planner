@@ -369,36 +369,35 @@ export function EditableTable(container, config) {
       });
     }
 
-    // Direct Batch Delete Button Click Handler
+    // Direct Batch Delete Button Click Handler (Instant Delete)
     const btnBatchDelete = container.querySelector('#btn-batch-delete');
     if (btnBatchDelete && onDelete) {
-      btnBatchDelete.addEventListener('click', () => {
+      btnBatchDelete.addEventListener('click', (e) => {
+        e.stopPropagation();
         const count = selectedRowIds.size;
-        if (confirm(`Delete ${count} selected items? คุณแน่ใจหรือไม่ว่าต้องการลบทั้ง ${count} รายการที่เลือก?`)) {
-          Array.from(selectedRowIds).forEach(id => {
-            onDelete(id);
-          });
-          selectedRowIds.clear();
-          showToast(`Deleted ${count} items successfully! 🗑️✅`, 'success');
-          render();
-        }
+        Array.from(selectedRowIds).forEach(id => {
+          onDelete(id);
+          const tr = container.querySelector(`tr[data-id="${id}"]`);
+          if (tr) tr.remove();
+        });
+        selectedRowIds.clear();
+        showToast(`Deleted ${count} items! 🗑️✅`, 'success');
+        render();
       });
     }
 
-    // Direct Single Delete Button Click Handlers
+    // Direct Single Delete Button Click Handlers (Instant Delete)
     container.querySelectorAll('.btn-delete-single-row').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
-        if (confirm(`Delete row ${id}? ต้องการลบรายการนี้ใช่หรือไม่`)) {
-          if (onDelete) {
-            onDelete(id);
-            selectedRowIds.delete(String(id));
-            const tr = container.querySelector(`tr[data-id="${id}"]`);
-            if (tr) tr.remove();
-            showToast(`Deleted ${id} successfully! 🗑️`, 'info');
-            render();
-          }
+        if (onDelete) {
+          onDelete(id);
+          selectedRowIds.delete(String(id));
+          const tr = container.querySelector(`tr[data-id="${id}"]`);
+          if (tr) tr.remove();
+          showToast(`Deleted ${id}! 🗑️`, 'info');
+          render();
         }
       });
     });
