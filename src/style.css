@@ -760,6 +760,30 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  .circle-palette-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 16px !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    margin-top: 6px !important;
+  }
+
+  .circle-color-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: auto !important;
+  }
+
+  .circle-color-swatch {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+  }
 }
+
 
 
