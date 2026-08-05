@@ -9,6 +9,7 @@ const DEFAULT_GOOGLE_CLIENT_ID = '586705952935-j91o3ch4j005kh6tjam0tqt8u3ops55s.
 // ── Default Settings ──
 const DEFAULT_SETTINGS = {
   googleClientId: DEFAULT_GOOGLE_CLIENT_ID,
+  theme: 'light',
   channels: ['TikTok','Shopee Video','YouTube Shorts','YouTube Long','Instagram Reels','Facebook Reels','LINE VOOM','X (Twitter)'],
   contentPillars: ['Desk Productivity','Everyday Electronics','Creator Gear','EV/Solar Lifestyle','Windows-to-Mac'],
   productCategories: ['Desk Productivity','Everyday Electronics','Creator Gear','EV Solar','Mac Accessories','Smartphone Accessories','Home Smart'],
@@ -108,8 +109,13 @@ class Store extends Emitter {
     this.emit('change', area);
   }
 
-  /* ── Settings ── */
+  /* ── Settings & Theme ── */
   getSettings() { return this._data.settings; }
+  getTheme() { return this._data.settings.theme || 'light'; }
+  setTheme(theme) {
+    this._data.settings.theme = theme;
+    this._changed('settings');
+  }
   getSettingList(key) { return this._data.settings[key] || []; }
   updateSettingList(key, values) {
     this._data.settings[key] = values;

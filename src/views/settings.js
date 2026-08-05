@@ -1,14 +1,15 @@
 import { showToast } from '../components/toast.js';
+import { applyTheme } from '../main.js';
 
 export function renderSettings(container, store) {
   container.innerHTML = '';
 
   const header = document.createElement('div');
-  header.className = 'card-header flex-between mb-4';
+  header.className = 'card-header flex-between mb-3';
   header.innerHTML = `
     <div>
       <h2>⚙️ Settings / ปรับแต่งการใช้งาน</h2>
-      <p class="text-muted">ปรับแต่งตัวเลือกรายการ Dropdown List ในระบบ และจัดการลบข้อมูล</p>
+      <p class="text-muted">ปรับแต่งธีมหน้าจอ (Light/Dark Mode), ตัวเลือก Dropdown List และจัดการข้อมูล</p>
     </div>
     <div>
       <button id="btn-clear-all-data" class="btn btn-danger">🗑️ ลบข้อมูลทั้งหมด</button>
@@ -23,6 +24,37 @@ export function renderSettings(container, store) {
       showToast('ลบข้อมูลทั้งหมดเรียบร้อยแล้ว 🗑️✅', 'success');
       renderSettings(container, store);
     }
+  });
+
+  // 🌙 Dark Theme Toggle Card
+  const themeCard = document.createElement('div');
+  themeCard.className = 'card mb-4 view-enter p-3 flex-between';
+  const currentTheme = store.getTheme();
+  const isDark = currentTheme === 'dark';
+
+  themeCard.innerHTML = `
+    <div>
+      <h3 class="m-0" style="font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+        ${isDark ? '🌙 Dark Theme / ธีมมืด' : '☀️ Light Theme / ธีมสว่าง'}
+      </h3>
+      <p class="text-muted m-0" style="font-size:0.85rem;">สลับโหมดการแสดงผลหน้าจอระหว่าง Light Mode และ Dark Mode</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span style="font-size:0.85rem; font-weight:700; color:${isDark ? '#6366F1' : '#475569'};">${isDark ? 'DARK MODE' : 'LIGHT MODE'}</span>
+      <label class="theme-toggle-switch">
+        <input type="checkbox" id="toggle-theme-cb" ${isDark ? 'checked' : ''}>
+        <span class="theme-slider"></span>
+      </label>
+    </div>
+  `;
+  container.appendChild(themeCard);
+
+  themeCard.querySelector('#toggle-theme-cb').addEventListener('change', (e) => {
+    const newTheme = e.target.checked ? 'dark' : 'light';
+    store.setTheme(newTheme);
+    applyTheme(newTheme);
+    showToast(`สลับใช้งาน ${newTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'} เรียบร้อย!`, 'info');
+    renderSettings(container, store);
   });
 
   // Settings Grid

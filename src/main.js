@@ -6,7 +6,20 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.1.0';
+const APP_VERSION = 'v2.2.0';
+
+export function applyTheme(theme) {
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.body.classList.add('dark-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.body.classList.remove('dark-theme');
+  }
+}
+
+// Initial Theme Apply
+applyTheme(store.getTheme());
 
 // ── View modules ──
 import { renderDashboard } from './views/dashboard.js';

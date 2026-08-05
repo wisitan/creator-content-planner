@@ -53,6 +53,121 @@
   --font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* ── 1.1 Dark Theme Overrides ── */
+[data-theme="dark"], body.dark-theme {
+  --c-dark: #0F172A;
+  --c-dark-alt: #1E293B;
+  --c-dark-hover: #334155;
+  --c-bg: #0F172A;
+  --c-bg-card: #1E293B;
+  --c-border: #334155;
+  --c-text: #F8FAFC;
+  --c-text-secondary: #94A3B8;
+  --c-text-muted: #64748B;
+  --c-other-month: #0F172A;
+  --c-weekend: #1E1B2E;
+  --c-primary-light: #1E1B4B;
+  --c-affiliate-lt: #451A03;
+  --c-branding-lt: #172554;
+  --c-knowledge-lt: #064E3B;
+  --c-sponsor-lt: #3B0764;
+  --c-green-lt: #064E3B;
+  --c-yellow-lt: #451A03;
+  --c-red-lt: #450A0A;
+  --c-blue-lt: #172554;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .cell-input,
+[data-theme="dark"] select.form-input,
+[data-theme="dark"] select.cell-input,
+[data-theme="dark"] textarea.form-input,
+[data-theme="dark"] textarea.cell-input {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .etable th {
+  background-color: #0F172A;
+  color: #CBD5E1;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .etable td {
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .etable tbody tr:hover {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .setting-list {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .setting-item {
+  border-color: #334155;
+}
+
+[data-theme="dark"] .modal-content {
+  background: #1E293B;
+  color: #F8FAFC;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .excel-filter-popup {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .topbar {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+/* ── Toggle Switch Styling ── */
+.theme-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+.theme-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.theme-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #CBD5E1;
+  transition: .3s;
+  border-radius: 24px;
+}
+.theme-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .theme-slider {
+  background-color: var(--c-primary);
+}
+input:checked + .theme-slider:before {
+  transform: translateX(24px);
+}
+
+
 /* ── 2. Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; scroll-behavior: smooth; }
