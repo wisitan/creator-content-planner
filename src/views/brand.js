@@ -94,10 +94,10 @@ export function renderBrand(container, store) {
 
                         <!-- Fixed 6-Color Palette Grid (Rectangular Swatches + Left Names) -->
                         <div>
-                            <h4 class="section-subheading m-0 mb-2" style="color:${primaryColor}; font-size:0.9rem; border-bottom:1px solid #e2e8f0; padding-bottom:3px;">🎨 Brand Color Palette (Fixed 6 Colors)</h4>
+                            <h4 class="section-subheading m-0 mb-2" style="font-size:0.9rem; border-bottom:1px solid var(--c-border); padding-bottom:3px;">🎨 Brand Color Palette (Fixed 6 Colors)</h4>
                             <div class="color-rect-grid" id="colorsList" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px 12px; margin-top:6px;">
                                 ${colors.map((c, i) => `
-                                    <div class="color-rect-item" style="display:flex; align-items:center; gap:8px; background:#f8fafc; padding:4px 8px; border-radius:6px; border:1px solid #e2e8f0;">
+                                    <div class="color-rect-item" style="display:flex; align-items:center; gap:8px; background:var(--c-bg); padding:4px 8px; border-radius:6px; border:1px solid var(--c-border);">
                                         <div class="color-rect-swatch" style="width:36px; height:24px; border-radius:4px; background:${esc(c.hex || '#6366F1')}; border:1px solid rgba(0,0,0,0.15); cursor:pointer; position:relative; overflow:hidden; flex-shrink:0;">
                                             <input type="color" class="color-picker" data-index="${i}" value="${esc(c.hex || '#6366F1')}" style="position:absolute; top:-10px; left:-10px; width:60px; height:60px; cursor:pointer; opacity:0;">
                                         </div>
@@ -114,20 +114,20 @@ export function renderBrand(container, store) {
 
                 <!-- Section 2: Mood Board & Content Pillars -->
                 <div class="card p-3 mb-3">
-                    <div class="flex-between mb-2" style="border-bottom:1px solid #e2e8f0; padding-bottom:3px;">
-                        <h4 class="section-subheading m-0" style="color:${primaryColor}; font-size:0.95rem;">📌 Content Pillars & Mood Board Gallery</h4>
+                    <div class="flex-between mb-2" style="border-bottom:1px solid var(--c-border); padding-bottom:3px;">
+                        <h4 class="section-subheading m-0" style="font-size:0.95rem;">📌 Content Pillars & Mood Board Gallery</h4>
                         <button class="btn btn-sm btn-secondary no-print" id="btnAddPillar">+ Add Pillar</button>
                     </div>
                     
                     <!-- Mood Board Photos Grid (3 images) -->
                     <div class="moodboard-grid mb-3" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
                         ${[0, 1, 2].map(idx => `
-                            <div class="moodboard-item" style="position:relative; height:100px; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                            <div class="moodboard-item" style="position:relative; height:100px; background:var(--c-bg); border:1px dashed var(--c-border); border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
                                 ${moodboard[idx]
                                     ? `<img src="${esc(moodboard[idx])}" style="width:100%; height:100%; object-fit:cover;">`
                                     : `<div class="text-muted" style="font-size:0.75rem;">🖼️ Mood Board Photo ${idx+1}</div>`
                                 }
-                                <label class="btn btn-secondary btn-sm no-print" style="position:absolute; bottom:4px; right:4px; padding:2px 5px; font-size:0.68rem; background:#fff;">
+                                <label class="btn btn-secondary btn-sm no-print" style="position:absolute; bottom:4px; right:4px; padding:2px 5px; font-size:0.68rem;">
                                     📷 Upload
                                     <input type="file" accept="image/*" class="inputMoodboard" data-index="${idx}" style="display:none;">
                                 </label>
@@ -138,8 +138,8 @@ export function renderBrand(container, store) {
                     <!-- Pillars List -->
                     <div id="pillarsList" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:8px;">
                         ${pillars.map((p, i) => `
-                            <div class="pillar-box brand-hover-row p-2" style="background:#f8fafc; border-left:3px solid ${primaryColor}; border-radius:4px; position:relative;">
-                                <input type="text" class="form-input pillar-name font-weight-700 mb-1" style="font-size:0.85rem; color:${secondaryColor};" placeholder="Pillar Name" data-index="${i}" value="${esc(p.name || '')}">
+                            <div class="pillar-box brand-hover-row p-2" style="background:var(--c-bg); border-left:3px solid ${primaryColor}; border-radius:4px; position:relative;">
+                                <input type="text" class="form-input pillar-name font-weight-700 mb-1" style="font-size:0.85rem;" placeholder="Pillar Name" data-index="${i}" value="${esc(p.name || '')}">
                                 <textarea class="form-input pillar-desc text-muted" style="font-size:0.78rem; width:100%; resize:vertical; min-height:40px; border:none; background:transparent;" placeholder="Description" data-index="${i}">${esc(p.desc || '')}</textarea>
                                 <button class="btn btn-sm btn-danger btnDelPillar hover-show-btn no-print" data-index="${i}" style="position:absolute; top:4px; right:4px; padding:0 3px; font-size:0.6rem;">✕</button>
                             </div>
@@ -151,8 +151,8 @@ export function renderBrand(container, store) {
                 <div class="dash-grid mb-3" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <!-- Target Audience -->
                     <div class="card p-3">
-                        <div class="flex-between mb-2" style="border-bottom:1px solid #e2e8f0; padding-bottom:3px;">
-                            <h4 class="section-subheading m-0" style="color:${primaryColor}; font-size:0.95rem;">🎯 Target Audience</h4>
+                        <div class="flex-between mb-2" style="border-bottom:1px solid var(--c-border); padding-bottom:3px;">
+                            <h4 class="section-subheading m-0" style="font-size:0.95rem;">🎯 Target Audience</h4>
                             <button class="btn btn-sm btn-secondary no-print" id="btnAddAudience" style="padding:1px 6px; font-size:0.75rem;">+ Add</button>
                         </div>
                         <div id="audienceList">
@@ -168,23 +168,23 @@ export function renderBrand(container, store) {
 
                     <!-- Media Kit Stats -->
                     <div class="card p-3">
-                        <h4 class="section-subheading mb-2" style="color:${primaryColor}; border-bottom:1px solid #e2e8f0; padding-bottom:3px; font-size:0.95rem;">📊 Media Kit Performance</h4>
+                        <h4 class="section-subheading mb-2" style="font-size:0.95rem; border-bottom:1px solid var(--c-border); padding-bottom:3px;">📊 Media Kit Performance</h4>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:0.82rem;">
-                            <div class="stat-mini-box p-2" style="background:#f8fafc; border-radius:4px;">
+                            <div class="stat-mini-box p-2" style="background:var(--c-bg); border-radius:4px;">
                                 <span class="text-muted" style="font-size:0.72rem;">Total Followers</span>
-                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem; color:${secondaryColor};" data-field="totalFollowers" value="${esc(brand.totalFollowers || '')}">
+                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem;" data-field="totalFollowers" value="${esc(brand.totalFollowers || '')}">
                             </div>
-                            <div class="stat-mini-box p-2" style="background:#f8fafc; border-radius:4px;">
+                            <div class="stat-mini-box p-2" style="background:var(--c-bg); border-radius:4px;">
                                 <span class="text-muted" style="font-size:0.72rem;">Avg. Views</span>
-                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem; color:${secondaryColor};" data-field="avgViews" value="${esc(brand.avgViews || '')}">
+                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem;" data-field="avgViews" value="${esc(brand.avgViews || '')}">
                             </div>
-                            <div class="stat-mini-box p-2" style="background:#f8fafc; border-radius:4px;">
+                            <div class="stat-mini-box p-2" style="background:var(--c-bg); border-radius:4px;">
                                 <span class="text-muted" style="font-size:0.72rem;">Avg. Engagement</span>
-                                <input type="text" class="form-input simple-field font-weight-700" style="font-size:0.95rem; color:${secondaryColor};" data-field="avgEngagement" value="${esc(brand.avgEngagement || '')}">
+                                <input type="text" class="form-input simple-field font-weight-700" style="font-size:0.95rem;" data-field="avgEngagement" value="${esc(brand.avgEngagement || '')}">
                             </div>
-                            <div class="stat-mini-box p-2" style="background:#f8fafc; border-radius:4px;">
+                            <div class="stat-mini-box p-2" style="background:var(--c-bg); border-radius:4px;">
                                 <span class="text-muted" style="font-size:0.72rem;">Total Videos</span>
-                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem; color:${secondaryColor};" data-field="totalVideos" value="${esc(brand.totalVideos || '')}">
+                                <input type="number" class="form-input simple-field font-weight-700" style="font-size:0.95rem;" data-field="totalVideos" value="${esc(brand.totalVideos || '')}">
                             </div>
                         </div>
                     </div>

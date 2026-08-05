@@ -129,6 +129,56 @@
   border-color: #334155;
 }
 
+/* ── Dark Theme Overrides for Brand Identity Page ── */
+[data-theme="dark"] .brand-board-sheet {
+  background-color: transparent !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .brand-board-sheet .brand-title {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .color-rect-item,
+[data-theme="dark"] .moodboard-item,
+[data-theme="dark"] .pillar-box,
+[data-theme="dark"] .stat-mini-box,
+[data-theme="dark"] .brand-portrait-wrapper {
+  background-color: #0F172A !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .pillar-name {
+  color: #818CF8 !important;
+}
+
+[data-theme="dark"] .pillar-desc,
+[data-theme="dark"] .color-name,
+[data-theme="dark"] .color-hex {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .simple-field,
+[data-theme="dark"] .audience-val,
+[data-theme="dark"] .link-platform,
+[data-theme="dark"] .link-handle,
+[data-theme="dark"] .link-url,
+[data-theme="dark"] .link-followers {
+  color: #F8FAFC !important;
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .section-subheading {
+  color: #818CF8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .board-header {
+  border-bottom-color: #475569 !important;
+}
+
+
 /* ── Toggle Switch Styling ── */
 .theme-toggle-switch {
   position: relative;
