@@ -859,14 +859,21 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   visibility: visible;
 }
 
-/* Professional Print CSS (Multi-page clean breaks) */
+/* Professional Print CSS (Multi-page clean breaks - Always Light Mode) */
 @media print {
   @page {
     size: A4 portrait;
     margin: 12mm 10mm;
   }
 
-  body {
+  /* Force 100% Light Mode for Print Output regardless of active screen theme */
+  [data-theme="dark"], body.dark-theme, body {
+    --c-bg: #ffffff !important;
+    --c-bg-card: #ffffff !important;
+    --c-border: #e2e8f0 !important;
+    --c-text: #0f172a !important;
+    --c-text-secondary: #475569 !important;
+    --c-text-muted: #94a3b8 !important;
     background: #ffffff !important;
     color: #0f172a !important;
     font-size: 10pt !important;
@@ -892,13 +899,65 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     margin-bottom: 12px !important;
   }
 
+  /* Reset Dark Theme Overrides specifically for Print Elements */
+  [data-theme="dark"] .card,
+  [data-theme="dark"] .color-rect-item,
+  [data-theme="dark"] .moodboard-item,
+  [data-theme="dark"] .pillar-box,
+  [data-theme="dark"] .stat-mini-box,
+  [data-theme="dark"] .brand-portrait-wrapper {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  [data-theme="dark"] .brand-board-sheet .brand-title {
+    color: #0f172a !important;
+  }
+
+  [data-theme="dark"] .pillar-name {
+    color: #1e293b !important;
+  }
+
+  [data-theme="dark"] .pillar-desc,
+  [data-theme="dark"] .color-name,
+  [data-theme="dark"] .color-hex {
+    color: #475569 !important;
+  }
+
+  [data-theme="dark"] .simple-field,
+  [data-theme="dark"] .audience-val,
+  [data-theme="dark"] .link-platform,
+  [data-theme="dark"] .link-handle,
+  [data-theme="dark"] .link-url,
+  [data-theme="dark"] .link-followers {
+    color: #0f172a !important;
+    background-color: transparent !important;
+  }
+
+  [data-theme="dark"] .section-subheading {
+    color: var(--brand-primary, #6366f1) !important;
+    border-bottom-color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .board-header {
+    border-bottom-color: var(--brand-primary, #6366f1) !important;
+  }
+
   .brand-portrait-wrapper {
     height: 180px !important;
     border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
   }
 
   .moodboard-item {
     height: 95px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+
+  .color-rect-item, .pillar-box, .stat-mini-box {
+    background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
   }
 
