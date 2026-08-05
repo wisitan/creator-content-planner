@@ -662,12 +662,17 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .hidden { display: none !important; }
 
-/* ── 24. Brand Identity & Print A4 Styles ── */
-.brand-a4-layout {
+/* ── 24. Brand Guidelines Board & Multi-page Print CSS ── */
+.brand-grid-top {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.2rem;
-  margin-bottom: 1.2rem;
+  grid-template-columns: 200px 1fr 220px;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .brand-grid-top {
+    grid-template-columns: 1fr;
+  }
 }
 
 .brand-hover-row .hover-show-btn {
@@ -681,23 +686,18 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   visibility: visible;
 }
 
-@media (max-width: 800px) {
-  .brand-a4-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Print CSS for Brand Identity Media Kit (A4 Portrait Layout) */
+/* Professional Print CSS (Multi-page clean breaks) */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 12mm 10mm;
   }
-  
+
   body {
     background: #ffffff !important;
-    color: #000000 !important;
-    font-size: 11pt !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
   }
 
   .sidebar, .topbar, .no-print, .toast-container {
@@ -707,34 +707,51 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   .main-content {
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
   }
 
   .card {
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
     background: #ffffff !important;
-    break-inside: avoid;
-    margin-bottom: 10pt !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 12px !important;
   }
 
   .brand-portrait-wrapper {
-    height: 300px !important;
+    height: 180px !important;
     border: 1px solid #cbd5e1 !important;
   }
 
-  .form-input {
+  .moodboard-item {
+    height: 95px !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .form-input, textarea.form-input {
     border: none !important;
     background: transparent !important;
     padding: 0 !important;
-    font-weight: 500;
+    font-size: 9.5pt !important;
+    color: #0f172a !important;
   }
 
-  .color-picker {
-    border: 1px solid #94a3b8 !important;
+  .circle-color-swatch {
+    border: 1.5px solid #94a3b8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  input[type="text"], input[type="number"] {
-    color: #000000 !important;
+  .pillar-box, .stat-mini-box {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .badge {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
+
 
