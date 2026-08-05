@@ -37,7 +37,7 @@ export function renderProducts(container, store) {
 
   EditableTable(tableContainer, {
     columns: columns,
-    data: store.getProducts(),
+    getData: () => store.getProducts(),
     onAdd: () => store.addProduct({ id: uid('P'), name: 'New Product', status: 'To Review' }),
     onChange: (id, field, value) => store.updateProduct(id, field, value),
     onDelete: (id) => store.deleteProduct(id),

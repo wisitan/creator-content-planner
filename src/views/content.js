@@ -38,7 +38,7 @@ export function renderContent(container, store) {
 
   EditableTable(tableContainer, {
     columns: columns,
-    data: store.getContent(),
+    getData: () => store.getContent(),
     onAdd: () => store.addContent({ id: uid('C'), title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
     onDelete: (id) => store.deleteContent(id),

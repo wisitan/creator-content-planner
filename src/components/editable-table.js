@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────
    Reusable Editable Table Component 
-   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Drag Columns & Direct Event Bindings)
+   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Dynamic Data Binding & Confirmation Popups)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
 import { showModal } from './modal.js';
@@ -8,7 +8,7 @@ import { showToast } from './toast.js';
 
 export function EditableTable(container, config) {
   const {
-    columns: initialColumns, data, onChange, onAdd, onDelete,
+    columns: initialColumns, onChange, onAdd, onDelete,
     addLabel = '+ Add',
     emptyText = 'No data yet',
     emptyIcon = '📭',
@@ -23,8 +23,20 @@ export function EditableTable(container, config) {
   let selectedRowIds = new Set();
   let activeFilterMenu = null;
 
+  // Always fetch fresh data array reference
+  function getCurrentData() {
+    if (typeof config.getData === 'function') {
+      return config.getData();
+    }
+    if (typeof config.data === 'function') {
+      return config.data();
+    }
+    return config.data || [];
+  }
+
   function getFilteredData() {
-    let filtered = [...data];
+    const rawData = getCurrentData();
+    let filtered = [...rawData];
 
     // 1. Global text search
     if (searchTerm) {
@@ -67,7 +79,8 @@ export function EditableTable(container, config) {
   function getUniqueValuesForCol(colKey) {
     const col = columns.find(c => c.key === colKey);
     const set = new Set();
-    data.forEach(row => {
+    const currentData = getCurrentData();
+    currentData.forEach(row => {
       const rawVal = col && col.compute ? col.compute(row) : (row[colKey] ?? '');
       set.add(String(rawVal === '' || rawVal === null ? '(Blanks)' : rawVal));
     });
@@ -75,6 +88,7 @@ export function EditableTable(container, config) {
   }
 
   function render() {
+    const currentData = getCurrentData();
     const filtered = getFilteredData();
     const hasActiveFilters = Object.values(columnFilters).some(arr => arr && arr.length > 0);
     const selectedCount = selectedRowIds.size;
@@ -95,13 +109,13 @@ export function EditableTable(container, config) {
           </button>
         ` : ''}
         ${hasActiveFilters ? `<button class="btn btn-secondary btn-sm" id="btn-clear-table-filters">🧹 Clear Filters (${Object.keys(columnFilters).length})</button>` : ''}
-        <span class="text-muted" style="font-size:.8rem;">${filtered.length} of ${data.length} items</span>
+        <span class="text-muted" style="font-size:.8rem;">${filtered.length} of ${currentData.length} items</span>
         ${onAdd ? `<button class="btn btn-primary btn-sm" id="etable-add">${addLabel}</button>` : ''}
       </div>
     `;
     container.appendChild(toolbar);
 
-    if (filtered.length === 0 && data.length === 0) {
+    if (filtered.length === 0 && currentData.length === 0) {
       container.innerHTML += `
         <div class="empty-state">
           <div class="empty-icon">${emptyIcon}</div>
@@ -369,35 +383,41 @@ export function EditableTable(container, config) {
       });
     }
 
-    // Direct Batch Delete Button Click Handler (Instant Delete)
+    // Direct Batch Delete Button Click Handler (With Confirmation Popup)
     const btnBatchDelete = container.querySelector('#btn-batch-delete');
     if (btnBatchDelete && onDelete) {
       btnBatchDelete.addEventListener('click', (e) => {
         e.stopPropagation();
         const count = selectedRowIds.size;
-        Array.from(selectedRowIds).forEach(id => {
-          onDelete(id);
-          const tr = container.querySelector(`tr[data-id="${id}"]`);
-          if (tr) tr.remove();
-        });
-        selectedRowIds.clear();
-        showToast(`Deleted ${count} items! 🗑️✅`, 'success');
-        render();
+        if (confirm(`Delete ${count} selected items? คุณแน่ใจหรือไม่ว่าต้องการลบทั้ง ${count} รายการที่เลือก?`)) {
+          Array.from(selectedRowIds).forEach(id => {
+            onDelete(id);
+            if (Array.isArray(config.data)) {
+              config.data = config.data.filter(item => String(item[idField]) !== String(id));
+            }
+          });
+          selectedRowIds.clear();
+          showToast(`Deleted ${count} items successfully! 🗑️✅`, 'success');
+          render();
+        }
       });
     }
 
-    // Direct Single Delete Button Click Handlers (Instant Delete)
+    // Direct Single Delete Button Click Handlers (With Confirmation Popup)
     container.querySelectorAll('.btn-delete-single-row').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
-        if (onDelete) {
-          onDelete(id);
-          selectedRowIds.delete(String(id));
-          const tr = container.querySelector(`tr[data-id="${id}"]`);
-          if (tr) tr.remove();
-          showToast(`Deleted ${id}! 🗑️`, 'info');
-          render();
+        if (confirm(`Delete row ${id}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
+          if (onDelete) {
+            onDelete(id);
+            if (Array.isArray(config.data)) {
+              config.data = config.data.filter(item => String(item[idField]) !== String(id));
+            }
+            selectedRowIds.delete(String(id));
+            showToast(`Deleted ${id} successfully! 🗑️`, 'info');
+            render();
+          }
         }
       });
     });
@@ -550,7 +570,8 @@ export function EditableTable(container, config) {
       if (!tr) return;
       const id = tr.dataset.id;
       const field = btn.dataset.field;
-      const rowData = data.find(r => String(r[idField]) === String(id));
+      const currentData = getCurrentData();
+      const rowData = currentData.find(r => String(r[idField]) === String(id));
       const currentVal = rowData ? (rowData[field] || '') : '';
 
       showModal({
