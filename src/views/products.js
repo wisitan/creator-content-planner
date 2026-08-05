@@ -9,7 +9,7 @@ export function renderProducts(container, store) {
   header.innerHTML = `
     <div>
       <h2>🛍️ Products / จัดการสินค้า</h2>
-      <p class="text-muted">Manage your affiliate products database (สามารถอัปโหลดรูปภาพสินค้า Thumbnail และแก้ Product ID ได้)</p>
+      <p class="text-muted">Manage your affiliate products database (สามารถใส่ราคาเองได้อิสระ อัปโหลดรูปภาพสินค้า Thumbnail และแก้ Product ID ได้)</p>
     </div>
   `;
   container.appendChild(header);
@@ -24,7 +24,7 @@ export function renderProducts(container, store) {
     { key: 'name', label: 'Product Name', type: 'text', width: '180px' },
     { key: 'category', label: 'Category', type: 'dropdown', options: () => store.getSettingList('productCategories') },
     { key: 'brand', label: 'Brand', type: 'text', width: '110px' },
-    { key: 'priceRange', label: 'Price Range', type: 'dropdown', options: () => store.getSettingList('priceRanges') },
+    { key: 'priceRange', label: 'Price ฿ / ราคา', type: 'text', width: '120px', editable: true },
     { key: 'platform', label: 'Platform', type: 'dropdown', options: () => store.getSettingList('channels') },
     { key: 'commission', label: 'Commission %', type: 'number', width: '90px' },
     { key: 'affiliateLink', label: 'Affiliate Link', type: 'url', width: '180px' },
