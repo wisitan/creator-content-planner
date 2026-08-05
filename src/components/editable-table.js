@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────
    Reusable Editable Table Component 
-   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Drag Columns & Modal Editor)
+   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Drag Columns & Direct Event Bindings)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
 import { showModal } from './modal.js';
@@ -174,7 +174,7 @@ export function EditableTable(container, config) {
         });
 
         if (onDelete) {
-          html += `<td class="row-actions"><button class="btn-delete-row" data-action="delete" title="Delete row">🗑️</button></td>`;
+          html += `<td class="row-actions"><button class="btn-delete-single-row" data-id="${esc(rowIdStr)}" title="Delete row">🗑️</button></td>`;
         }
         html += '</tr>';
       });
@@ -369,13 +369,13 @@ export function EditableTable(container, config) {
       });
     }
 
-    // Batch Delete Button
+    // Direct Batch Delete Button Click Handler
     const btnBatchDelete = container.querySelector('#btn-batch-delete');
     if (btnBatchDelete && onDelete) {
       btnBatchDelete.addEventListener('click', () => {
         const count = selectedRowIds.size;
         if (confirm(`Delete ${count} selected items? คุณแน่ใจหรือไม่ว่าต้องการลบทั้ง ${count} รายการที่เลือก?`)) {
-          selectedRowIds.forEach(id => {
+          Array.from(selectedRowIds).forEach(id => {
             onDelete(id);
           });
           selectedRowIds.clear();
@@ -384,6 +384,24 @@ export function EditableTable(container, config) {
         }
       });
     }
+
+    // Direct Single Delete Button Click Handlers
+    container.querySelectorAll('.btn-delete-single-row').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        if (confirm(`Delete row ${id}? ต้องการลบรายการนี้ใช่หรือไม่`)) {
+          if (onDelete) {
+            onDelete(id);
+            selectedRowIds.delete(String(id));
+            const tr = container.querySelector(`tr[data-id="${id}"]`);
+            if (tr) tr.remove();
+            showToast(`Deleted ${id} successfully! 🗑️`, 'info');
+            render();
+          }
+        }
+      });
+    });
 
     // Select All Checkbox Handler
     const cbSelectAll = container.querySelector('#cb-select-all');
@@ -478,13 +496,13 @@ export function EditableTable(container, config) {
       });
     });
 
-    // Table Body Inputs & Delete Click Handlers
+    // Table Body Inputs & Script Modal Handler
     const tbody = container.querySelector('tbody');
     if (!tbody) return;
 
     tbody.addEventListener('change', async (e) => {
       const target = e.target;
-      if (target.classList.contains('cb-row-select')) return; // Handled separately
+      if (target.classList.contains('cb-row-select')) return;
 
       // Image upload
       if (target.classList.contains('input-table-img')) {
@@ -527,47 +545,31 @@ export function EditableTable(container, config) {
     });
 
     tbody.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
+      const btn = e.target.closest('.btn-open-script');
       if (!btn) return;
       const tr = btn.closest('tr');
       if (!tr) return;
       const id = tr.dataset.id;
+      const field = btn.dataset.field;
+      const rowData = data.find(r => String(r[idField]) === String(id));
+      const currentVal = rowData ? (rowData[field] || '') : '';
 
-      if (btn.dataset.action === 'delete') {
-        if (confirm(`Delete row ${id}? ต้องการลบรายการนี้ใช่หรือไม่`)) {
-          if (onDelete) {
-            onDelete(id);
-            selectedRowIds.delete(String(id));
-            tr.remove(); // Force immediate DOM removal guarantee
-            showToast(`Deleted ${id} successfully! 🗑️`, 'info');
-            render();
-          }
+      showModal({
+        title: `📜 Edit ${columns.find(c => c.key === field)?.label || 'Script & Content Details'} (${id})`,
+        bodyHtml: `
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight:bold;">รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์อย่างละเอียด:</label>
+            <textarea id="modal-script-input" class="form-input" style="height:280px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentVal)}</textarea>
+          </div>
+        `,
+        confirmLabel: '💾 Save Script',
+        onConfirm: () => {
+          const newVal = document.getElementById('modal-script-input').value;
+          if (onChange) onChange(id, field, newVal);
+          showToast('Script & Content details saved! 📜✅', 'success');
+          render();
         }
-        return;
-      }
-
-      if (btn.classList.contains('btn-open-script')) {
-        const field = btn.dataset.field;
-        const rowData = data.find(r => String(r[idField]) === String(id));
-        const currentVal = rowData ? (rowData[field] || '') : '';
-
-        showModal({
-          title: `📜 Edit ${columns.find(c => c.key === field)?.label || 'Script & Content Details'} (${id})`,
-          bodyHtml: `
-            <div class="form-group mb-3">
-              <label class="form-label" style="font-weight:bold;">รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์อย่างละเอียด:</label>
-              <textarea id="modal-script-input" class="form-input" style="height:280px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentVal)}</textarea>
-            </div>
-          `,
-          confirmLabel: '💾 Save Script',
-          onConfirm: () => {
-            const newVal = document.getElementById('modal-script-input').value;
-            if (onChange) onChange(id, field, newVal);
-            showToast('Script & Content details saved! 📜✅', 'success');
-            render();
-          }
-        });
-      }
+      });
     });
   }
 
