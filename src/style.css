@@ -661,3 +661,80 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 .flex-center { display: flex; align-items: center; justify-content: center; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .hidden { display: none !important; }
+
+/* ── 24. Brand Identity & Print A4 Styles ── */
+.brand-a4-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.brand-hover-row .hover-show-btn {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.brand-hover-row:hover .hover-show-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (max-width: 800px) {
+  .brand-a4-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print CSS for Brand Identity Media Kit (A4 Portrait Layout) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  .sidebar, .topbar, .no-print, .toast-container {
+    display: none !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .card {
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    break-inside: avoid;
+    margin-bottom: 10pt !important;
+  }
+
+  .brand-portrait-wrapper {
+    height: 300px !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .form-input {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    font-weight: 500;
+  }
+
+  .color-picker {
+    border: 1px solid #94a3b8 !important;
+  }
+
+  input[type="text"], input[type="number"] {
+    color: #000000 !important;
+  }
+}
+

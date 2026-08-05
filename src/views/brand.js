@@ -1,4 +1,5 @@
-import { esc } from '../utils.js';
+import { esc, resizeImageFile } from '../utils.js';
+import { showToast } from '../components/toast.js';
 
 export function render(container, store) {
     renderBrand(container, store);
@@ -13,51 +14,103 @@ export function renderBrand(container, store) {
     const audiences = Array.isArray(brand.targetAudience) ? brand.targetAudience : [];
     const links = Array.isArray(brand.channelLinks) ? brand.channelLinks : [];
 
+    const portraitPhoto = brand.portraitPhotoUrl || '';
+
     container.innerHTML = `
-        <div class="view-enter">
-            <h2 class="mb-3">Brand & Creator Profile / ข้อมูลแบรนด์และครีเอเตอร์</h2>
-            
-            <div class="card mb-4">
-                <div class="card-header brand-section-header">
-                    <h3 class="m-0">👤 Creator Info / ข้อมูลครีเอเตอร์</h3>
+        <div class="view-enter brand-identity-page">
+            <div class="flex-between mb-3 no-print">
+                <h2>🎨 Brand Identity / ข้อมูลแบรนด์และครีเอเตอร์</h2>
+                <button class="btn btn-primary" id="btnPrintBrand">🖨️ Print / Export PDF (A4)</button>
+            </div>
+
+            <!-- Printable A4 Container Grid -->
+            <div class="brand-a4-layout">
+                <!-- Left Column: Large Creator Portrait Photo -->
+                <div class="brand-left-col">
+                    <div class="card p-2 text-center brand-portrait-card">
+                        <div class="brand-portrait-wrapper" style="position:relative; width:100%; height:380px; background:#f8fafc; border:2px dashed #cbd5e1; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                            ${portraitPhoto 
+                                ? `<img src="${esc(portraitPhoto)}" style="width:100%; height:100%; object-fit:cover;" id="brandPortraitImg">` 
+                                : `<div class="text-muted" style="font-size:0.9rem;">📸 Click Upload Portrait Photo / รูปโปรไฟล์แนวตั้ง</div>`
+                            }
+                            <label class="btn btn-secondary btn-sm no-print" style="position:absolute; bottom:12px; right:12px; opacity:0.9; cursor:pointer; background:#ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                                📷 Upload Photo
+                                <input type="file" accept="image/*" id="inputBrandPortrait" style="display:none;">
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body brand-section-body p-3">
-                    <div class="dash-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Creator Name / ชื่อครีเอเตอร์</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="creatorName" value="${esc(brand.creatorName || '')}">
+
+                <!-- Right Column: Brand Info Details -->
+                <div class="brand-right-col">
+                    <!-- Creator Basic Info -->
+                    <div class="card mb-3">
+                        <div class="card-header brand-section-header">
+                            <h3 class="m-0">👤 Creator Info / ข้อมูลครีเอเตอร์</h3>
                         </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Handles / ชื่อบัญชี (เช่น @creator)</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="handles" value="${esc(brand.handles || '')}">
+                        <div class="card-body brand-section-body p-3">
+                            <div class="dash-grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Creator Name / ชื่อครีเอเตอร์</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="creatorName" value="${esc(brand.creatorName || '')}">
+                                </div>
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Handles / ชื่อบัญชี (เช่น @creator)</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="handles" value="${esc(brand.handles || '')}">
+                                </div>
+                                <div class="brand-field form-group" style="grid-column: span 2;">
+                                    <label class="form-label brand-field-label">Tagline / สโลแกนประจำช่อง</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="tagline" value="${esc(brand.tagline || '')}">
+                                </div>
+                            </div>
                         </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Tagline / สโลแกน</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="tagline" value="${esc(brand.tagline || '')}">
+                    </div>
+
+                    <!-- Tone of Voice -->
+                    <div class="card mb-3">
+                        <div class="card-header brand-section-header">
+                            <h3 class="m-0">🗣️ Tone of Voice / โทนการสื่อสาร</h3>
                         </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Profile Photo URL / ลิงก์รูปโปรไฟล์</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="profilePhotoUrl" value="${esc(brand.profilePhotoUrl || '')}">
+                        <div class="card-body brand-section-body p-3">
+                            <div class="dash-grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem;">
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Tone / น้ำเสียง</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="tone" value="${esc(brand.tone || '')}">
+                                </div>
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Style / สไตล์</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="style" value="${esc(brand.style || '')}">
+                                </div>
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Do's / สิ่งที่ควรทำ</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="dos" value="${esc(brand.dos || '')}">
+                                </div>
+                                <div class="brand-field form-group">
+                                    <label class="form-label brand-field-label">Don'ts / สิ่งที่ไม่ควรทำ</label>
+                                    <input type="text" class="form-input brand-field-value simple-field" data-field="donts" value="${esc(brand.donts || '')}">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="dash-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+            <!-- Second Row: Pillars & Brand Colors -->
+            <div class="dash-grid mb-3" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
                 <!-- Content Pillars -->
                 <div class="card">
                     <div class="card-header brand-section-header flex-between">
                         <h3 class="m-0">📌 Content Pillars / แกนคอนเทนต์</h3>
-                        <button class="btn btn-sm btn-secondary" id="btnAddPillar">+ Add</button>
+                        <button class="btn btn-sm btn-secondary no-print" id="btnAddPillar">+ Add</button>
                     </div>
                     <div class="card-body brand-section-body p-3" id="pillarsList">
                         ${pillars.map((p, i) => `
-                            <div class="flex-between mb-2" style="gap:0.5rem; align-items:flex-start;">
+                            <div class="flex-between mb-2 brand-hover-row" style="gap:0.5rem; align-items:flex-start;">
                                 <div style="flex:1;">
                                     <input type="text" class="form-input mb-1 pillar-name" placeholder="Pillar Name" data-index="${i}" value="${esc(p.name || '')}">
                                     <input type="text" class="form-input pillar-desc" placeholder="Description" data-index="${i}" value="${esc(p.desc || '')}">
                                 </div>
-                                <button class="btn btn-sm btn-danger btnDelPillar" data-index="${i}">X</button>
+                                <button class="btn btn-sm btn-danger btnDelPillar hover-show-btn no-print" data-index="${i}" title="Delete">X</button>
                             </div>
                         `).join('')}
                     </div>
@@ -67,60 +120,34 @@ export function renderBrand(container, store) {
                 <div class="card">
                     <div class="card-header brand-section-header flex-between">
                         <h3 class="m-0">🎨 Brand Colors / สีประจำแบรนด์</h3>
-                        <button class="btn btn-sm btn-secondary" id="btnAddColor">+ Add</button>
+                        <button class="btn btn-sm btn-secondary no-print" id="btnAddColor">+ Add</button>
                     </div>
                     <div class="card-body brand-section-body p-3" id="colorsList">
                         ${colors.map((c, i) => `
-                            <div class="flex-between mb-2" style="gap:0.5rem; align-items:center;">
+                            <div class="flex-between mb-2 brand-hover-row" style="gap:0.5rem; align-items:center;">
                                 <input type="color" class="color-picker" data-index="${i}" value="${esc(c.hex || '#6366F1')}" style="width:40px; height:36px; padding:2px; cursor:pointer; border:1px solid #cbd5e1; border-radius:4px;">
                                 <input type="text" class="form-input color-name" style="flex:1;" placeholder="Color Name" data-index="${i}" value="${esc(c.name || '')}">
                                 <input type="text" class="form-input color-hex" style="width:95px; font-family:monospace;" placeholder="#HEX" data-index="${i}" value="${esc(c.hex || '')}">
-                                <button class="btn btn-sm btn-danger btnDelColor" data-index="${i}">X</button>
+                                <button class="btn btn-sm btn-danger btnDelColor hover-show-btn no-print" data-index="${i}" title="Delete">X</button>
                             </div>
                         `).join('')}
                     </div>
                 </div>
             </div>
 
-            <!-- Tone of Voice -->
-            <div class="card mb-4">
-                <div class="card-header brand-section-header">
-                    <h3 class="m-0">🗣️ Tone of Voice / โทนการสื่อสาร</h3>
-                </div>
-                <div class="card-body brand-section-body p-3">
-                    <div class="dash-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Tone / น้ำเสียง</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="tone" value="${esc(brand.tone || '')}">
-                        </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Style / สไตล์</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="style" value="${esc(brand.style || '')}">
-                        </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Do's / สิ่งที่ควรทำ</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="dos" value="${esc(brand.dos || '')}">
-                        </div>
-                        <div class="brand-field form-group">
-                            <label class="form-label brand-field-label">Don'ts / สิ่งที่ไม่ควรทำ</label>
-                            <input type="text" class="form-input brand-field-value simple-field" data-field="donts" value="${esc(brand.donts || '')}">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dash-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+            <!-- Third Row: Audience & Stats -->
+            <div class="dash-grid mb-3" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
                 <!-- Target Audience -->
                 <div class="card">
                     <div class="card-header brand-section-header flex-between">
                         <h3 class="m-0">🎯 Target Audience / กลุ่มเป้าหมาย</h3>
-                        <button class="btn btn-sm btn-secondary" id="btnAddAudience">+ Add</button>
+                        <button class="btn btn-sm btn-secondary no-print" id="btnAddAudience">+ Add</button>
                     </div>
                     <div class="card-body brand-section-body p-3" id="audienceList">
                         ${audiences.map((a, i) => `
-                            <div class="flex-between mb-2" style="gap:0.5rem;">
+                            <div class="flex-between mb-2 brand-hover-row" style="gap:0.5rem;">
                                 <input type="text" class="form-input audience-val" style="flex:1;" placeholder="Audience segment" data-index="${i}" value="${esc(a)}">
-                                <button class="btn btn-sm btn-danger btnDelAudience" data-index="${i}">X</button>
+                                <button class="btn btn-sm btn-danger btnDelAudience hover-show-btn no-print" data-index="${i}" title="Delete">X</button>
                             </div>
                         `).join('')}
                     </div>
@@ -132,7 +159,7 @@ export function renderBrand(container, store) {
                         <h3 class="m-0">📊 Media Kit Stats / สถิติสำหรับเสนอสปอนเซอร์</h3>
                     </div>
                     <div class="card-body brand-section-body p-3">
-                        <div class="dash-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="dash-grid" style="grid-template-columns: 1fr 1fr; gap: 0.8rem;">
                             <div class="form-group">
                                 <label class="form-label">Total Followers / ยอดติดตามรวม</label>
                                 <input type="number" class="form-input simple-field" data-field="totalFollowers" value="${esc(brand.totalFollowers || '')}">
@@ -162,7 +189,7 @@ export function renderBrand(container, store) {
             <div class="card mb-4">
                 <div class="card-header brand-section-header flex-between">
                     <h3 class="m-0">🔗 Channel Links / ช่องทางโซเชียลมีเดีย</h3>
-                    <button class="btn btn-sm btn-secondary" id="btnAddLink">+ Add</button>
+                    <button class="btn btn-sm btn-secondary no-print" id="btnAddLink">+ Add</button>
                 </div>
                 <div class="card-body brand-section-body p-3" style="overflow-x:auto;">
                     <table style="width:100%; border-collapse:collapse; min-width:600px;">
@@ -172,17 +199,17 @@ export function renderBrand(container, store) {
                                 <th class="p-2" style="width: 150px;">Handle</th>
                                 <th class="p-2">URL</th>
                                 <th class="p-2" style="width: 120px;">Followers</th>
-                                <th class="p-2" style="width: 50px;"></th>
+                                <th class="p-2 no-print" style="width: 50px;"></th>
                             </tr>
                         </thead>
                         <tbody id="linksList">
                             ${links.map((l, i) => `
-                                <tr>
+                                <tr class="brand-hover-row">
                                     <td class="p-1"><input type="text" class="form-input link-platform" placeholder="e.g. TikTok" data-index="${i}" value="${esc(l.platform || '')}"></td>
                                     <td class="p-1"><input type="text" class="form-input link-handle" placeholder="@handle" data-index="${i}" value="${esc(l.handle || '')}"></td>
                                     <td class="p-1"><input type="text" class="form-input link-url" placeholder="https://..." data-index="${i}" value="${esc(l.url || '')}"></td>
                                     <td class="p-1"><input type="number" class="form-input link-followers" placeholder="Number" data-index="${i}" value="${esc(l.followers || '')}"></td>
-                                    <td class="p-1"><button class="btn btn-sm btn-danger btnDelLink" data-index="${i}">X</button></td>
+                                    <td class="p-1 no-print"><button class="btn btn-sm btn-danger btnDelLink hover-show-btn" data-index="${i}">X</button></td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -192,6 +219,25 @@ export function renderBrand(container, store) {
         </div>
     `;
 
+    // 0. Print Handler
+    container.querySelector('#btnPrintBrand').addEventListener('click', () => {
+        window.print();
+    });
+
+    // 0.1 Upload Portrait Photo Handler
+    container.querySelector('#inputBrandPortrait').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const dataUrl = await resizeImageFile(file, 600); // 600px high quality portrait
+            store.updateBrand('portraitPhotoUrl', dataUrl);
+            showToast('Portrait photo updated! 📷', 'success');
+            renderBrand(container, store);
+        } catch (err) {
+            showToast('Upload failed: ' + err.message, 'error');
+        }
+    });
+
     // 1. Simple fields
     container.querySelectorAll('.simple-field').forEach(el => {
         el.addEventListener('input', (e) => {
@@ -200,7 +246,7 @@ export function renderBrand(container, store) {
     });
 
     // 2. Pillars Array Logic
-    const getPillars = () => Array.from(container.querySelectorAll('#pillarsList .flex-between')).map((_, i) => ({
+    const getPillars = () => Array.from(container.querySelectorAll('#pillarsList .brand-hover-row')).map((_, i) => ({
         name: container.querySelector(`.pillar-name[data-index="${i}"]`).value,
         desc: container.querySelector(`.pillar-desc[data-index="${i}"]`).value
     }));
@@ -221,8 +267,8 @@ export function renderBrand(container, store) {
         renderBrand(container, store);
     }));
 
-    // 3. Colors Array Logic (With Interactive Color Picker)
-    const getColors = () => Array.from(container.querySelectorAll('#colorsList .flex-between')).map((_, i) => ({
+    // 3. Colors Array Logic
+    const getColors = () => Array.from(container.querySelectorAll('#colorsList .brand-hover-row')).map((_, i) => ({
         name: container.querySelector(`.color-name[data-index="${i}"]`).value,
         hex: container.querySelector(`.color-hex[data-index="${i}"]`).value
     }));
@@ -237,7 +283,6 @@ export function renderBrand(container, store) {
     
     container.querySelectorAll('.color-name').forEach(el => el.addEventListener('input', updateColors));
 
-    // Sync input[type=color] with input[type=text] for HEX
     container.querySelectorAll('.color-picker').forEach(el => {
         el.addEventListener('input', (e) => {
             const idx = e.target.dataset.index;
