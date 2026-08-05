@@ -5,19 +5,34 @@ export function render(container, store) {
     renderBrand(container, store);
 }
 
+const DEFAULT_FIXED_COLORS = [
+    { name: 'Primary', hex: '#6366F1' },
+    { name: 'Secondary', hex: '#1E293B' },
+    { name: 'Accent', hex: '#F97316' },
+    { name: 'Success', hex: '#22C55E' },
+    { name: 'Neutral', hex: '#64748B' },
+    { name: 'Background', hex: '#F8FAFC' }
+];
+
 export function renderBrand(container, store) {
     const brand = store.getBrand() || {};
     
-    // Arrays fallbacks
+    // Fallbacks & Ensure exactly 6 colors fixed
     const pillars = Array.isArray(brand.pillars) ? brand.pillars : [];
-    const colors = Array.isArray(brand.colors) ? brand.colors : [];
+    let colors = Array.isArray(brand.colors) && brand.colors.length > 0 ? brand.colors : DEFAULT_FIXED_COLORS;
+    if (colors.length < 6) {
+        colors = [...colors, ...DEFAULT_FIXED_COLORS.slice(colors.length)];
+    } else if (colors.length > 6) {
+        colors = colors.slice(0, 6);
+    }
+
     const audiences = Array.isArray(brand.targetAudience) ? brand.targetAudience : [];
     const links = Array.isArray(brand.channelLinks) ? brand.channelLinks : [];
     const moodboard = Array.isArray(brand.moodboardPhotos) ? brand.moodboardPhotos : ['', '', ''];
 
     const portraitPhoto = brand.portraitPhotoUrl || '';
-    const primaryColor = (colors[0] && colors[0].hex) ? colors[0].hex : '#6366F1';
-    const secondaryColor = (colors[1] && colors[1].hex) ? colors[1].hex : '#1E293B';
+    const primaryColor = colors[0].hex || '#6366F1';
+    const secondaryColor = colors[1].hex || '#1E293B';
 
     container.innerHTML = `
         <div class="view-enter brand-board-page">
@@ -46,11 +61,11 @@ export function renderBrand(container, store) {
                     </div>
                 </div>
 
-                <!-- Section 1: Top 2-Column Grid (Left: Portrait + Tone, Right: Creator Profile + Circles) -->
+                <!-- Section 1: Top 2-Column Grid (Left: Portrait + Tone, Right: Creator Profile + Rectangular Colors) -->
                 <div class="print-grid-top mb-3">
                     <!-- Left: Portrait Photo Card -->
                     <div class="card p-2 text-center brand-portrait-card">
-                        <div class="brand-portrait-wrapper" style="position:relative; width:100%; height:180px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                        <div class="brand-portrait-wrapper" style="position:relative; width:100%; height:190px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center;">
                             ${portraitPhoto 
                                 ? `<img src="${esc(portraitPhoto)}" style="width:100%; height:100%; object-fit:cover;" id="brandPortraitImg">` 
                                 : `<div class="text-muted" style="font-size:0.8rem;">📸 Portrait Photo</div>`
@@ -62,7 +77,7 @@ export function renderBrand(container, store) {
                         </div>
                     </div>
 
-                    <!-- Right: Creator Info + Tone + Circle Palette -->
+                    <!-- Right: Creator Info + Rectangular 6-Color Palette Grid -->
                     <div class="card p-3 flex-column justify-between">
                         <!-- Profile & Tone -->
                         <div class="mb-2">
@@ -77,21 +92,19 @@ export function renderBrand(container, store) {
                             </div>
                         </div>
 
-                        <!-- Circle Colors Row -->
+                        <!-- Fixed 6-Color Palette Grid (Rectangular Swatches + Left Names) -->
                         <div>
-                            <div class="flex-between mb-1" style="border-bottom:1px solid #e2e8f0; padding-bottom:3px;">
-                                <h4 class="section-subheading m-0" style="color:${primaryColor}; font-size:0.9rem;">🎨 Color Palette</h4>
-                                <button class="btn btn-sm btn-secondary no-print" id="btnAddColor" style="padding:1px 6px; font-size:0.75rem;">+ Add</button>
-                            </div>
-                            <div class="circle-palette-container" id="colorsList" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start; margin-top:4px;">
+                            <h4 class="section-subheading m-0 mb-2" style="color:${primaryColor}; font-size:0.9rem; border-bottom:1px solid #e2e8f0; padding-bottom:3px;">🎨 Brand Color Palette (Fixed 6 Colors)</h4>
+                            <div class="color-rect-grid" id="colorsList" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px 12px; margin-top:6px;">
                                 ${colors.map((c, i) => `
-                                    <div class="circle-color-item text-center brand-hover-row" style="position:relative;">
-                                        <div class="circle-color-swatch" style="width:38px; height:38px; border-radius:50%; background:${esc(c.hex || '#6366F1')}; margin:0 auto 2px auto; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.12); position:relative; overflow:hidden;">
+                                    <div class="color-rect-item" style="display:flex; align-items:center; gap:8px; background:#f8fafc; padding:4px 8px; border-radius:6px; border:1px solid #e2e8f0;">
+                                        <div class="color-rect-swatch" style="width:36px; height:24px; border-radius:4px; background:${esc(c.hex || '#6366F1')}; border:1px solid rgba(0,0,0,0.15); cursor:pointer; position:relative; overflow:hidden; flex-shrink:0;">
                                             <input type="color" class="color-picker" data-index="${i}" value="${esc(c.hex || '#6366F1')}" style="position:absolute; top:-10px; left:-10px; width:60px; height:60px; cursor:pointer; opacity:0;">
                                         </div>
-                                        <input type="text" class="form-input color-name text-center" style="font-size:0.75rem; font-weight:600; padding:0; border:none; background:transparent;" data-index="${i}" value="${esc(c.name || '')}">
-                                        <input type="text" class="form-input color-hex text-center text-muted" style="font-size:0.68rem; font-family:monospace; padding:0; border:none; background:transparent;" data-index="${i}" value="${esc(c.hex || '')}">
-                                        <button class="btn btn-sm btn-danger btnDelColor hover-show-btn no-print" data-index="${i}" style="position:absolute; top:-4px; right:-4px; padding:0 3px; font-size:0.6rem; border-radius:50%;">✕</button>
+                                        <div style="flex:1; overflow:hidden;">
+                                            <input type="text" class="form-input color-name" style="font-size:0.75rem; font-weight:700; padding:0; border:none; background:transparent; line-height:1.1; width:100%;" data-index="${i}" value="${esc(c.name || '')}">
+                                            <input type="text" class="form-input color-hex text-muted" style="font-size:0.68rem; font-family:monospace; padding:0; border:none; background:transparent; line-height:1.1; width:100%;" data-index="${i}" value="${esc(c.hex || '')}">
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -280,19 +293,12 @@ export function renderBrand(container, store) {
         renderBrand(container, store);
     }));
 
-    // 3. Colors Array Logic
-    const getColors = () => Array.from(container.querySelectorAll('#colorsList .circle-color-item')).map((_, i) => ({
+    // 3. Colors Array Logic (Fixed 6 Colors Input Handlers)
+    const getColors = () => Array.from(container.querySelectorAll('#colorsList .color-rect-item')).map((_, i) => ({
         name: container.querySelector(`.color-name[data-index="${i}"]`).value,
         hex: container.querySelector(`.color-hex[data-index="${i}"]`).value
     }));
     const updateColors = () => store.updateBrand('colors', getColors());
-
-    container.querySelector('#btnAddColor').addEventListener('click', () => {
-        const c = getColors();
-        c.push({ name: 'Accent', hex: '#F97316' });
-        store.updateBrand('colors', c);
-        renderBrand(container, store);
-    });
     
     container.querySelectorAll('.color-name').forEach(el => el.addEventListener('input', updateColors));
 
@@ -300,7 +306,7 @@ export function renderBrand(container, store) {
         el.addEventListener('input', (e) => {
             const idx = e.target.dataset.index;
             const hexInput = container.querySelector(`.color-hex[data-index="${idx}"]`);
-            const swatch = e.target.closest('.circle-color-swatch');
+            const swatch = e.target.closest('.color-rect-swatch');
             if (hexInput) hexInput.value = e.target.value.toUpperCase();
             if (swatch) swatch.style.background = e.target.value;
             updateColors();
@@ -311,7 +317,7 @@ export function renderBrand(container, store) {
         el.addEventListener('input', (e) => {
             const idx = e.target.dataset.index;
             const picker = container.querySelector(`.color-picker[data-index="${idx}"]`);
-            const swatch = e.target.closest('.circle-color-item').querySelector('.circle-color-swatch');
+            const swatch = e.target.closest('.color-rect-item').querySelector('.color-rect-swatch');
             if (picker && /^#[0-9A-F]{6}$/i.test(e.target.value)) {
                 picker.value = e.target.value;
                 if (swatch) swatch.style.background = e.target.value;
@@ -319,14 +325,6 @@ export function renderBrand(container, store) {
             updateColors();
         });
     });
-
-    container.querySelectorAll('.btnDelColor').forEach(el => el.addEventListener('click', (e) => {
-        const idx = parseInt(e.target.dataset.index);
-        const c = getColors();
-        c.splice(idx, 1);
-        store.updateBrand('colors', c);
-        renderBrand(container, store);
-    }));
 
     // 4. Target Audience Array Logic
     const getAudience = () => Array.from(container.querySelectorAll('.audience-val')).map(el => el.value);

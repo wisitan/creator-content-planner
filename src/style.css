@@ -745,13 +745,19 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     color: #0f172a !important;
   }
 
-  .circle-color-swatch {
-    border: 1.5px solid #94a3b8 !important;
+  .color-rect-swatch {
+    border: 1px solid #94a3b8 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  .pillar-box, .stat-mini-box {
+  .color-rect-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px 10px !important;
+  }
+
+  .pillar-box, .stat-mini-box, .color-rect-item {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -760,30 +766,8 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-
-  .circle-palette-container {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 16px !important;
-    justify-content: flex-start !important;
-    align-items: center !important;
-    margin-top: 6px !important;
-  }
-
-  .circle-color-item {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    width: auto !important;
-  }
-
-  .circle-color-swatch {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-  }
 }
+
 
 
 
