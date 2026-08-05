@@ -184,7 +184,7 @@ export function EditableTable(container, config) {
 
     const val = row[col.key] ?? '';
 
-    if (!col.editable && col.type === 'text') {
+    if (col.readOnly || col.editable === false) {
       return `<span class="cell-readonly">${esc(val)}</span>`;
     }
 
