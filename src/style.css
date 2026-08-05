@@ -663,15 +663,23 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 .hidden { display: none !important; }
 
 /* ── 24. Brand Guidelines Board & Multi-page Print CSS ── */
-.brand-grid-top {
+.print-grid-top {
   display: grid;
-  grid-template-columns: 200px 1fr 220px;
+  grid-template-columns: 200px 1fr;
   gap: 12px;
 }
 
 @media (max-width: 900px) {
-  .brand-grid-top {
+  .print-grid-top {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .print-grid-top {
+    display: grid !important;
+    grid-template-columns: 180px 1fr !important;
+    gap: 10px !important;
   }
 }
 
