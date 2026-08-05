@@ -1,5 +1,6 @@
 /* ──────────────────────────────────────────
-   Reusable Editable Table Component (With Drag-to-Reorder Columns, Excel-Style Filtering, Modal Script Editor & Image Upload)
+   Reusable Editable Table Component 
+   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Drag Columns & Modal Editor)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
 import { showModal } from './modal.js';
@@ -19,6 +20,7 @@ export function EditableTable(container, config) {
   let sortCol = null;
   let sortAsc = true;
   let columnFilters = {}; // { colKey: [selectedValues] }
+  let selectedRowIds = new Set();
   let activeFilterMenu = null;
 
   function getFilteredData() {
@@ -75,6 +77,7 @@ export function EditableTable(container, config) {
   function render() {
     const filtered = getFilteredData();
     const hasActiveFilters = Object.values(columnFilters).some(arr => arr && arr.length > 0);
+    const selectedCount = selectedRowIds.size;
 
     container.innerHTML = '';
 
@@ -85,9 +88,14 @@ export function EditableTable(container, config) {
       <div class="search-box">
         <input type="text" placeholder="Search... ค้นหา" value="${esc(searchTerm)}" id="etable-search">
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${selectedCount > 0 && onDelete ? `
+          <button class="btn btn-danger btn-sm" id="btn-batch-delete">
+            🗑️ Delete Selected (${selectedCount})
+          </button>
+        ` : ''}
         ${hasActiveFilters ? `<button class="btn btn-secondary btn-sm" id="btn-clear-table-filters">🧹 Clear Filters (${Object.keys(columnFilters).length})</button>` : ''}
-        <span class="text-muted" style="font-size:.8rem;">${filtered.length} of ${data.length} items (กดปุ่ม 🔽 ที่หัวข้อเพื่อเลือก Filter แบบ Excel)</span>
+        <span class="text-muted" style="font-size:.8rem;">${filtered.length} of ${data.length} items</span>
         ${onAdd ? `<button class="btn btn-primary btn-sm" id="etable-add">${addLabel}</button>` : ''}
       </div>
     `;
@@ -109,6 +117,16 @@ export function EditableTable(container, config) {
     const wrapper = document.createElement('div');
     wrapper.className = 'table-wrapper';
     let html = '<table class="etable"><thead><tr>';
+
+    // Checkbox All Header Column
+    if (onDelete) {
+      const allFilteredSelected = filtered.length > 0 && filtered.every(r => selectedRowIds.has(String(r[idField])));
+      html += `
+        <th style="width:36px; text-align:center;">
+          <input type="checkbox" id="cb-select-all" ${allFilteredSelected ? 'checked' : ''} title="Select All / Deselect All">
+        </th>
+      `;
+    }
 
     // Headers with Filter Button
     columns.forEach((col, idx) => {
@@ -134,17 +152,29 @@ export function EditableTable(container, config) {
 
     // Rows
     if (filtered.length === 0) {
-      html += `<tr><td colspan="${columns.length + 1}" class="text-center text-muted p-3">ไม่พบข้อมูลที่ตรงกับตัวกรอง Filter</td></tr>`;
+      html += `<tr><td colspan="${columns.length + (onDelete ? 2 : 0)}" class="text-center text-muted p-3">ไม่พบข้อมูลที่ตรงกับตัวกรอง Filter</td></tr>`;
     } else {
       filtered.forEach(row => {
-        html += `<tr data-id="${esc(row[idField])}">`;
+        const rowIdStr = String(row[idField]);
+        const isChecked = selectedRowIds.has(rowIdStr);
+        html += `<tr data-id="${esc(rowIdStr)}" class="${isChecked ? 'row-selected' : ''}">`;
+        
+        if (onDelete) {
+          html += `
+            <td style="text-align:center;">
+              <input type="checkbox" class="cb-row-select" data-id="${esc(rowIdStr)}" ${isChecked ? 'checked' : ''}>
+            </td>
+          `;
+        }
+
         columns.forEach(col => {
           html += '<td>';
           html += renderCell(row, col);
           html += '</td>';
         });
+
         if (onDelete) {
-          html += `<td class="row-actions"><button class="btn-delete-row" data-action="delete" title="Delete">🗑️</button></td>`;
+          html += `<td class="row-actions"><button class="btn-delete-row" data-action="delete" title="Delete row">🗑️</button></td>`;
         }
         html += '</tr>';
       });
@@ -268,7 +298,6 @@ export function EditableTable(container, config) {
     document.body.appendChild(menu);
     activeFilterMenu = menu;
 
-    // Filter Search
     const searchInput = menu.querySelector('.filter-search-input');
     searchInput.addEventListener('input', (e) => {
       const q = e.target.value.toLowerCase();
@@ -278,7 +307,6 @@ export function EditableTable(container, config) {
       });
     });
 
-    // Select/Clear All
     menu.querySelector('.btn-select-all').addEventListener('click', () => {
       menu.querySelectorAll('.filter-cb').forEach(cb => cb.checked = true);
     });
@@ -286,7 +314,6 @@ export function EditableTable(container, config) {
       menu.querySelectorAll('.filter-cb').forEach(cb => cb.checked = false);
     });
 
-    // Apply
     menu.querySelector('.btn-apply-filter').addEventListener('click', () => {
       const checkedVals = Array.from(menu.querySelectorAll('.filter-cb:checked')).map(cb => cb.value);
       if (checkedVals.length === uniqueVals.length) {
@@ -298,14 +325,12 @@ export function EditableTable(container, config) {
       render();
     });
 
-    // Reset
     menu.querySelector('.btn-reset-filter').addEventListener('click', () => {
       delete columnFilters[colKey];
       closeExcelFilterMenu();
       render();
     });
 
-    // Click outside to close
     setTimeout(() => {
       document.addEventListener('click', handleOutsideClick);
     }, 50);
@@ -344,12 +369,55 @@ export function EditableTable(container, config) {
       });
     }
 
+    // Batch Delete Button
+    const btnBatchDelete = container.querySelector('#btn-batch-delete');
+    if (btnBatchDelete && onDelete) {
+      btnBatchDelete.addEventListener('click', () => {
+        const count = selectedRowIds.size;
+        if (confirm(`Delete ${count} selected items? คุณแน่ใจหรือไม่ว่าต้องการลบทั้ง ${count} รายการที่เลือก?`)) {
+          selectedRowIds.forEach(id => {
+            onDelete(id);
+          });
+          selectedRowIds.clear();
+          showToast(`Deleted ${count} items successfully! 🗑️✅`, 'success');
+          render();
+        }
+      });
+    }
+
+    // Select All Checkbox Handler
+    const cbSelectAll = container.querySelector('#cb-select-all');
+    if (cbSelectAll) {
+      cbSelectAll.addEventListener('change', (e) => {
+        const filtered = getFilteredData();
+        if (e.target.checked) {
+          filtered.forEach(r => selectedRowIds.add(String(r[idField])));
+        } else {
+          filtered.forEach(r => selectedRowIds.delete(String(r[idField])));
+        }
+        render();
+      });
+    }
+
+    // Individual Row Checkbox Handler
+    container.querySelectorAll('.cb-row-select').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const rowId = e.target.dataset.id;
+        if (e.target.checked) {
+          selectedRowIds.add(rowId);
+        } else {
+          selectedRowIds.delete(rowId);
+        }
+        render();
+      });
+    });
+
     // Add buttons
     const handleAdd = () => {
       if (onAdd) {
         onAdd();
-        render();
         showToast('Added new item! ➕', 'success');
+        render();
       }
     };
     const addBtn = container.querySelector('#etable-add');
@@ -396,7 +464,6 @@ export function EditableTable(container, config) {
         draggedColIdx = null;
       });
 
-      // Header click sorting (Clicking on header text)
       th.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-col-filter') || e.target.closest('.btn-col-filter')) return;
         const key = th.dataset.sort;
@@ -411,12 +478,13 @@ export function EditableTable(container, config) {
       });
     });
 
-    // Inputs & Edits
+    // Table Body Inputs & Delete Click Handlers
     const tbody = container.querySelector('tbody');
     if (!tbody) return;
 
     tbody.addEventListener('change', async (e) => {
       const target = e.target;
+      if (target.classList.contains('cb-row-select')) return; // Handled separately
 
       // Image upload
       if (target.classList.contains('input-table-img')) {
@@ -466,11 +534,13 @@ export function EditableTable(container, config) {
       const id = tr.dataset.id;
 
       if (btn.dataset.action === 'delete') {
-        if (confirm('Delete this row? ต้องการลบรายการนี้ใช่หรือไม่')) {
+        if (confirm(`Delete row ${id}? ต้องการลบรายการนี้ใช่หรือไม่`)) {
           if (onDelete) {
             onDelete(id);
+            selectedRowIds.delete(String(id));
+            tr.remove(); // Force immediate DOM removal guarantee
+            showToast(`Deleted ${id} successfully! 🗑️`, 'info');
             render();
-            showToast('Deleted row successfully! 🗑️', 'info');
           }
         }
         return;
@@ -522,4 +592,3 @@ export function contentTypeBadge(val) {
   if (val.includes('Sponsor')) return 'badge-purple';
   return 'badge-gray';
 }
-
