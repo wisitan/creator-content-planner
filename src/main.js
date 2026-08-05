@@ -6,6 +6,8 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
+const APP_VERSION = 'v1.2.0';
+
 // ── View modules ──
 import { renderDashboard } from './views/dashboard.js';
 import { renderProducts } from './views/products.js';
@@ -40,7 +42,7 @@ function buildShell() {
         <span class="logo-text">Content Planner</span>
       </div>
       <nav class="sidebar-nav" id="sidebar-nav"></nav>
-      <div class="sidebar-footer">v1.0 · Data saved locally</div>
+      <div class="sidebar-footer">${APP_VERSION} · Data saved locally</div>
     </aside>
     <header class="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard</div>
