@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────
-   Reusable Editable Table Component (With Drag-to-Reorder Columns, Modal Script Editor & Image Upload Thumbnail)
+   Reusable Editable Table Component (With Drag-to-Reorder Columns, Excel-Style Filtering, Modal Script Editor & Image Upload)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
 import { showModal } from './modal.js';
@@ -18,10 +18,13 @@ export function EditableTable(container, config) {
   let searchTerm = '';
   let sortCol = null;
   let sortAsc = true;
-  let draggedColIdx = null;
+  let columnFilters = {}; // { colKey: [selectedValues] }
+  let activeFilterMenu = null;
 
   function getFilteredData() {
     let filtered = [...data];
+
+    // 1. Global text search
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       filtered = filtered.filter(row =>
@@ -31,19 +34,47 @@ export function EditableTable(container, config) {
         })
       );
     }
+
+    // 2. Excel Column Filters
+    Object.keys(columnFilters).forEach(colKey => {
+      const selectedVals = columnFilters[colKey];
+      if (selectedVals && selectedVals.length > 0) {
+        const col = columns.find(c => c.key === colKey);
+        filtered = filtered.filter(row => {
+          const rawVal = col && col.compute ? col.compute(row) : (row[colKey] ?? '');
+          const strVal = String(rawVal === '' || rawVal === null ? '(Blanks)' : rawVal);
+          return selectedVals.includes(strVal);
+        });
+      }
+    });
+
+    // 3. Sorting
     if (sortCol) {
       filtered.sort((a, b) => {
-        const va = a[sortCol] ?? '';
-        const vb = b[sortCol] ?? '';
+        const col = columns.find(c => c.key === sortCol);
+        const va = col && col.compute ? col.compute(a) : (a[sortCol] ?? '');
+        const vb = col && col.compute ? col.compute(b) : (b[sortCol] ?? '');
         const cmp = String(va).localeCompare(String(vb), undefined, { numeric: true });
         return sortAsc ? cmp : -cmp;
       });
     }
+
     return filtered;
+  }
+
+  function getUniqueValuesForCol(colKey) {
+    const col = columns.find(c => c.key === colKey);
+    const set = new Set();
+    data.forEach(row => {
+      const rawVal = col && col.compute ? col.compute(row) : (row[colKey] ?? '');
+      set.add(String(rawVal === '' || rawVal === null ? '(Blanks)' : rawVal));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }
 
   function render() {
     const filtered = getFilteredData();
+    const hasActiveFilters = Object.values(columnFilters).some(arr => arr && arr.length > 0);
 
     container.innerHTML = '';
 
@@ -55,13 +86,14 @@ export function EditableTable(container, config) {
         <input type="text" placeholder="Search... ค้นหา" value="${esc(searchTerm)}" id="etable-search">
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span class="text-muted" style="font-size:.8rem;">${filtered.length} items (ลากหัวคอลัมน์เพื่อสลับลำดับได้)</span>
+        ${hasActiveFilters ? `<button class="btn btn-secondary btn-sm" id="btn-clear-table-filters">🧹 Clear Filters (${Object.keys(columnFilters).length})</button>` : ''}
+        <span class="text-muted" style="font-size:.8rem;">${filtered.length} of ${data.length} items (กดปุ่ม 🔽 ที่หัวข้อเพื่อเลือก Filter แบบ Excel)</span>
         ${onAdd ? `<button class="btn btn-primary btn-sm" id="etable-add">${addLabel}</button>` : ''}
       </div>
     `;
     container.appendChild(toolbar);
 
-    if (filtered.length === 0) {
+    if (filtered.length === 0 && data.length === 0) {
       container.innerHTML += `
         <div class="empty-state">
           <div class="empty-icon">${emptyIcon}</div>
@@ -73,33 +105,50 @@ export function EditableTable(container, config) {
       return;
     }
 
-    // Table
+    // Table Wrapper
     const wrapper = document.createElement('div');
     wrapper.className = 'table-wrapper';
     let html = '<table class="etable"><thead><tr>';
 
-    // Headers with draggable attribute
+    // Headers with Filter Button
     columns.forEach((col, idx) => {
       const w = col.width ? ` style="width:${col.width}"` : '';
+      const isFiltered = columnFilters[col.key] && columnFilters[col.key].length > 0;
+      const filterActiveStyle = isFiltered ? 'color:#10B981; font-weight:bold;' : '';
+      const filterIcon = isFiltered ? ' 🔻' : ' 🔽';
       const sortIcon = sortCol === col.key ? (sortAsc ? ' ▲' : ' ▼') : '';
-      html += `<th draggable="true" data-col-idx="${idx}" data-sort="${col.key}"${w} title="Drag to reorder column">${esc(col.label)}${sortIcon}</th>`;
+
+      html += `
+        <th draggable="true" data-col-idx="${idx}" data-sort="${col.key}"${w} title="Drag to reorder / Click to sort">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+            <span class="col-header-label">${esc(col.label)}${sortIcon}</span>
+            <button class="btn-col-filter" data-col-key="${col.key}" title="Filter column" style="background:transparent; border:none; cursor:pointer; font-size:0.75rem; ${filterActiveStyle}">
+              ${filterIcon}
+            </button>
+          </div>
+        </th>
+      `;
     });
     if (onDelete) html += '<th style="width:44px"></th>';
     html += '</tr></thead><tbody>';
 
     // Rows
-    filtered.forEach(row => {
-      html += `<tr data-id="${esc(row[idField])}">`;
-      columns.forEach(col => {
-        html += '<td>';
-        html += renderCell(row, col);
-        html += '</td>';
+    if (filtered.length === 0) {
+      html += `<tr><td colspan="${columns.length + 1}" class="text-center text-muted p-3">ไม่พบข้อมูลที่ตรงกับตัวกรอง Filter</td></tr>`;
+    } else {
+      filtered.forEach(row => {
+        html += `<tr data-id="${esc(row[idField])}">`;
+        columns.forEach(col => {
+          html += '<td>';
+          html += renderCell(row, col);
+          html += '</td>';
+        });
+        if (onDelete) {
+          html += `<td class="row-actions"><button class="btn-delete-row" data-action="delete" title="Delete">🗑️</button></td>`;
+        }
+        html += '</tr>';
       });
-      if (onDelete) {
-        html += `<td class="row-actions"><button class="btn-delete-row" data-action="delete" title="Delete">🗑️</button></td>`;
-      }
-      html += '</tr>';
-    });
+    }
 
     html += '</tbody></table>';
     wrapper.innerHTML = html;
@@ -109,112 +158,214 @@ export function EditableTable(container, config) {
   }
 
   function renderCell(row, col) {
-    const val = row[col.key] ?? '';
-    const editable = col.editable !== false;
-
-    // Computed / display-only
-    if (col.type === 'computed' && col.compute) {
-      return `<span class="text-muted">${esc(col.compute(row))}</span>`;
-    }
-
-    // Modal Script / Large Text Editor Trigger
     if (col.type === 'scriptModal') {
-      const preview = val ? val.slice(0, 30) + (val.length > 30 ? '...' : '') : '📝 Open Script / Edit Details';
-      const hasContentClass = val ? 'btn-primary' : 'btn-secondary';
-      return `<button class="btn ${hasContentClass} btn-sm btn-script-modal" data-field="${col.key}" style="width:100%; text-align:left; justify-content:flex-start; overflow:hidden;">📄 ${esc(preview)}</button>`;
+      const val = row[col.key] || '';
+      const preview = val.length > 25 ? val.slice(0, 25) + '...' : (val || '✏️ Edit Details / Script');
+      return `<button class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📜 ${esc(preview)}</button>`;
     }
 
-    // Image Upload & Thumbnail Cell
     if (col.type === 'image') {
-      const imgHtml = val 
-        ? `<img src="${esc(val)}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1;" title="Click upload to replace">` 
-        : `<div style="width:40px; height:40px; background:#f1f5f9; border:1px dashed #cbd5e1; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; color:#94a3b8;">No img</div>`;
+      const imgUrl = row[col.key] || '';
       return `
-        <div style="display:flex; align-items:center; gap:6px;">
-          ${imgHtml}
-          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.72rem; cursor:pointer;" title="Upload & Auto-resize Image">
-            🖼️ Upload
-            <input type="file" accept="image/*" class="img-upload-input" data-field="${col.key}" style="display:none;">
+        <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
+          ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1;">` : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`}
+          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo">
+            📷
+            <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" style="display:none;">
           </label>
         </div>
       `;
     }
 
-    if (!editable) {
-      return `<span>${esc(val)}</span>`;
+    if (col.compute) {
+      const val = col.compute(row);
+      return `<span class="cell-computed">${esc(val)}</span>`;
     }
 
-    // Dropdown
-    if (col.type === 'dropdown') {
-      const opts = typeof col.options === 'function' ? col.options() : (col.options || []);
-      const badgeObj = col.badge ? col.badge(val) : null;
-      const badgeClass = badgeObj ? badgeObj.class : '';
-      let h = `<select data-field="${col.key}" class="${badgeClass}">`;
-      h += `<option value="">—</option>`;
-      opts.forEach(o => {
-        h += `<option value="${esc(o)}"${o === val ? ' selected' : ''}>${esc(o)}</option>`;
+    const val = row[col.key] ?? '';
+
+    if (!col.editable && col.type === 'text') {
+      return `<span class="cell-readonly">${esc(val)}</span>`;
+    }
+
+    switch (col.type) {
+      case 'dropdown': {
+        const options = typeof col.options === 'function' ? col.options() : (col.options || []);
+        let optHtml = options.map(o => {
+          const selected = String(o) === String(val) ? ' selected' : '';
+          return `<option value="${esc(o)}"${selected}>${esc(o)}</option>`;
+        }).join('');
+        const badgeClass = col.badge ? col.badge(val) : '';
+        return `<select class="cell-input cell-select ${badgeClass}" data-field="${col.key}"><option value="">-- Select --</option>${optHtml}</select>`;
+      }
+      case 'textarea':
+        return `<textarea class="cell-input cell-textarea" data-field="${col.key}">${esc(val)}</textarea>`;
+      case 'number':
+        return `<input type="number" class="cell-input cell-number" data-field="${col.key}" value="${esc(val)}">`;
+      case 'date':
+        return `<input type="date" class="cell-input cell-date" data-field="${col.key}" value="${esc(val)}">`;
+      case 'url':
+        return `<input type="url" class="cell-input cell-url" placeholder="https://..." data-field="${col.key}" value="${esc(val)}">`;
+      case 'checkbox':
+        return `<input type="checkbox" class="cell-checkbox" data-field="${col.key}"${val ? ' checked' : ''}>`;
+      default:
+        return `<input type="text" class="cell-input cell-text" data-field="${col.key}" value="${esc(val)}">`;
+    }
+  }
+
+  function openExcelFilterMenu(colKey, anchorBtn) {
+    closeExcelFilterMenu();
+
+    const uniqueVals = getUniqueValuesForCol(colKey);
+    const selectedVals = columnFilters[colKey] || [];
+    const col = columns.find(c => c.key === colKey);
+
+    const menu = document.createElement('div');
+    menu.className = 'excel-filter-popup card p-2';
+    menu.style.cssText = `
+      position: absolute;
+      z-index: 1000;
+      width: 230px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    `;
+
+    const rect = anchorBtn.getBoundingClientRect();
+    menu.style.top = `${rect.bottom + window.scrollY + 4}px`;
+    menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`;
+
+    menu.innerHTML = `
+      <div class="mb-2 font-weight-700 text-muted" style="border-bottom:1px solid #e2e8f0; padding-bottom:4px; font-size:0.8rem;">
+        🔍 Filter: ${esc(col ? col.label : colKey)}
+      </div>
+      <div class="mb-2">
+        <input type="text" class="form-input p-1 filter-search-input" placeholder="Search values..." style="width:100%; font-size:0.8rem;">
+      </div>
+      <div class="flex-between mb-2" style="font-size:0.75rem;">
+        <button class="btn btn-sm btn-secondary btn-select-all" style="padding:1px 6px;">Select All</button>
+        <button class="btn btn-sm btn-secondary btn-clear-all" style="padding:1px 6px;">Clear All</button>
+      </div>
+      <div class="filter-options-list mb-2" style="max-height:160px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:4px; padding:4px;">
+        ${uniqueVals.map(v => {
+          const checked = selectedVals.length === 0 || selectedVals.includes(v) ? 'checked' : '';
+          return `
+            <label style="display:flex; align-items:center; gap:6px; padding:2px; cursor:pointer;" class="filter-opt-item">
+              <input type="checkbox" class="filter-cb" value="${esc(v)}" ${checked}>
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v)}</span>
+            </label>
+          `;
+        }).join('')}
+      </div>
+      <div class="flex-between" style="border-top:1px solid #e2e8f0; padding-top:6px;">
+        <button class="btn btn-primary btn-sm btn-apply-filter" style="flex:1; margin-right:4px;">Apply</button>
+        <button class="btn btn-secondary btn-sm btn-reset-filter" style="flex:1;">Reset</button>
+      </div>
+    `;
+
+    document.body.appendChild(menu);
+    activeFilterMenu = menu;
+
+    // Filter Search
+    const searchInput = menu.querySelector('.filter-search-input');
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      menu.querySelectorAll('.filter-opt-item').forEach(item => {
+        const txt = item.textContent.toLowerCase();
+        item.style.display = txt.includes(q) ? 'flex' : 'none';
       });
-      h += '</select>';
-      return h;
-    }
+    });
 
-    // Checkbox
-    if (col.type === 'checkbox') {
-      return `<input type="checkbox" data-field="${col.key}" ${val ? 'checked' : ''}>`;
-    }
+    // Select/Clear All
+    menu.querySelector('.btn-select-all').addEventListener('click', () => {
+      menu.querySelectorAll('.filter-cb').forEach(cb => cb.checked = true);
+    });
+    menu.querySelector('.btn-clear-all').addEventListener('click', () => {
+      menu.querySelectorAll('.filter-cb').forEach(cb => cb.checked = false);
+    });
 
-    // Date
-    if (col.type === 'date') {
-      return `<input type="date" data-field="${col.key}" value="${esc(val)}">`;
-    }
+    // Apply
+    menu.querySelector('.btn-apply-filter').addEventListener('click', () => {
+      const checkedVals = Array.from(menu.querySelectorAll('.filter-cb:checked')).map(cb => cb.value);
+      if (checkedVals.length === uniqueVals.length) {
+        delete columnFilters[colKey];
+      } else {
+        columnFilters[colKey] = checkedVals;
+      }
+      closeExcelFilterMenu();
+      render();
+    });
 
-    // Number
-    if (col.type === 'number') {
-      return `<input type="number" data-field="${col.key}" value="${esc(val)}" step="any">`;
-    }
+    // Reset
+    menu.querySelector('.btn-reset-filter').addEventListener('click', () => {
+      delete columnFilters[colKey];
+      closeExcelFilterMenu();
+      render();
+    });
 
-    // URL
-    if (col.type === 'url') {
-      return `<input type="url" data-field="${col.key}" value="${esc(val)}" placeholder="https://...">`;
-    }
+    // Click outside to close
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 50);
+  }
 
-    // Textarea
-    if (col.type === 'textarea') {
-      return `<textarea data-field="${col.key}" rows="1">${esc(val)}</textarea>`;
+  function handleOutsideClick(e) {
+    if (activeFilterMenu && !activeFilterMenu.contains(e.target) && !e.target.classList.contains('btn-col-filter')) {
+      closeExcelFilterMenu();
     }
+  }
 
-    // Default: text
-    return `<input type="text" data-field="${col.key}" value="${esc(val)}">`;
+  function closeExcelFilterMenu() {
+    if (activeFilterMenu) {
+      activeFilterMenu.remove();
+      activeFilterMenu = null;
+      document.removeEventListener('click', handleOutsideClick);
+    }
   }
 
   function wireEvents() {
     // Search
-    const searchInput = container.querySelector('#etable-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
+    const sInput = container.querySelector('#etable-search');
+    if (sInput) {
+      sInput.addEventListener('input', (e) => {
         searchTerm = e.target.value;
         render();
-        const newSearch = container.querySelector('#etable-search');
-        if (newSearch) { newSearch.focus(); newSearch.selectionStart = newSearch.selectionEnd = searchTerm.length; }
       });
     }
 
-    // Add
-    const addBtn = container.querySelector('#etable-add') || container.querySelector('#etable-add-empty');
-    if (addBtn && onAdd) {
-      addBtn.addEventListener('click', () => { onAdd(); render(); });
+    // Clear Filters
+    const btnClearFilters = container.querySelector('#btn-clear-table-filters');
+    if (btnClearFilters) {
+      btnClearFilters.addEventListener('click', () => {
+        columnFilters = {};
+        render();
+      });
     }
 
-    const table = container.querySelector('.etable');
-    if (!table) return;
+    // Add buttons
+    const addBtn = container.querySelector('#etable-add');
+    if (addBtn && onAdd) addBtn.addEventListener('click', onAdd);
+    const addEmptyBtn = container.querySelector('#etable-add-empty');
+    if (addEmptyBtn && onAdd) addEmptyBtn.addEventListener('click', onAdd);
 
-    // Header Drag & Drop Reordering Logic
-    const ths = table.querySelectorAll('th[draggable="true"]');
+    // Filter Buttons Click
+    container.querySelectorAll('.btn-col-filter').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const colKey = e.currentTarget.dataset.colKey;
+        openExcelFilterMenu(colKey, e.currentTarget);
+      });
+    });
+
+    // Column Drag & Drop Reordering
+    const ths = container.querySelectorAll('th[draggable="true"]');
     ths.forEach(th => {
       th.addEventListener('dragstart', (e) => {
-        draggedColIdx = parseInt(e.target.dataset.colIdx);
+        draggedColIdx = parseInt(th.dataset.colIdx);
         e.dataTransfer.effectAllowed = 'move';
-        th.style.opacity = '0.5';
+        th.classList.add('col-dragging');
       });
 
       th.addEventListener('dragover', (e) => {
@@ -224,173 +375,140 @@ export function EditableTable(container, config) {
 
       th.addEventListener('drop', (e) => {
         e.preventDefault();
-        const targetTh = e.target.closest('th');
-        if (!targetTh || targetTh.dataset.colIdx === undefined) return;
-        const targetColIdx = parseInt(targetTh.dataset.colIdx);
-        if (draggedColIdx !== null && draggedColIdx !== targetColIdx) {
+        const targetIdx = parseInt(th.dataset.colIdx);
+        if (draggedColIdx !== null && draggedColIdx !== targetIdx) {
           const movedCol = columns.splice(draggedColIdx, 1)[0];
-          columns.splice(targetColIdx, 0, movedCol);
+          columns.splice(targetIdx, 0, movedCol);
           render();
+          showToast('ลำดับคอลัมน์ถูกปรับเปลี่ยนเรียบร้อย 🔀', 'info');
         }
       });
 
-      th.addEventListener('dragend', (e) => {
-        th.style.opacity = '1';
+      th.addEventListener('dragend', () => {
+        th.classList.remove('col-dragging');
         draggedColIdx = null;
       });
 
-      // Header click for sorting (only if not dragging)
+      // Header click sorting (Clicking on header text)
       th.addEventListener('click', (e) => {
-        const col = th.dataset.sort;
-        if (!col) return;
-        if (sortCol === col) sortAsc = !sortAsc;
-        else { sortCol = col; sortAsc = true; }
+        if (e.target.classList.contains('btn-col-filter') || e.target.closest('.btn-col-filter')) return;
+        const key = th.dataset.sort;
+        if (sortCol === key) {
+          if (sortAsc) sortAsc = false;
+          else { sortCol = null; sortAsc = true; }
+        } else {
+          sortCol = key;
+          sortAsc = true;
+        }
         render();
       });
     });
 
-    // Input/select/textarea/image changes
-    const tbody = table.querySelector('tbody');
-    if (tbody) {
-      tbody.addEventListener('input', handleChange);
-      tbody.addEventListener('change', async (e) => {
-        // Image File Upload Handler
-        if (e.target.classList.contains('img-upload-input')) {
-          const file = e.target.files[0];
-          if (!file) return;
-          const tr = e.target.closest('tr');
-          const id = tr.dataset.id;
-          const field = e.target.dataset.field;
-          try {
-            const dataUrl = await resizeImageFile(file, 100);
-            if (onChange) onChange(id, field, dataUrl);
-            const row = data.find(item => item[idField] === id);
-            if (row) row[field] = dataUrl;
-            showToast('Image uploaded & auto-resized! 🖼️', 'success');
+    // Inputs & Edits
+    const tbody = container.querySelector('tbody');
+    if (!tbody) return;
+
+    tbody.addEventListener('change', async (e) => {
+      const target = e.target;
+
+      // Image upload
+      if (target.classList.contains('input-table-img')) {
+        const file = target.files[0];
+        if (!file) return;
+        const tr = target.closest('tr');
+        const id = tr.dataset.id;
+        const field = target.dataset.field;
+        try {
+          const dataUrl = await resizeImageFile(file, 200);
+          if (onChange) onChange(id, field, dataUrl);
+          showToast('Image uploaded! 📷', 'success');
+        } catch (err) {
+          showToast('Image upload failed: ' + err.message, 'error');
+        }
+        return;
+      }
+
+      const tr = target.closest('tr');
+      if (!tr) return;
+      const id = tr.dataset.id;
+      const field = target.dataset.field;
+      if (!field) return;
+
+      let value;
+      if (target.type === 'checkbox') {
+        value = target.checked;
+      } else {
+        value = target.value;
+      }
+
+      if (onChange) onChange(id, field, value);
+
+      if (target.tagName === 'SELECT') {
+        const col = columns.find(c => c.key === field);
+        if (col && col.badge) {
+          target.className = `cell-input cell-select ${col.badge(value)}`;
+        }
+      }
+    });
+
+    tbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const tr = btn.closest('tr');
+      if (!tr) return;
+      const id = tr.dataset.id;
+
+      if (btn.dataset.action === 'delete') {
+        if (confirm('Delete this row? ต้องการลบรายการนี้ใช่หรือไม่')) {
+          if (onDelete) onDelete(id);
+        }
+        return;
+      }
+
+      if (btn.classList.contains('btn-open-script')) {
+        const field = btn.dataset.field;
+        const rowData = data.find(r => String(r[idField]) === String(id));
+        const currentVal = rowData ? (rowData[field] || '') : '';
+
+        showModal({
+          title: `📜 Edit ${columns.find(c => c.key === field)?.label || 'Script & Content Details'} (${id})`,
+          bodyHtml: `
+            <div class="form-group mb-3">
+              <label class="form-label" style="font-weight:bold;">รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์อย่างละเอียด:</label>
+              <textarea id="modal-script-input" class="form-input" style="height:280px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentVal)}</textarea>
+            </div>
+          `,
+          confirmLabel: '💾 Save Script',
+          onConfirm: () => {
+            const newVal = document.getElementById('modal-script-input').value;
+            if (onChange) onChange(id, field, newVal);
+            showToast('Script & Content details saved! 📜✅', 'success');
             render();
-          } catch (err) {
-            showToast('Upload error: ' + err.message, 'error');
           }
-          return;
-        }
-
-        handleChange(e);
-        if (e.target.tagName === 'SELECT') {
-          render();
-        }
-      });
-
-      tbody.addEventListener('click', (e) => {
-        // Script / Details Modal Trigger
-        const btnScript = e.target.closest('.btn-script-modal');
-        if (btnScript) {
-          const tr = btnScript.closest('tr');
-          const id = tr.dataset.id;
-          const field = btnScript.dataset.field;
-          const row = data.find(item => item[idField] === id);
-          if (row) {
-            openScriptModal(row, field);
-          }
-          return;
-        }
-
-        // Delete
-        if (e.target.dataset.action === 'delete') {
-          const tr = e.target.closest('tr');
-          if (tr && onDelete) {
-            onDelete(tr.dataset.id);
-            render();
-          }
-        }
-      });
-    }
-  }
-
-  function openScriptModal(row, field) {
-    const bodyContent = document.createElement('div');
-    bodyContent.innerHTML = `
-      <div class="form-group mb-3">
-        <label class="form-label" style="font-weight:bold;">Hook / 1-3s Attention Grabber (ส่วนดึงดูดความสนใจ):</label>
-        <textarea class="form-textarea script-hook-input" placeholder="ใส่ข้อความเปิดคลิปสั้นๆ..." style="min-height:60px;">${esc(row.hook || '')}</textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" style="font-weight:bold;">Full Script / Outline & Content Details (เนื้อหา/บทพูดฉบับเต็ม):</label>
-        <textarea class="form-textarea script-full-input" placeholder="ใส่สคริปต์ บทพูด ลำดับฉาก หรือเนื้อหาแบบยาวๆ ได้ไม่จำกัด..." style="min-height:220px; line-height:1.6;"></textarea>
-      </div>
-    `;
-
-    bodyContent.querySelector('.script-full-input').value = row.script || '';
-
-    showModal({
-      title: `📝 Script & Content Editor — [${row.id || 'Content'}]`,
-      body: bodyContent,
-      confirmText: '💾 Save Script / บันทึก',
-      cancelText: 'Cancel',
-      onConfirm: (modalBody) => {
-        const newHook = modalBody.querySelector('.script-hook-input').value;
-        const newScript = modalBody.querySelector('.script-full-input').value;
-        
-        if (onChange) {
-          onChange(row[idField], 'hook', newHook);
-          onChange(row[idField], 'script', newScript);
-        }
-        row.hook = newHook;
-        row.script = newScript;
-        render();
+        });
       }
     });
   }
 
-  function handleChange(e) {
-    const el = e.target;
-    const field = el.dataset.field;
-    if (!field || !onChange) return;
-    const tr = el.closest('tr');
-    if (!tr) return;
-    const id = tr.dataset.id;
-    let value;
-    if (el.type === 'checkbox') value = el.checked;
-    else if (el.type === 'number') value = el.value;
-    else value = el.value;
-    onChange(id, field, value);
-  }
-
-  // Initial render
   render();
-
-  return { render };
 }
 
-/** Helper: get badge class for content type */
-export function contentTypeBadge(val) {
-  const map = {
-    '🛒 Affiliate':     { class: 'badge-affiliate' },
-    '🎯 Personal Brand': { class: 'badge-branding' },
-    '📚 Knowledge':      { class: 'badge-knowledge' },
-    '🤝 Sponsor':        { class: 'badge-sponsor' },
-  };
-  return map[val] || null;
-}
-
-/** Helper: get badge class for content status */
+// ── Badge Helpers ──
 export function statusBadge(val) {
-  const map = {
-    '💡 Idea':        { class: 'badge-idea' },
-    '✍️ Scripting':   { class: 'badge-scripting' },
-    '🎬 Filming':     { class: 'badge-filming' },
-    '✂️ Editing':     { class: 'badge-editing' },
-    '✅ Ready':       { class: 'badge-ready' },
-    '📤 Published':   { class: 'badge-published' },
-    '❌ Cancelled':   { class: 'badge-cancelled' },
-    'To Review':     { class: 'badge-pending' },
-    'Approved':      { class: 'badge-scripting' },
-    'Active':        { class: 'badge-active' },
-    'Paused':        { class: 'badge-paused' },
-    'Done':          { class: 'badge-done' },
-    'Pending':       { class: 'badge-pending' },
-    'Invoiced':      { class: 'badge-scripting' },
-    'Paid':          { class: 'badge-published' },
-    'Cancelled':     { class: 'badge-cancelled' },
-  };
-  return map[val] || null;
+  if (!val) return '';
+  if (val.includes('Published') || val.includes('Active') || val.includes('Paid') || val.includes('Approved')) return 'badge-green';
+  if (val.includes('Scripting') || val.includes('Filming') || val.includes('Editing') || val.includes('Ready') || val.includes('Invoiced')) return 'badge-blue';
+  if (val.includes('Idea') || val.includes('To Review') || val.includes('Pending')) return 'badge-yellow';
+  if (val.includes('Cancelled') || val.includes('Paused')) return 'badge-red';
+  return 'badge-gray';
 }
+
+export function contentTypeBadge(val) {
+  if (!val) return '';
+  if (val.includes('Affiliate')) return 'badge-orange';
+  if (val.includes('Personal')) return 'badge-blue';
+  if (val.includes('Knowledge')) return 'badge-green';
+  if (val.includes('Sponsor')) return 'badge-purple';
+  return 'badge-gray';
+}
+
