@@ -345,10 +345,17 @@ export function EditableTable(container, config) {
     }
 
     // Add buttons
+    const handleAdd = () => {
+      if (onAdd) {
+        onAdd();
+        render();
+        showToast('Added new item! ➕', 'success');
+      }
+    };
     const addBtn = container.querySelector('#etable-add');
-    if (addBtn && onAdd) addBtn.addEventListener('click', onAdd);
+    if (addBtn) addBtn.addEventListener('click', handleAdd);
     const addEmptyBtn = container.querySelector('#etable-add-empty');
-    if (addEmptyBtn && onAdd) addEmptyBtn.addEventListener('click', onAdd);
+    if (addEmptyBtn) addEmptyBtn.addEventListener('click', handleAdd);
 
     // Filter Buttons Click
     container.querySelectorAll('.btn-col-filter').forEach(btn => {
@@ -460,7 +467,11 @@ export function EditableTable(container, config) {
 
       if (btn.dataset.action === 'delete') {
         if (confirm('Delete this row? ต้องการลบรายการนี้ใช่หรือไม่')) {
-          if (onDelete) onDelete(id);
+          if (onDelete) {
+            onDelete(id);
+            render();
+            showToast('Deleted row successfully! 🗑️', 'info');
+          }
         }
         return;
       }
