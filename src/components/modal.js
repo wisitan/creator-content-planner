@@ -2,10 +2,23 @@
    Modal Component
    ────────────────────────────────────────── */
 
-export function showModal({ title = '', body = '', onConfirm, confirmText = 'Save', cancelText = 'Cancel' }) {
+export function showModal({ 
+  title = '', 
+  body = '', 
+  bodyHtml = '', 
+  onConfirm, 
+  confirmText = '', 
+  confirmLabel = '', 
+  cancelText = '', 
+  cancelLabel = '' 
+}) {
   // Remove existing modal
   const existing = document.querySelector('.modal-overlay');
   if (existing) existing.remove();
+
+  const finalBody = body || bodyHtml || '';
+  const finalConfirmText = confirmText || confirmLabel || 'Save';
+  const finalCancelText = cancelText || cancelLabel || 'Cancel';
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -15,18 +28,18 @@ export function showModal({ title = '', body = '', onConfirm, confirmText = 'Sav
         <h3>${title}</h3>
         <button class="modal-close" data-action="close">&times;</button>
       </div>
-      <div class="modal-body">${typeof body === 'string' ? body : ''}</div>
+      <div class="modal-body">${typeof finalBody === 'string' ? finalBody : ''}</div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-action="close">${cancelText}</button>
-        ${onConfirm ? `<button class="btn btn-primary" data-action="confirm">${confirmText}</button>` : ''}
+        <button class="btn btn-secondary" data-action="close">${finalCancelText}</button>
+        ${onConfirm ? `<button class="btn btn-primary" data-action="confirm">${finalConfirmText}</button>` : ''}
       </div>
     </div>
   `;
 
   // If body is a DOM element, append it
-  if (typeof body !== 'string' && body instanceof HTMLElement) {
+  if (typeof finalBody !== 'string' && finalBody instanceof HTMLElement) {
     overlay.querySelector('.modal-body').innerHTML = '';
-    overlay.querySelector('.modal-body').appendChild(body);
+    overlay.querySelector('.modal-body').appendChild(finalBody);
   }
 
   document.body.appendChild(overlay);

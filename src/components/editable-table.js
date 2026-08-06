@@ -572,21 +572,34 @@ export function EditableTable(container, config) {
       const field = btn.dataset.field;
       const currentData = getCurrentData();
       const rowData = currentData.find(r => String(r[idField]) === String(id));
-      const currentVal = rowData ? (rowData[field] || '') : '';
+
+      const currentHook = rowData ? (rowData.hook || '') : '';
+      const currentScript = rowData ? (rowData.script || rowData[field] || '') : '';
 
       showModal({
-        title: `📜 Edit ${columns.find(c => c.key === field)?.label || 'Script & Content Details'} (${id})`,
-        bodyHtml: `
+        title: `📜 Edit Script, Hook & Content Details (${id})`,
+        body: `
           <div class="form-group mb-3">
-            <label class="form-label" style="font-weight:bold;">รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์อย่างละเอียด:</label>
-            <textarea id="modal-script-input" class="form-input" style="height:280px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentVal)}</textarea>
+            <label class="form-label" style="font-weight:bold;">🪝 Hook (คำเกริ่นเรียกร้องความสนใจ 3 วินาทีแรก):</label>
+            <input type="text" id="modal-hook-input" class="form-input mb-3" style="font-size:0.95rem;" value="${esc(currentHook)}" placeholder="เช่น หยุดดูก่อนถ้าคุณกำลังจะซื้อ...">
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label" style="font-weight:bold;">📜 Script & Outline (รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์ฉบับเต็ม):</label>
+            <textarea id="modal-script-input" class="form-input" style="height:220px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentScript)}</textarea>
           </div>
         `,
-        confirmLabel: '💾 Save Script',
+        confirmText: '💾 Save Script & Hook',
         onConfirm: () => {
-          const newVal = document.getElementById('modal-script-input').value;
-          if (onChange) onChange(id, field, newVal);
-          showToast('Script & Content details saved! 📜✅', 'success');
+          const newHook = document.getElementById('modal-hook-input')?.value || '';
+          const newScript = document.getElementById('modal-script-input')?.value || '';
+          if (onChange) {
+            onChange(id, 'hook', newHook);
+            onChange(id, 'script', newScript);
+            if (field !== 'script' && field !== 'hook') {
+              onChange(id, field, newScript);
+            }
+          }
+          showToast('Saved Script & Hook details! 📜🪝✅', 'success');
           render();
         }
       });

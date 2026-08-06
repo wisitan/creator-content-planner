@@ -25,6 +25,7 @@ export function renderContent(container, store) {
     { key: 'productId', label: 'Product ID', type: 'dropdown', options: () => ['', ...store.getProducts().map(p => p.id)], width: '100px' },
     { key: 'productName', label: 'Product Name (auto)', type: 'computed', compute: (row) => store.getProductName(row.productId) },
     { key: 'contentAngle', label: 'Content Angle', type: 'dropdown', options: () => store.getSettingList('contentAngles') },
+    { key: 'hook', label: 'Hook / คำเปิดคลิป', type: 'text', width: '220px' },
     { key: 'scriptModal', label: 'Script & Content Details', type: 'scriptModal', width: '220px' },
     { key: 'contentPillar', label: 'Content Pillar', type: 'dropdown', options: () => store.getSettingList('contentPillars') },
     { key: 'channel', label: 'Channel', type: 'dropdown', options: () => store.getSettingList('channels') },
