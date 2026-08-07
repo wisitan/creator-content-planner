@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v3.8.0';
+const APP_VERSION = 'v3.9.0';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -102,25 +102,13 @@ function buildShell() {
     nav.appendChild(a);
   });
 
-  // Wire Manual Save Button (With Seamless Auto-Sync & Merge with Google Drive)
-  document.getElementById('btn-manual-save').addEventListener('click', async () => {
+  // Wire Manual Save Button (Pure Local Save 100% - No Auto Drive Upload)
+  document.getElementById('btn-manual-save').addEventListener('click', () => {
     store.forceSave();
-    
-    const googleClientId = store.getSettings().googleClientId;
-    if (googleClientId) {
-      try {
-        await initGoogleDrive(googleClientId);
-        await backupToDrive(store._data, store);
-        showToast('บันทึกข้อมูลลงเครื่อง และ Auto Sync รวมข้อมูลบน Google Drive เรียบร้อยแล้วค่ะ! 💾☁️🔀✅', 'success');
-      } catch (err) {
-        showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
-      }
-    } else {
-      showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
-    }
+    showToast('บันทึกข้อมูลลงในเครื่องนี้เรียบร้อยแล้วค่ะ! 💾✅', 'success');
   });
 
-  // Wire Google Drive Backup
+  // Wire Google Drive Backup (Manual Upload to Drive)
   document.getElementById('btn-gdrive-backup').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
@@ -129,10 +117,10 @@ function buildShell() {
       return;
     }
     try {
-      showToast('กำลังเชื่อมต่อ Google Drive... ☁️', 'info');
+      showToast('กำลังเชื่อมต่อและอัปโหลดขึ้น Google Drive... ☁️', 'info');
       await initGoogleDrive(googleClientId);
       await backupToDrive(store._data, store);
-      showToast('Sync รวมข้อมูลไปยัง Google Drive สำเร็จแล้ว! ☁️🔀✅', 'success');
+      showToast('อัปโหลด Backup ขึ้น Google Drive สำเร็จแล้ว! ☁️🔀✅', 'success');
     } catch (err) {
       showToast('Drive Backup Failed: ' + err.message, 'error');
     }
