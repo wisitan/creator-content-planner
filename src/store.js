@@ -74,6 +74,7 @@ class Store extends Emitter {
         content: parsed.content || [],
         channelTracker: parsed.channelTracker || [],
         sponsors: parsed.sponsors || [],
+        deletedItems: parsed.deletedItems || [],
         brand: { ...DEFAULT_BRAND, ...parsed.brand },
       };
     } catch (e) {
@@ -89,6 +90,7 @@ class Store extends Emitter {
       content: [],
       channelTracker: [],
       sponsors: [],
+      deletedItems: [],
       brand: clone(DEFAULT_BRAND),
     };
   }
@@ -148,6 +150,20 @@ class Store extends Emitter {
     this._changed('settings');
   }
 
+  _trackDelete(id, type) {
+    if (!this._data.deletedItems) this._data.deletedItems = [];
+    this._data.deletedItems.push({
+      id: String(id),
+      type: type,
+      deletedAt: new Date().toISOString(),
+    });
+    // Garbage collection for tombstones older than 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    this._data.deletedItems = this._data.deletedItems.filter(item => {
+      return new Date(item.deletedAt).getTime() > thirtyDaysAgo;
+    });
+  }
+
   /* ── Products ── */
   getProducts() { return this._data.products; }
   getProduct(id) { return this._data.products.find(p => p.id === id); }
@@ -167,6 +183,7 @@ class Store extends Emitter {
     if (p) { p[field] = value; this._changed('products'); }
   }
   deleteProduct(id) {
+    this._trackDelete(id, 'product');
     this._data.products = this._data.products.filter(p => p.id !== id);
     this._changed('products');
   }
@@ -191,6 +208,7 @@ class Store extends Emitter {
     if (c) { c[field] = value; this._changed('content'); }
   }
   deleteContent(id) {
+    this._trackDelete(id, 'content');
     this._data.content = this._data.content.filter(c => c.id !== id);
     this._changed('content');
   }
@@ -213,6 +231,7 @@ class Store extends Emitter {
     if (e) { e[field] = value; this._changed('channelTracker'); }
   }
   deleteChannelEntry(id) {
+    this._trackDelete(id, 'channel');
     this._data.channelTracker = this._data.channelTracker.filter(x => x.id !== id);
     this._changed('channelTracker');
   }
@@ -235,6 +254,7 @@ class Store extends Emitter {
     if (s) { s[field] = value; this._changed('sponsors'); }
   }
   deleteSponsor(id) {
+    this._trackDelete(id, 'sponsor');
     this._data.sponsors = this._data.sponsors.filter(x => x.id !== id);
     this._changed('sponsors');
   }
@@ -348,7 +368,25 @@ class Store extends Emitter {
   mergeData(remoteData) {
     if (!remoteData) return false;
 
-    const mergeArray = (localArr = [], remoteArr = [], idKey = 'id') => {
+    // 1. Merge Tombstone deletedItems from both local and remote
+    const localDeleted = this._data.deletedItems || [];
+    const remoteDeleted = remoteData.deletedItems || [];
+    const deletedMap = new Map();
+
+    [...localDeleted, ...remoteDeleted].forEach(item => {
+      if (item && item.id) {
+        const existing = deletedMap.get(String(item.id));
+        if (!existing || new Date(item.deletedAt) > new Date(existing.deletedAt)) {
+          deletedMap.set(String(item.id), item);
+        }
+      }
+    });
+
+    const mergedDeleted = Array.from(deletedMap.values());
+    this._data.deletedItems = mergedDeleted;
+
+    // 2. Helper merge array by ID while respecting Tombstones
+    const mergeArrayWithTombstones = (localArr = [], remoteArr = [], idKey = 'id') => {
       const map = new Map();
       remoteArr.forEach(item => {
         if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
@@ -356,13 +394,18 @@ class Store extends Emitter {
       localArr.forEach(item => {
         if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
       });
-      return Array.from(map.values());
+
+      // Filter out any items marked as deleted in Tombstones!
+      return Array.from(map.values()).filter(item => {
+        const itemId = String(item[idKey]);
+        return !deletedMap.has(itemId);
+      });
     };
 
-    this._data.products = mergeArray(this._data.products, remoteData.products || []);
-    this._data.content = mergeArray(this._data.content, remoteData.content || []);
-    this._data.channelTracker = mergeArray(this._data.channelTracker, remoteData.channelTracker || []);
-    this._data.sponsors = mergeArray(this._data.sponsors, remoteData.sponsors || []);
+    this._data.products = mergeArrayWithTombstones(this._data.products, remoteData.products || []);
+    this._data.content = mergeArrayWithTombstones(this._data.content, remoteData.content || []);
+    this._data.channelTracker = mergeArrayWithTombstones(this._data.channelTracker, remoteData.channelTracker || []);
+    this._data.sponsors = mergeArrayWithTombstones(this._data.sponsors, remoteData.sponsors || []);
 
     if (remoteData.settings) {
       this._data.settings = { ...remoteData.settings, ...this._data.settings };
