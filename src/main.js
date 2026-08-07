@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.5.0';
+const APP_VERSION = 'v2.5.1';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -58,7 +58,10 @@ function buildShell() {
       <div class="sidebar-footer">${APP_VERSION} · Data saved locally</div>
     </aside>
     <header class="topbar">
-      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-secondary btn-sm mobile-menu-toggle" id="btn-mobile-menu" title="Toggle Navigation Menu">☰</button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+      </div>
       <div class="topbar-actions">
         <button class="btn btn-primary btn-sm" id="btn-manual-save" title="Save data to local browser storage immediately">💾 Save</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdrive-backup" title="Backup to Google Drive">☁️ Drive Backup</button>
@@ -75,6 +78,15 @@ function buildShell() {
     <div class="toast-container" id="toast-container"></div>
   `;
 
+  // Mobile Drawer Toggle
+  const sidebar = document.querySelector('.sidebar');
+  const btnMobileMenu = document.getElementById('btn-mobile-menu');
+  if (btnMobileMenu) {
+    btnMobileMenu.addEventListener('click', () => {
+      sidebar.classList.toggle('mobile-open');
+    });
+  }
+
   // Build nav items
   const nav = document.getElementById('sidebar-nav');
   ROUTES.forEach(r => {
@@ -83,6 +95,9 @@ function buildShell() {
     a.href = '#' + r.id;
     a.dataset.route = r.id;
     a.innerHTML = `<span class="icon">${r.icon}</span><span class="label">${r.label}</span>`;
+    a.addEventListener('click', () => {
+      sidebar.classList.remove('mobile-open');
+    });
     nav.appendChild(a);
   });
 

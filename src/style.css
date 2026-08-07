@@ -821,19 +821,113 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
 .view-enter { animation: slideIn .2s ease; }
 
-/* ── 21. Responsive ── */
-@media (max-width: 900px) {
-  :root { --sidebar-w: 60px; }
-  .nav-item .label { display: none; }
-  .nav-item { justify-content: center; padding: 10px; }
-  .sidebar-logo .logo-text { display: none; }
-  .sidebar-footer { display: none; }
-  .dash-grid { grid-template-columns: 1fr; }
+/* ── 21. Responsive (Mobile & Tablet Dynamic Rules) ── */
+.mobile-menu-toggle {
+  display: none;
 }
-@media (max-width: 600px) {
-  :root { --sidebar-w: 0px; }
-  .sidebar { display: none; }
-  .main-content { padding: 12px; }
+
+@media (max-width: 768px) {
+  #app {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: var(--topbar-h) 1fr !important;
+    grid-template-areas:
+      "topbar"
+      "main" !important;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    font-size: 1.1rem;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: -260px;
+    width: 250px !important;
+    height: 100vh !important;
+    z-index: 999 !important;
+    background: var(--c-dark) !important;
+    transition: left 0.25s ease-in-out !important;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .sidebar.mobile-open {
+    left: 0 !important;
+  }
+
+  .sidebar-logo .logo-text, .nav-item .label, .sidebar-footer {
+    display: inline-block !important;
+  }
+
+  .nav-item {
+    justify-content: flex-start !important;
+    padding: 10px 14px !important;
+  }
+
+  .topbar {
+    padding: 0 10px !important;
+  }
+
+  .topbar-actions {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    max-width: 60vw !important;
+    padding-bottom: 2px !important;
+  }
+
+  .main-content {
+    padding: 10px !important;
+  }
+
+  .dash-grid, .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .table-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .ym-filter-group {
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 4px !important;
+  }
+
+  .cal-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .cal-header h3 {
+    min-width: unset !important;
+  }
+
+  .cal-grid-week .cal-cell {
+    min-height: 280px !important;
+  }
+
+  .cal-cell {
+    min-height: 75px !important;
+    padding: 2px !important;
+  }
+
+  .cal-date {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .cal-item {
+    font-size: 0.68rem !important;
+    padding: 2px 4px !important;
+  }
 }
 
 /* ── 22. Scrollbar ── */
