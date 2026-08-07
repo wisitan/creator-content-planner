@@ -1,12 +1,13 @@
 /* ──────────────────────────────────────────
    Calendar Grid Component 
-   (With Month & Week Views, Single-Line Content Format, Status Filter & Rich Item Modal)
+   (With Month, Week & Day Views, Single-Line Content Format, Status Filter & Rich Item Modal)
    ────────────────────────────────────────── */
 import { esc, fmtDate } from '../utils.js';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const FULL_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 export function CalendarGrid(container, config) {
   const { getItems, onDayClick, onItemClick, statusOptions = [] } = config;
@@ -14,15 +15,16 @@ export function CalendarGrid(container, config) {
   let year = now.getFullYear();
   let month = now.getMonth();
   let selectedStatus = 'ALL';
-  let viewMode = 'month'; // 'month' or 'week'
+  let viewMode = 'month'; // 'month', 'week', or 'day'
 
-  // Week View calculation state (Monday of current week)
+  // Week & Day Views state
   let currentMonday = getMonday(now);
+  let selectedDayDate = new Date(now);
 
   function getMonday(d) {
     const date = new Date(d);
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));
   }
 
@@ -39,7 +41,7 @@ export function CalendarGrid(container, config) {
     let headerTitle = '';
     if (viewMode === 'month') {
       headerTitle = `${MONTHS[month]} ${year}`;
-    } else {
+    } else if (viewMode === 'week') {
       const sunday = new Date(currentMonday);
       sunday.setDate(sunday.getDate() + 6);
       const m1 = SHORT_MONTHS[currentMonday.getMonth()];
@@ -51,6 +53,13 @@ export function CalendarGrid(container, config) {
       } else {
         headerTitle = `${currentMonday.getDate()} ${m1} - ${sunday.getDate()} ${m2} ${y2}`;
       }
+    } else {
+      // Day View Header Title
+      const dayName = FULL_DAYS[selectedDayDate.getDay()];
+      const dNum = selectedDayDate.getDate();
+      const mName = SHORT_MONTHS[selectedDayDate.getMonth()];
+      const yNum = selectedDayDate.getFullYear();
+      headerTitle = `${dayName}, ${dNum} ${mName} ${yNum}`;
     }
 
     let statusSelectHtml = `<select id="cal-status-filter" class="form-select" style="width: auto; font-size: 0.82rem; padding: 3px 8px;">`;
@@ -63,7 +72,7 @@ export function CalendarGrid(container, config) {
     header.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="btn btn-secondary btn-sm" id="cal-prev">◀</button>
-        <h3 style="min-width:200px; text-align:center; margin:0; font-size:1.1rem; font-weight:700;">${headerTitle}</h3>
+        <h3 style="min-width:200px; text-align:center; margin:0; font-size:1.05rem; font-weight:700;">${headerTitle}</h3>
         <button class="btn btn-secondary btn-sm" id="cal-next">▶</button>
         <button class="btn btn-ghost btn-sm" id="cal-today">Today</button>
       </div>
@@ -73,95 +82,181 @@ export function CalendarGrid(container, config) {
           ${statusSelectHtml}
         </div>
         <div class="view-toggle-btns" style="display:flex; gap:2px; background:var(--c-bg); padding:2px; border-radius:6px; border:1px solid var(--c-border);">
-          <button id="cal-view-month" class="btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 8px; font-size:0.78rem;">📅 Month View</button>
-          <button id="cal-view-week" class="btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 8px; font-size:0.78rem;">📆 Week View</button>
+          <button id="cal-view-month" class="btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 7px; font-size:0.75rem;">📅 Month</button>
+          <button id="cal-view-week" class="btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 7px; font-size:0.75rem;">📆 Week</button>
+          <button id="cal-view-day" class="btn btn-sm ${viewMode === 'day' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 7px; font-size:0.75rem;">📌 Day</button>
         </div>
       </div>
     `;
     container.appendChild(header);
 
-    // Grid Container
-    const grid = document.createElement('div');
-    grid.className = viewMode === 'month' ? 'cal-grid' : 'cal-grid cal-grid-week';
-
-    // Day Headers (Mon - Sun)
-    DAYS.forEach(d => {
-      const dh = document.createElement('div');
-      dh.className = 'cal-day-header';
-      dh.textContent = d;
-      grid.appendChild(dh);
-    });
-
     const todayStr = fmtDate(new Date());
-    const items = getItems ? getItems(year, month, selectedStatus) : [];
 
-    if (viewMode === 'month') {
-      // ── MONTH VIEW RENDER ──
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const daysInMonth = lastDay.getDate();
-      const startOffset = (firstDay.getDay() + 6) % 7;
+    if (viewMode === 'day') {
+      // ── DAY VIEW RENDER (Vertical Detailed Day Cards) ──
+      const yStr = selectedDayDate.getFullYear();
+      const mStr = String(selectedDayDate.getMonth() + 1).padStart(2, '0');
+      const dStr = String(selectedDayDate.getDate()).padStart(2, '0');
+      const targetDateStr = `${yStr}-${mStr}-${dStr}`;
 
-      // Fill Previous Month Days
-      const prevMonthDays = new Date(year, month, 0).getDate();
-      for (let i = startOffset - 1; i >= 0; i--) {
-        const d = prevMonthDays - i;
-        const cell = createCell(d, true, '');
-        grid.appendChild(cell);
+      const items = getItems ? getItems(selectedDayDate.getFullYear(), selectedDayDate.getMonth(), selectedStatus) : [];
+      const dayItems = items.filter(it => it.activeDate === targetDateStr);
+
+      const dayViewWrapper = document.createElement('div');
+      dayViewWrapper.className = 'cal-day-view-container card p-3';
+      dayViewWrapper.style.minHeight = '360px';
+
+      if (dayItems.length === 0) {
+        dayViewWrapper.innerHTML = `
+          <div class="empty-state" style="padding:30px 10px;">
+            <div class="empty-icon" style="font-size:2.5rem;">📅</div>
+            <p class="text-muted font-weight-600 m-0">No content planned for ${targetDateStr} · ไม่มีแผนคอนเทนต์สำหรับวันนี้</p>
+          </div>
+        `;
+      } else {
+        let cardsHtml = `<h4 class="mb-3" style="color:var(--c-primary); border-bottom:1px solid var(--c-border); padding-bottom:6px;">📋 Planned Items for Today (${dayItems.length} items)</h4>`;
+        cardsHtml += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">`;
+        
+        dayItems.forEach(item => {
+          const colorMap = {
+            '🛒 Affiliate': 'border-left:4px solid var(--c-affiliate);',
+            '🎯 Personal Brand': 'border-left:4px solid var(--c-branding);',
+            '📚 Knowledge': 'border-left:4px solid var(--c-knowledge);',
+            '🤝 Sponsor': 'border-left:4px solid var(--c-sponsor);',
+          };
+          const style = colorMap[item.contentType] || 'border-left:4px solid var(--c-primary);';
+
+          cardsHtml += `
+            <div class="cal-day-item-card card p-3" style="${style} background:var(--c-bg); cursor:pointer; position:relative;" data-id="${esc(item.id)}">
+              <div class="flex-between mb-2">
+                <span class="badge" style="font-size:0.8rem; font-weight:700;">${esc(item.id)}</span>
+                <span class="badge" style="font-size:0.75rem;">${esc(item.status || '')}</span>
+              </div>
+              <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:6px; color:var(--c-text);">${esc(item.title || item.hook || 'Untitled Content')}</h4>
+              ${item.productName ? `<div style="font-size:0.8rem; margin-bottom:4px;" class="text-muted">📦 ${esc(item.productName)}</div>` : ''}
+              <div style="font-size:0.78rem; display:flex; gap:10px; flex-wrap:wrap; color:var(--c-text-muted);" class="mt-2">
+                <span>🏷️ ${esc(item.contentType || '-')}</span>
+                <span>📌 ${esc(item.channel || '-')}</span>
+              </div>
+            </div>
+          `;
+        });
+        cardsHtml += `</div>`;
+        dayViewWrapper.innerHTML = cardsHtml;
       }
 
-      // Current Month Days
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = (startOffset + d - 1) % 7;
-        const isWeekend = dayOfWeek >= 5;
-        const isToday = dateStr === todayStr;
-        const dayItems = items.filter(it => it.activeDate === dateStr);
+      container.appendChild(dayViewWrapper);
 
-        const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems);
-        grid.appendChild(cell);
-      }
+      // Event listener for day view cards click
+      dayViewWrapper.addEventListener('click', (e) => {
+        const cardEl = e.target.closest('.cal-day-item-card');
+        if (cardEl && onItemClick) {
+          const item = dayItems.find(it => it.id === cardEl.dataset.id);
+          if (item) onItemClick(item);
+        }
+      });
 
-      // Fill Next Month Days
-      const totalCells = startOffset + daysInMonth;
-      const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-      for (let d = 1; d <= remaining; d++) {
-        const cell = createCell(d, true, '');
-        grid.appendChild(cell);
-      }
     } else {
-      // ── WEEK VIEW RENDER ──
-      for (let i = 0; i < 7; i++) {
-        const dayDate = new Date(currentMonday);
-        dayDate.setDate(currentMonday.getDate() + i);
+      // ── MONTH & WEEK VIEWS RENDER ──
+      const grid = document.createElement('div');
+      grid.className = viewMode === 'month' ? 'cal-grid' : 'cal-grid cal-grid-week';
 
-        const yStr = dayDate.getFullYear();
-        const mStr = String(dayDate.getMonth() + 1).padStart(2, '0');
-        const dStr = String(dayDate.getDate()).padStart(2, '0');
-        const dateStr = `${yStr}-${mStr}-${dStr}`;
+      // Day Headers (Mon - Sun)
+      DAYS.forEach(d => {
+        const dh = document.createElement('div');
+        dh.className = 'cal-day-header';
+        dh.textContent = d;
+        grid.appendChild(dh);
+      });
 
-        const isWeekend = i >= 5;
-        const isToday = dateStr === todayStr;
-        const dayItems = items.filter(it => it.activeDate === dateStr);
+      const items = getItems ? getItems(year, month, selectedStatus) : [];
 
-        const displayLabel = `${dayDate.getDate()} ${SHORT_MONTHS[dayDate.getMonth()]}`;
-        const cell = createCell(displayLabel, false, dateStr, isWeekend, isToday, dayItems);
-        cell.classList.add('cal-cell-week');
-        grid.appendChild(cell);
+      if (viewMode === 'month') {
+        // MONTH VIEW
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startOffset = (firstDay.getDay() + 6) % 7;
+
+        // Fill Previous Month Days
+        const prevMonthDays = new Date(year, month, 0).getDate();
+        for (let i = startOffset - 1; i >= 0; i--) {
+          const d = prevMonthDays - i;
+          const cell = createCell(d, true, '');
+          grid.appendChild(cell);
+        }
+
+        // Current Month Days
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const dayOfWeek = (startOffset + d - 1) % 7;
+          const isWeekend = dayOfWeek >= 5;
+          const isToday = dateStr === todayStr;
+          const dayItems = items.filter(it => it.activeDate === dateStr);
+
+          const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems);
+          grid.appendChild(cell);
+        }
+
+        // Fill Next Month Days
+        const totalCells = startOffset + daysInMonth;
+        const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
+        for (let d = 1; d <= remaining; d++) {
+          const cell = createCell(d, true, '');
+          grid.appendChild(cell);
+        }
+      } else {
+        // WEEK VIEW
+        for (let i = 0; i < 7; i++) {
+          const dayDate = new Date(currentMonday);
+          dayDate.setDate(currentMonday.getDate() + i);
+
+          const yStr = dayDate.getFullYear();
+          const mStr = String(dayDate.getMonth() + 1).padStart(2, '0');
+          const dStr = String(dayDate.getDate()).padStart(2, '0');
+          const dateStr = `${yStr}-${mStr}-${dStr}`;
+
+          const isWeekend = i >= 5;
+          const isToday = dateStr === todayStr;
+          const dayItems = items.filter(it => it.activeDate === dateStr);
+
+          const displayLabel = `${dayDate.getDate()} ${SHORT_MONTHS[dayDate.getMonth()]}`;
+          const cell = createCell(displayLabel, false, dateStr, isWeekend, isToday, dayItems);
+          cell.classList.add('cal-cell-week');
+          grid.appendChild(cell);
+        }
       }
+
+      container.appendChild(grid);
+
+      // Item & Day Click Handlers for Grid
+      grid.addEventListener('click', (e) => {
+        const itemEl = e.target.closest('.cal-item');
+        if (itemEl && onItemClick) {
+          const item = items.find(it => it.id === itemEl.dataset.id);
+          if (item) onItemClick(item);
+          return;
+        }
+        const cell = e.target.closest('.cal-cell');
+        if (cell && cell.dataset.date && onDayClick) {
+          onDayClick(cell.dataset.date);
+        }
+      });
     }
 
-    container.appendChild(grid);
-
-    // Nav Events
+    // Nav Button Events
     header.querySelector('#cal-prev').addEventListener('click', () => {
       if (viewMode === 'month') {
         month--;
         if (month < 0) { month = 11; year--; }
-      } else {
+      } else if (viewMode === 'week') {
         currentMonday.setDate(currentMonday.getDate() - 7);
         year = currentMonday.getFullYear();
         month = currentMonday.getMonth();
+      } else {
+        selectedDayDate.setDate(selectedDayDate.getDate() - 1);
+        year = selectedDayDate.getFullYear();
+        month = selectedDayDate.getMonth();
       }
       render();
     });
@@ -170,10 +265,14 @@ export function CalendarGrid(container, config) {
       if (viewMode === 'month') {
         month++;
         if (month > 11) { month = 0; year++; }
-      } else {
+      } else if (viewMode === 'week') {
         currentMonday.setDate(currentMonday.getDate() + 7);
         year = currentMonday.getFullYear();
         month = currentMonday.getMonth();
+      } else {
+        selectedDayDate.setDate(selectedDayDate.getDate() + 1);
+        year = selectedDayDate.getFullYear();
+        month = selectedDayDate.getMonth();
       }
       render();
     });
@@ -183,6 +282,7 @@ export function CalendarGrid(container, config) {
       year = t.getFullYear();
       month = t.getMonth();
       currentMonday = getMonday(t);
+      selectedDayDate = new Date(t);
       render();
     });
 
@@ -201,18 +301,9 @@ export function CalendarGrid(container, config) {
       render();
     });
 
-    // Item & Day Click Handlers
-    grid.addEventListener('click', (e) => {
-      const itemEl = e.target.closest('.cal-item');
-      if (itemEl && onItemClick) {
-        const item = items.find(it => it.id === itemEl.dataset.id);
-        if (item) onItemClick(item);
-        return;
-      }
-      const cell = e.target.closest('.cal-cell');
-      if (cell && cell.dataset.date && onDayClick) {
-        onDayClick(cell.dataset.date);
-      }
+    header.querySelector('#cal-view-day').addEventListener('click', () => {
+      viewMode = 'day';
+      render();
     });
   }
 
@@ -238,7 +329,7 @@ export function CalendarGrid(container, config) {
         const titleText = item.title || item.hook || 'Untitled Content';
         const statusIcon = item.status ? item.status.split(' ')[0] : '';
 
-        // Single-line format: Content ID : Content Title
+        // Single-line format strictly truncated: Content ID : Content Title
         html += `
           <div class="cal-item" style="${style}" data-id="${esc(item.id)}" title="${esc(item.id)} : ${esc(titleText)} (${esc(item.status || '')})">
             <span class="cal-item-id">${esc(item.id)}</span>
