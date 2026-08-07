@@ -447,11 +447,14 @@ class Store extends Emitter {
 
     // 2. Helper merge array by ID while respecting Tombstones & Image Preservation
     const mergeArrayWithTombstones = (localArr = [], remoteArr = [], idKey = 'id') => {
+      // Discard local sample items so they don't pollute real Drive data
+      const cleanLocalArr = localArr.filter(item => !item || !item.isSample);
+
       const map = new Map();
       remoteArr.forEach(item => {
         if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
       });
-      localArr.forEach(item => {
+      cleanLocalArr.forEach(item => {
         if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
       });
 
@@ -463,7 +466,7 @@ class Store extends Emitter {
         if (idKey === 'id' && item.id) {
           if (item.imageUrl !== undefined) {
             let img = item.imageUrl || '';
-            const local = localArr.find(x => String(x.id) === String(item.id));
+            const local = cleanLocalArr.find(x => String(x.id) === String(item.id));
             const remote = remoteArr.find(x => String(x.id) === String(item.id));
             if (!img && local && local.imageUrl) img = local.imageUrl;
             if (!img && remote && remote.imageUrl) img = remote.imageUrl;
@@ -472,7 +475,7 @@ class Store extends Emitter {
           }
           if (item.coverUrl !== undefined) {
             let cover = item.coverUrl || '';
-            const local = localArr.find(x => String(x.id) === String(item.id));
+            const local = cleanLocalArr.find(x => String(x.id) === String(item.id));
             const remote = remoteArr.find(x => String(x.id) === String(item.id));
             if (!cover && local && local.coverUrl) cover = local.coverUrl;
             if (!cover && remote && remote.coverUrl) cover = remote.coverUrl;
@@ -516,6 +519,7 @@ class Store extends Emitter {
     this._data.products = [
       {
         id: 'P001',
+        isSample: true,
         name: 'Keychron K2 Pro Wireless Mechanical Keyboard',
         category: 'Desk Productivity',
         brand: 'Keychron',
@@ -532,6 +536,7 @@ class Store extends Emitter {
       },
       {
         id: 'P002',
+        isSample: true,
         name: 'Xiaomi Robot Vacuum X20+ หุ่นยนต์ดูดฝุ่น',
         category: 'Home Smart',
         brand: 'Xiaomi',
@@ -548,6 +553,7 @@ class Store extends Emitter {
       },
       {
         id: 'P003',
+        isSample: true,
         name: 'Anker Prime 20,000mAh Power Bank (200W)',
         category: 'Everyday Electronics',
         brand: 'Anker',
@@ -564,6 +570,7 @@ class Store extends Emitter {
       },
       {
         id: 'P004',
+        isSample: true,
         name: 'Tesla Model Y All-Weather 3D Floor Mats',
         category: 'EV Solar',
         brand: '3D Spider',
@@ -580,6 +587,7 @@ class Store extends Emitter {
       },
       {
         id: 'P005',
+        isSample: true,
         name: 'Bewell Ergonomic Standing Desk Dual Motor',
         category: 'Desk Productivity',
         brand: 'Bewell',
@@ -596,6 +604,7 @@ class Store extends Emitter {
       },
       {
         id: 'P006',
+        isSample: true,
         name: 'Sony WH-1000XM5 Wireless Headphones',
         category: 'Creator Gear',
         brand: 'Sony',
@@ -615,6 +624,7 @@ class Store extends Emitter {
     this._data.content = [
       {
         id: 'C001',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=80',
         title: 'ป้ายยา คีย์บอร์ดไร้สายพิมพ์ฟิน สาย Coding ห้ามพลาด!',
         contentType: '🛒 Affiliate',
@@ -633,6 +643,7 @@ class Store extends Emitter {
       },
       {
         id: 'C002',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?w=500&auto=format&fit=crop&q=80',
         title: 'รีวิวหุ่นยนต์ดูดฝุ่น Xiaomi X20+ ซักผ้าถูเอง คุ้มไหม?',
         contentType: '🤝 Sponsor',
@@ -651,6 +662,7 @@ class Store extends Emitter {
       },
       {
         id: 'C003',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1609592424074-1d374465d3d4?w=500&auto=format&fit=crop&q=80',
         title: 'แกะกล่อง พาวเวอร์แบงก์ชาร์จโน้ตบุ๊กแรงที่สุด 200W',
         contentType: '🛒 Affiliate',
@@ -669,6 +681,7 @@ class Store extends Emitter {
       },
       {
         id: 'C004',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=80',
         title: '3 อุปกรณ์แต่งรถ EV Tesla ที่ต้องมีตั้งแต่วันแรก!',
         contentType: '🛒 Affiliate',
@@ -687,6 +700,7 @@ class Store extends Emitter {
       },
       {
         id: 'C005',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=80',
         title: 'นั่งทำงานจนปวดหลัง? ลองปรับมายืนทำงานด้วยโต๊ะไฟฟ้า',
         contentType: '📚 Knowledge',
@@ -705,6 +719,7 @@ class Store extends Emitter {
       },
       {
         id: 'C006',
+        isSample: true,
         coverUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80',
         title: 'เปรียบเทียบหูฟังตัดเสียง Sony XM5 คุ้มไหมที่จะอัปเกรด?',
         contentType: '🎨 Personal Brand',
@@ -724,14 +739,14 @@ class Store extends Emitter {
     ];
 
     this._data.channelTracker = [
-      { id: 'CH001', contentId: 'C001', channel: 'TikTok', publishedDate: md(3), views: '45000', likes: '3200', comments: '180', shares: '450', saves: '1200', avgWatchTime: '24', productClicks: '2800', orders: '32', revenue: '85000', notes: 'คลิปไวรัล ยอดขายปังมาก' },
-      { id: 'CH002', contentId: 'C001', channel: 'Shopee Video', publishedDate: md(4), views: '18000', likes: '1100', comments: '45', shares: '80', saves: '310', avgWatchTime: '20', productClicks: '950', orders: '14', revenue: '37000', notes: 'รีโพสต์จาก TikTok' },
-      { id: 'CH003', contentId: 'C003', channel: 'YouTube Shorts', publishedDate: md(9), views: '22000', likes: '1500', comments: '62', shares: '110', saves: '420', avgWatchTime: '35', productClicks: '800', orders: '8', revenue: '28000', notes: 'คนสนใจเรื่องการชาร์จไฟ 200W มาก' },
+      { id: 'CH001', isSample: true, contentId: 'C001', channel: 'TikTok', publishedDate: md(3), views: '45000', likes: '3200', comments: '180', shares: '450', saves: '1200', avgWatchTime: '24', productClicks: '2800', orders: '32', revenue: '85000', notes: 'คลิปไวรัล ยอดขายปังมาก' },
+      { id: 'CH002', isSample: true, contentId: 'C001', channel: 'Shopee Video', publishedDate: md(4), views: '18000', likes: '1100', comments: '45', shares: '80', saves: '310', avgWatchTime: '20', productClicks: '950', orders: '14', revenue: '37000', notes: 'รีโพสต์จาก TikTok' },
+      { id: 'CH003', isSample: true, contentId: 'C003', channel: 'YouTube Shorts', publishedDate: md(9), views: '22000', likes: '1500', comments: '62', shares: '110', saves: '420', avgWatchTime: '35', productClicks: '800', orders: '8', revenue: '28000', notes: 'คนสนใจเรื่องการชาร์จไฟ 200W มาก' },
     ];
 
     this._data.sponsors = [
-      { id: 'D001', brandClient: 'Xiaomi Thailand', contactPerson: 'คุณเจมส์ (Marketing)', contactInfo: 'james@xiaomi.sample', dealType: 'Barter', agreedFee: '15000', deliverables: 'YouTube Long 1 คลิป + TikTok 1 คลิป', deadline: md(10), contentIds: 'C002', draftSent: true, approved: true, published: false, paymentStatus: 'Pending', paymentDate: '', notes: 'ส่งสินค้าดูดฝุ่น X20+ มาให้รีวิว' },
-      { id: 'D002', brandClient: 'Keychron TH', contactPerson: 'คุณเมย์', contactInfo: 'may@keychron.sample', dealType: 'Affiliate Boost', agreedFee: '5000', deliverables: 'TikTok 1 คลิป', deadline: md(5), contentIds: 'C001', draftSent: true, approved: true, published: true, paymentStatus: 'Paid', paymentDate: md(4), notes: 'เพิ่มคอมมิชชันเป็น 12% ตลอดเดือนนี้' },
+      { id: 'D001', isSample: true, brandClient: 'Xiaomi Thailand', contactPerson: 'คุณเจมส์ (Marketing)', contactInfo: 'james@xiaomi.sample', dealType: 'Barter', agreedFee: '15000', deliverables: 'YouTube Long 1 คลิป + TikTok 1 คลิป', deadline: md(10), contentIds: 'C002', draftSent: true, approved: true, published: false, paymentStatus: 'Pending', paymentDate: '', notes: 'ส่งสินค้าดูดฝุ่น X20+ มาให้รีวิว' },
+      { id: 'D002', isSample: true, brandClient: 'Keychron TH', contactPerson: 'คุณเมย์', contactInfo: 'may@keychron.sample', dealType: 'Affiliate Boost', agreedFee: '5000', deliverables: 'TikTok 1 คลิป', deadline: md(5), contentIds: 'C001', draftSent: true, approved: true, published: true, paymentStatus: 'Paid', paymentDate: md(4), notes: 'เพิ่มคอมมิชชันเป็น 12% ตลอดเดือนนี้' },
     ];
 
     this._data.brand = {
