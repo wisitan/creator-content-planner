@@ -26,7 +26,7 @@ export function EditableTable(container, config) {
 
   // Year & Month Filters state
   const currentYear = new Date().getFullYear();
-  let selectedYear = currentYear.toString(); // e.g. '2026' or 'ALL'
+  let selectedYear = '2026'; // Default initial year set to 2026
   let selectedMonths = new Set(); // 0 = JAN, 1 = FEB, ..., 11 = DEC (empty = all months)
 
   const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -151,7 +151,23 @@ export function EditableTable(container, config) {
     // Year & Month Filter Controls HTML
     let ymFilterHtml = '';
     if (enableYearMonthFilter) {
-      const yearsList = ['ALL', '2024', '2025', '2026', '2027', '2028', '2029', '2030'];
+      // Dynamic Smart Years Generator: Collect year from current data + rolling 5-year window
+      const yearSet = new Set(['2026']);
+      const currentYearNum = new Date().getFullYear();
+      for (let y = currentYearNum - 2; y <= currentYearNum + 5; y++) {
+        yearSet.add(y.toString());
+      }
+      currentData.forEach(row => {
+        Object.keys(row).forEach(k => {
+          const val = row[k];
+          if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            const y = val.split('-')[0];
+            if (y && y.length === 4) yearSet.add(y);
+          }
+        });
+      });
+      const sortedYears = Array.from(yearSet).sort((a, b) => parseInt(a) - parseInt(b));
+      const yearsList = ['ALL', ...sortedYears];
       const yearOpts = yearsList.map(y => `<option value="${y}" ${selectedYear === y ? 'selected' : ''}>${y === 'ALL' ? '🗓️ All Years' : y}</option>`).join('');
 
       const monthBtns = MONTH_NAMES.map((m, idx) => {
