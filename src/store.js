@@ -24,6 +24,24 @@ const DEFAULT_SETTINGS = {
   paymentStatuses: ['Pending','Invoiced','Paid','Cancelled'],
 };
 
+const DEFAULT_PRODUCT_IMAGES = {
+  P001: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=80',
+  P002: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?w=500&auto=format&fit=crop&q=80',
+  P003: 'https://images.unsplash.com/photo-1609592424074-1d374465d3d4?w=500&auto=format&fit=crop&q=80',
+  P004: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=80',
+  P005: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=80',
+  P006: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80',
+};
+
+const DEFAULT_CONTENT_COVERS = {
+  C001: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=80',
+  C002: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?w=500&auto=format&fit=crop&q=80',
+  C003: 'https://images.unsplash.com/photo-1609592424074-1d374465d3d4?w=500&auto=format&fit=crop&q=80',
+  C004: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=500&auto=format&fit=crop&q=80',
+  C005: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=80',
+  C006: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80',
+};
+
 const DEFAULT_BRAND = {
   creatorName: '',
   handles: '',
@@ -346,23 +364,65 @@ class Store extends Emitter {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const data = JSON.parse(e.target.result);
-          this._data = {
-            settings: { ...DEFAULT_SETTINGS, ...data.settings },
-            products: data.products || [],
-            content: data.content || [],
-            channelTracker: data.channelTracker || [],
-            sponsors: data.sponsors || [],
-            brand: { ...DEFAULT_BRAND, ...data.brand },
-          };
-          this._persist();
-          this.emit('change', 'all');
+          const parsedData = JSON.parse(e.target.result);
+          this.importData(parsedData);
           resolve();
         } catch (err) { reject(err); }
       };
       reader.onerror = () => reject(new Error('File read error'));
       reader.readAsText(file);
     });
+  }
+
+  importData(parsedData) {
+    if (!parsedData) return;
+
+    const currentProductsMap = new Map();
+    (this._data.products || []).forEach(p => {
+      if (p && p.id) currentProductsMap.set(String(p.id), p);
+    });
+
+    const currentContentMap = new Map();
+    (this._data.content || []).forEach(c => {
+      if (c && c.id) currentContentMap.set(String(c.id), c);
+    });
+
+    const products = (parsedData.products || []).map(p => {
+      let img = p.imageUrl || '';
+      if (!img) {
+        const local = currentProductsMap.get(String(p.id));
+        if (local && local.imageUrl) img = local.imageUrl;
+      }
+      if (!img && DEFAULT_PRODUCT_IMAGES[p.id]) {
+        img = DEFAULT_PRODUCT_IMAGES[p.id];
+      }
+      return { ...p, imageUrl: img };
+    });
+
+    const content = (parsedData.content || []).map(c => {
+      let cover = c.coverUrl || '';
+      if (!cover) {
+        const local = currentContentMap.get(String(c.id));
+        if (local && local.coverUrl) cover = local.coverUrl;
+      }
+      if (!cover && DEFAULT_CONTENT_COVERS[c.id]) {
+        cover = DEFAULT_CONTENT_COVERS[c.id];
+      }
+      return { ...c, coverUrl: cover };
+    });
+
+    this._data = {
+      settings: { ...DEFAULT_SETTINGS, ...parsedData.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
+      products: products,
+      content: content,
+      channelTracker: parsedData.channelTracker || [],
+      sponsors: parsedData.sponsors || [],
+      deletedItems: parsedData.deletedItems || [],
+      brand: { ...DEFAULT_BRAND, ...parsedData.brand },
+    };
+
+    this.forceSave();
+    this.emit('change', 'all');
   }
 
   mergeData(remoteData) {
@@ -385,7 +445,7 @@ class Store extends Emitter {
     const mergedDeleted = Array.from(deletedMap.values());
     this._data.deletedItems = mergedDeleted;
 
-    // 2. Helper merge array by ID while respecting Tombstones
+    // 2. Helper merge array by ID while respecting Tombstones & Image Preservation
     const mergeArrayWithTombstones = (localArr = [], remoteArr = [], idKey = 'id') => {
       const map = new Map();
       remoteArr.forEach(item => {
@@ -395,10 +455,32 @@ class Store extends Emitter {
         if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
       });
 
-      // Filter out any items marked as deleted in Tombstones!
+      // Filter out any items marked as deleted in Tombstones & Preserve Images
       return Array.from(map.values()).filter(item => {
         const itemId = String(item[idKey]);
         return !deletedMap.has(itemId);
+      }).map(item => {
+        if (idKey === 'id' && item.id) {
+          if (item.imageUrl !== undefined) {
+            let img = item.imageUrl || '';
+            const local = localArr.find(x => String(x.id) === String(item.id));
+            const remote = remoteArr.find(x => String(x.id) === String(item.id));
+            if (!img && local && local.imageUrl) img = local.imageUrl;
+            if (!img && remote && remote.imageUrl) img = remote.imageUrl;
+            if (!img && DEFAULT_PRODUCT_IMAGES[item.id]) img = DEFAULT_PRODUCT_IMAGES[item.id];
+            return { ...item, imageUrl: img };
+          }
+          if (item.coverUrl !== undefined) {
+            let cover = item.coverUrl || '';
+            const local = localArr.find(x => String(x.id) === String(item.id));
+            const remote = remoteArr.find(x => String(x.id) === String(item.id));
+            if (!cover && local && local.coverUrl) cover = local.coverUrl;
+            if (!cover && remote && remote.coverUrl) cover = remote.coverUrl;
+            if (!cover && DEFAULT_CONTENT_COVERS[item.id]) cover = DEFAULT_CONTENT_COVERS[item.id];
+            return { ...item, coverUrl: cover };
+          }
+        }
+        return item;
       });
     };
 
