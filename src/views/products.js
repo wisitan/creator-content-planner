@@ -29,7 +29,7 @@ export function renderProducts(container, store) {
     { key: 'commission', label: 'Commission %', type: 'number', width: '90px' },
     { key: 'affiliateLink', label: 'Affiliate Link', type: 'url', width: '180px' },
     { key: 'sellingPoints', label: 'Selling Points', type: 'textarea', width: '220px' },
-    { key: 'painPoints', label: 'Pain Points', type: 'textarea', width: '220px' },
+    { key: 'productType', label: 'Product Type', type: 'dropdown', options: () => store.getSettingList('productTypes') },
     { key: 'targetAudience', label: 'Target Audience', type: 'text', width: '170px' },
     { key: 'status', label: 'Status', type: 'dropdown', options: () => store.getSettingList('productStatuses'), badge: statusBadge },
     { key: 'notes', label: 'Notes', type: 'text', width: '170px' }

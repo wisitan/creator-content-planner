@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   contentAngles: ['Selling Point','Pain Point','Comparison','Tutorial','Storytelling','Trend','Review','Unboxing','Setup Tour'],
   contentStatuses: ['💡 Idea','✍️ Scripting','🎬 Filming','✂️ Editing','✅ Ready','📤 Published','❌ Cancelled'],
   productStatuses: ['To Review','Approved','Active','Paused','Done'],
+  productTypes: ['A สินค้าขายดี', 'B สินค้ามาใหม่', 'C สินค้าราคาประหยัด', 'D สินค้าค่าคอมสูง'],
   priceRanges: ['< ฿500','฿500-1,000','฿1,000-2,000','฿2,000-5,000','฿5,000+'],
   ctaTypes: ['ปักตะกร้า','Link in Bio','Follow','Comment','Save','DM','Share'],
   dealTypes: ['Paid Review','Barter','Affiliate Boost','Long-term','Ambassador'],
@@ -138,7 +139,7 @@ class Store extends Emitter {
     const p = {
       id: uid('P'), name: '', category: '', brand: '', priceRange: '',
       platform: '', commission: '', affiliateLink: '',
-      sellingPoints: '', painPoints: '', targetAudience: '',
+      sellingPoints: '', productType: 'A สินค้าขายดี', targetAudience: '',
       imageUrl: '', status: 'To Review', notes: '', ...data,
     };
     this._data.products.push(p);

@@ -70,6 +70,7 @@ export function renderSettings(container, store) {
     { key: 'contentAngles', label: 'Content Angles / มุมขาย' },
     { key: 'contentStatuses', label: 'Content Status / สถานะ content' },
     { key: 'productStatuses', label: 'Product Status / สถานะสินค้า' },
+    { key: 'productTypes', label: 'Product Types / ประเภทสินค้า' },
     { key: 'priceRanges', label: 'Price Ranges / ช่วงราคา' },
     { key: 'ctaTypes', label: 'CTA Types / ประเภท CTA' },
     { key: 'dealTypes', label: 'Deal Types / ประเภท deal' },
