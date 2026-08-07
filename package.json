@@ -1,7 +1,7 @@
 {
   "name": "creator-content-planner",
   "private": true,
-  "version": "2.4.3",
+  "version": "2.4.4",
   "description": "Content Planning Web App for Creators — Affiliate + Personal Brand",
   "type": "module",
   "scripts": {

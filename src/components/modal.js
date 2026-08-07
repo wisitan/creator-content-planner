@@ -65,17 +65,34 @@ export function showModal({
 }
 
 /** Convenience: Image Preview Modal */
-export function showImageModal(imgUrl, title = '🖼️ Photo Preview / ดูรูปภาพขนาดใหญ่') {
+export function showImageModal(imgUrl, title = '🖼️ Photo Preview / ดูรูปภาพขนาดใหญ่', onDelete) {
   if (!imgUrl) return;
-  showModal({
+  const modal = showModal({
     title,
     body: `
       <div style="text-align:center; padding:10px;">
-        <img src="${imgUrl}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.25);">
+        <img src="${imgUrl}" style="max-width:100%; max-height:65vh; object-fit:contain; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.25);">
+        ${onDelete ? `
+          <div style="margin-top:14px;">
+            <button id="modal-btn-delete-img" class="btn btn-danger btn-sm">🗑️ Delete Photo / ลบรูปภาพนี้</button>
+          </div>
+        ` : ''}
       </div>
     `,
     cancelText: '❌ Close / ปิด',
   });
+
+  if (onDelete && modal.element) {
+    const delBtn = modal.element.querySelector('#modal-btn-delete-img');
+    if (delBtn) {
+      delBtn.addEventListener('click', () => {
+        if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรูปภาพนี้? (Delete this photo?)')) {
+          onDelete();
+          modal.close();
+        }
+      });
+    }
+  }
 }
 
 /** Convenience: confirm dialog */

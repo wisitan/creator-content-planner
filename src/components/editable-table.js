@@ -306,7 +306,7 @@ export function EditableTable(container, config) {
       return `
         <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
           ${imgUrl 
-            ? `<img src="${esc(imgUrl)}" class="table-img-preview" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-field="${col.key}" data-id="${esc(row[idField])}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
             : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`
           }
           <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo">
@@ -646,13 +646,19 @@ export function EditableTable(container, config) {
     const tbody = container.querySelector('tbody');
     if (!tbody) return;
 
-    // Image Zoom Click Handler
+    // Image Zoom Click Handler (with Delete Photo Option)
     container.querySelectorAll('.table-img-preview').forEach(imgEl => {
       imgEl.addEventListener('click', (e) => {
         e.stopPropagation();
         const src = e.currentTarget.getAttribute('src');
+        const field = e.currentTarget.dataset.field;
+        const id = e.currentTarget.dataset.id;
         if (src) {
-          showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่');
+          showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && id ? () => {
+            if (onChange) onChange(id, field, '');
+            showToast('Deleted photo successfully! 🗑️', 'info');
+            render();
+          } : undefined);
         }
       });
     });
