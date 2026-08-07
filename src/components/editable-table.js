@@ -819,15 +819,20 @@ export function EditableTable(container, config) {
       const currentHook = rowData ? (rowData.hook || '') : '';
       const currentScript = rowData ? (rowData.script || rowData[field] || '') : '';
 
-      showModal({
+      const modal = showModal({
         title: `📜 Edit Script, Hook & Content Details (${id})`,
         body: `
+          <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--c-border);">
+            <button type="button" id="modal-btn-teleprompter" class="btn btn-primary" style="background:#8b5cf6; border:none; padding:8px 20px; font-weight:700; border-radius:20px; font-size:0.95rem; cursor:pointer; box-shadow:0 3px 10px rgba(139,92,246,0.3);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+              🎬 เปิดโหมด Teleprompter (อ่านบทอัดคลิป)
+            </button>
+          </div>
           <div class="form-group mb-3">
-            <label class="form-label" style="font-weight:bold;">🪝 Hook (คำเกริ่นเรียกร้องความสนใจ 3 วินาทีแรก):</label>
+            <label class="form-label" style="font-weight:bold;">🪝 HOOK (คำเกริ่นเรียกร้องความสนใจ 3 วินาทีแรก):</label>
             <input type="text" id="modal-hook-input" class="form-input mb-3" style="font-size:0.95rem;" value="${esc(currentHook)}" placeholder="เช่น หยุดดูก่อนถ้าคุณกำลังจะซื้อ...">
           </div>
           <div class="form-group mb-2">
-            <label class="form-label" style="font-weight:bold;">📜 Script & Outline (รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์ฉบับเต็ม):</label>
+            <label class="form-label" style="font-weight:bold;">📜 SCRIPT & OUTLINE (รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์ฉบับเต็ม):</label>
             <textarea id="modal-script-input" class="form-input" style="height:220px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentScript)}</textarea>
           </div>
         `,
@@ -846,6 +851,20 @@ export function EditableTable(container, config) {
           render();
         }
       });
+
+      if (modal.element) {
+        const tpBtn = modal.element.querySelector('#modal-btn-teleprompter');
+        if (tpBtn) {
+          tpBtn.addEventListener('click', () => {
+            const hVal = document.getElementById('modal-hook-input')?.value.trim() || '';
+            const sVal = document.getElementById('modal-script-input')?.value.trim() || '';
+            const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+            const fullText = hookPart + sVal;
+            const currentTitle = hVal || id;
+            showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
+          });
+        }
+      }
     });
   }
 
@@ -876,16 +895,10 @@ export function EditableTable(container, config) {
         const currentHook = row.hook || '';
         const currentScript = row.script || val || '';
         fieldsHtml += `
-          <div class="p-3 mb-3" style="background:#f3e8ff; border-left:5px solid #8b5cf6; border-radius:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-              <div>
-                <strong style="color:#6b21a8; font-size:1.05rem;">🎬 Teleprompter Mode (กล่องอ่านบทอัดคลิป)</strong>
-                <p class="text-muted m-0 mt-1" style="font-size:0.8rem;">รวม 🪝 Hook + 📜 Script เข้าด้วยกันแล้วขึ้นจออ่านบทแบบ Auto-scroll</p>
-              </div>
-              <button type="button" class="btn btn-primary btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:10px 22px; font-size:1rem; background:#8b5cf6; border:none; border-radius:24px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(139,92,246,0.4);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
-                🎬 เปิดโหมด Teleprompter
-              </button>
-            </div>
+          <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--c-border);">
+            <button type="button" class="btn btn-primary btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:8px 20px; font-size:0.95rem; background:#8b5cf6; border:none; border-radius:20px; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(139,92,246,0.3);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+              🎬 เปิดโหมด Teleprompter (อ่านบทอัดคลิป)
+            </button>
           </div>
 
           <div class="mb-3">
