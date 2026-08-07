@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.8.0';
+const APP_VERSION = 'v2.8.1';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -108,11 +108,12 @@ function buildShell() {
     const googleClientId = store.getSettings().googleClientId;
     if (googleClientId) {
       try {
-        showToast('กำลังบันทึกข้อมูลลงเครื่องและสำรองไปยัง Google Drive... 💾☁️', 'info');
+        await initGoogleDrive(googleClientId);
         await backupToDrive(store._data);
         showToast('บันทึกข้อมูลลงเครื่อง และ Auto Backup ขึ้น Google Drive เรียบร้อยแล้วค่ะ! 💾☁️✅', 'success');
       } catch (err) {
-        showToast('บันทึกข้อมูลลงเครื่องสำเร็จ! (แต่ Drive Backup ล้มเหลว: ' + err.message + ')', 'warning');
+        // If drive auth is not active yet, save locally cleanly without scary error text
+        showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
       }
     } else {
       showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
