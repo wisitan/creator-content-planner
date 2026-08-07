@@ -295,9 +295,15 @@ export function EditableTable(container, config) {
   }
 
   function renderCell(row, col) {
+    const val = row[col.key] ?? '';
+
+    if (col.key === idField || col.key === 'id') {
+      return `<button class="btn btn-secondary btn-sm btn-open-row-detail" data-id="${esc(val)}" style="font-weight:700; font-family:monospace;" title="Click to view/edit full row details in vertical popup / กดเพื่อเปิดดูรายละเอียดแถวแนวตั้ง">📱 ${esc(val)}</button>`;
+    }
+
     if (col.type === 'scriptModal') {
-      const val = row[col.key] || '';
-      const preview = val.length > 25 ? val.slice(0, 25) + '...' : (val || '✏️ Edit Details / Script');
+      const scriptVal = row[col.key] || '';
+      const preview = scriptVal.length > 25 ? scriptVal.slice(0, 25) + '...' : (scriptVal || '✏️ Edit Details / Script');
       return `<button class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📜 ${esc(preview)}</button>`;
     }
 
@@ -318,11 +324,9 @@ export function EditableTable(container, config) {
     }
 
     if (col.compute) {
-      const val = col.compute(row);
-      return `<span class="cell-computed">${esc(val)}</span>`;
+      const computedVal = col.compute(row);
+      return `<span class="cell-computed">${esc(computedVal)}</span>`;
     }
-
-    const val = row[col.key] ?? '';
 
     if (col.readOnly || col.editable === false) {
       return `<span class="cell-readonly">${esc(val)}</span>`;
@@ -709,6 +713,13 @@ export function EditableTable(container, config) {
     });
 
     tbody.addEventListener('click', (e) => {
+      const btnDetail = e.target.closest('.btn-open-row-detail');
+      if (btnDetail) {
+        const id = btnDetail.dataset.id;
+        if (id) openRowDetailModal(id);
+        return;
+      }
+
       const btn = e.target.closest('.btn-open-script');
       if (!btn) return;
       const tr = btn.closest('tr');
@@ -749,6 +760,111 @@ export function EditableTable(container, config) {
         }
       });
     });
+  }
+
+  function openRowDetailModal(rowId) {
+    const currentData = getCurrentData();
+    const row = currentData.find(r => String(r[idField]) === String(rowId));
+    if (!row) return;
+
+    let fieldsHtml = '';
+    columns.forEach(col => {
+      const val = row[col.key] ?? '';
+      
+      fieldsHtml += `<div class="form-group mb-3 pb-2" style="border-bottom:1px solid var(--c-border);">`;
+      fieldsHtml += `<label class="form-label" style="font-weight:700; color:var(--c-primary);">${esc(col.label)}:</label>`;
+
+      if (col.type === 'image') {
+        const imgUrl = val;
+        fieldsHtml += `
+          <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+            ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" class="table-img-preview" data-field="${col.key}" data-id="${esc(rowId)}">` : '<span class="text-muted">No Photo</span>'}
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+              📷 Upload Photo
+              <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" data-id="${esc(rowId)}" style="display:none;">
+            </label>
+          </div>
+        `;
+      } else if (col.type === 'scriptModal') {
+        const currentHook = row.hook || '';
+        const currentScript = row.script || val || '';
+        fieldsHtml += `
+          <div class="mb-2">
+            <label class="form-label" style="font-size:0.75rem; color:#D97706;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
+            <input type="text" class="form-input modal-row-field" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.75rem; color:#4F46E5;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
+            <textarea class="form-input modal-row-field" data-field="script" style="height:120px;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+          </div>
+        `;
+      } else if (col.compute) {
+        fieldsHtml += `<div class="form-input" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
+      } else if (col.readOnly || col.editable === false || col.key === idField) {
+        fieldsHtml += `<input type="text" class="form-input" value="${esc(val)}" readonly style="background:var(--c-bg); font-weight:700;">`;
+      } else if (col.type === 'dropdown') {
+        const options = typeof col.options === 'function' ? col.options() : (col.options || []);
+        let optHtml = options.map(o => `<option value="${esc(o)}"${String(o) === String(val) ? ' selected' : ''}>${esc(o)}</option>`).join('');
+        fieldsHtml += `<select class="form-select modal-row-field" data-field="${col.key}"><option value="">-- Select --</option>${optHtml}</select>`;
+      } else if (col.type === 'textarea') {
+        fieldsHtml += `<textarea class="form-input modal-row-field" data-field="${col.key}" style="height:80px;">${esc(val)}</textarea>`;
+      } else if (col.type === 'checkbox') {
+        fieldsHtml += `<label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" class="modal-row-field-cb" data-field="${col.key}" ${val ? 'checked' : ''}> <span>Enabled</span></label>`;
+      } else {
+        const inputType = col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : col.type === 'url' ? 'url' : 'text';
+        fieldsHtml += `<input type="${inputType}" class="form-input modal-row-field" data-field="${col.key}" value="${esc(val)}">`;
+      }
+
+      fieldsHtml += `</div>`;
+    });
+
+    const modal = showModal({
+      title: `📱 Row Details (${rowId}) — รายละเอียดแนวตั้ง`,
+      body: `
+        <div class="vertical-row-detail-modal" style="max-height:65vh; overflow-y:auto; padding-right:6px;">
+          <p class="text-muted mb-3" style="font-size:0.8rem;">(สามารถพิมพ์แก้ไขหรือไถหน้าจอขึ้นลงเพื่อดูข้อมูลทุกคอลัมน์ในแนวตั้งได้อย่างสะดวก)</p>
+          ${fieldsHtml}
+        </div>
+      `,
+      confirmText: '💾 Save & Close / บันทึก',
+      cancelText: '❌ Close / ปิด',
+      onConfirm: (modalBody) => {
+        if (!modalBody) return;
+        modalBody.querySelectorAll('.modal-row-field').forEach(input => {
+          const f = input.dataset.field;
+          const v = input.value;
+          if (f && onChange) onChange(rowId, f, v);
+        });
+        modalBody.querySelectorAll('.modal-row-field-cb').forEach(cb => {
+          const f = cb.dataset.field;
+          const v = cb.checked;
+          if (f && onChange) onChange(rowId, f, v);
+        });
+        showToast(`Saved details for ${rowId}! 💾✅`, 'success');
+        render();
+      }
+    });
+
+    // Wire image upload inside vertical modal
+    if (modal.element) {
+      modal.element.querySelectorAll('.input-table-img').forEach(input => {
+        input.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const field = e.target.dataset.field;
+          try {
+            const dataUrl = await resizeImageFile(file, 400);
+            if (onChange) onChange(rowId, field, dataUrl);
+            showToast('Uploaded image! 📷', 'success');
+            modal.close();
+            openRowDetailModal(rowId);
+            render();
+          } catch (err) {
+            showToast('Upload failed: ' + err.message, 'error');
+          }
+        });
+      });
+    }
   }
 
   render();
