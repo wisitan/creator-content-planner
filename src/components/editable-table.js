@@ -859,8 +859,25 @@ export function EditableTable(container, config) {
       }
     });
 
-    // Wire image upload inside vertical modal
+    // Wire image preview zoom & upload inside vertical modal
     if (modal.element) {
+      modal.element.querySelectorAll('.table-img-preview').forEach(imgEl => {
+        imgEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const src = e.currentTarget.getAttribute('src');
+          const field = e.currentTarget.dataset.field;
+          const id = e.currentTarget.dataset.id || rowId;
+          if (src) {
+            showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && id ? () => {
+              if (onChange) onChange(id, field, '');
+              showToast('Deleted photo successfully! 🗑️', 'info');
+              modal.close();
+              render();
+            } : undefined);
+          }
+        });
+      });
+
       modal.element.querySelectorAll('.input-table-img').forEach(input => {
         input.addEventListener('change', async (e) => {
           const file = e.target.files[0];
