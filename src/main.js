@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v1.4.08';
+const APP_VERSION = 'v1.4.09';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -198,7 +198,7 @@ function buildShell() {
         try {
           store.restoreLastLocalSnapshot();
           showToast('กู้คืนข้อมูลเซฟล่าสุดในเครื่องเรียบร้อยแล้วค่ะ! ⏪✅', 'success');
-          setTimeout(() => location.reload(), 800);
+          navigate(currentRoute || 'dashboard');
         } catch (err) {
           showToast('Restore Failed: ' + err.message, 'error');
         }

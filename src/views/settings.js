@@ -111,7 +111,7 @@ export function renderSettings(container, store) {
         try {
           store.restoreLastLocalSnapshot();
           showToast('กู้คืนข้อมูลเซฟล่าสุดในเครื่องเรียบร้อยแล้วค่ะ! ⏪✅', 'success');
-          setTimeout(() => location.reload(), 800);
+          renderSettings(container, store);
         } catch (err) {
           showToast('Restore Failed: ' + err.message, 'error');
         }

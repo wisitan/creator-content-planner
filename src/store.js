@@ -148,10 +148,9 @@ class Store extends Emitter {
 
   makeLocalSnapshot(reason = 'Auto Save') {
     try {
-      const currentRaw = localStorage.getItem(STORAGE_KEY);
-      if (currentRaw) {
+      if (this._data) {
         const snapshot = {
-          raw: currentRaw,
+          raw: JSON.stringify(this._data),
           snapshotTime: new Date().toISOString(),
           reason: reason,
         };
@@ -191,28 +190,30 @@ class Store extends Emitter {
     if (!info || !info.data) {
       throw new Error('ไม่พบข้อมูลสำรองการเซฟก่อนหน้านี้ในเครื่องค่ะ');
     }
-    // Make safety snapshot of current state before restoring
-    this.makeLocalSnapshot('Pre-Restore State');
 
+    // Cleanly restore state
     this._data = {
       settings: { ...DEFAULT_SETTINGS, ...info.data.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
       products: info.data.products || [],
       content: info.data.content || [],
       channelTracker: info.data.channelTracker || [],
       sponsors: info.data.sponsors || [],
-      deletedItems: info.data.deletedItems || [],
+      deletedItems: [], // Clear tombstones so restored items don't get deleted again
       brand: { ...DEFAULT_BRAND, ...info.data.brand },
     };
 
-    this.forceSave();
+    // Save directly without overwriting snapshot
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this._data));
+      this.emit('saved');
+    } catch (e) {}
+
     this.emit('change', 'all');
     return info;
   }
 
   _persist() {
     try {
-      this.makeLocalSnapshot('Auto Save');
-
       const totalRecs = (this._data.products?.length || 0) + 
                         (this._data.content?.length || 0) + 
                         (this._data.channelTracker?.length || 0) + 
@@ -235,6 +236,7 @@ class Store extends Emitter {
   }
 
   forceSave() {
+    this.makeLocalSnapshot('Manual Save');
     this._persist();
     return true;
   }
@@ -333,6 +335,7 @@ class Store extends Emitter {
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteProduct(id) {
+    this.makeLocalSnapshot('ก่อนลบสินค้า ' + id);
     this._trackDelete(id, 'product');
     const targetIdStr = String(id).trim().toLowerCase();
     this._data.products = this._data.products.filter(p => String(p.id).trim().toLowerCase() !== targetIdStr);
@@ -394,6 +397,7 @@ class Store extends Emitter {
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteContent(id) {
+    this.makeLocalSnapshot('ก่อนลบคอนเทนต์ ' + id);
     this._trackDelete(id, 'content');
     const targetIdStr = String(id).trim().toLowerCase();
     this._data.content = this._data.content.filter(c => String(c.id).trim().toLowerCase() !== targetIdStr);
@@ -451,6 +455,7 @@ class Store extends Emitter {
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteChannelEntry(id) {
+    this.makeLocalSnapshot('ก่อนลบบันทึกช่องทาง ' + id);
     this._trackDelete(id, 'channel');
     const targetIdStr = String(id).trim().toLowerCase();
     this._data.channelTracker = this._data.channelTracker.filter(x => String(x.id).trim().toLowerCase() !== targetIdStr);
@@ -508,6 +513,7 @@ class Store extends Emitter {
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteSponsor(id) {
+    this.makeLocalSnapshot('ก่อนลบดีล ' + id);
     this._trackDelete(id, 'sponsor');
     const targetIdStr = String(id).trim().toLowerCase();
     this._data.sponsors = this._data.sponsors.filter(x => String(x.id).trim().toLowerCase() !== targetIdStr);
