@@ -84,7 +84,21 @@ class Store extends Emitter {
   /* ── Persistence ── */
   _load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      let raw = localStorage.getItem(STORAGE_KEY);
+      
+      // Safety Net: If current data is missing or empty, check if we have a backup snapshot
+      if (!raw) {
+        const backupRaw = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
+        if (backupRaw) {
+          const snapshot = JSON.parse(backupRaw);
+          if (snapshot && snapshot.raw) {
+            raw = snapshot.raw;
+            localStorage.setItem(STORAGE_KEY, raw);
+            console.log('[Store] Auto-recovered data from backup snapshot!');
+          }
+        }
+      }
+
       if (!raw) return this._defaults();
       const parsed = JSON.parse(raw);
       return {
@@ -97,7 +111,25 @@ class Store extends Emitter {
         brand: { ...DEFAULT_BRAND, ...parsed.brand },
       };
     } catch (e) {
-      console.warn('[Store] Corrupted data, using defaults', e);
+      console.warn('[Store] Corrupted data, trying backup snapshot', e);
+      try {
+        const backupRaw = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
+        if (backupRaw) {
+          const snapshot = JSON.parse(backupRaw);
+          if (snapshot && snapshot.raw) {
+            const parsed = JSON.parse(snapshot.raw);
+            return {
+              settings: { ...DEFAULT_SETTINGS, ...parsed.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
+              products: parsed.products || [],
+              content: parsed.content || [],
+              channelTracker: parsed.channelTracker || [],
+              sponsors: parsed.sponsors || [],
+              deletedItems: parsed.deletedItems || [],
+              brand: { ...DEFAULT_BRAND, ...parsed.brand },
+            };
+          }
+        }
+      } catch (err) {}
       return this._defaults();
     }
   }

@@ -26,7 +26,7 @@ export function EditableTable(container, config) {
 
   // Year & Month Filters state
   const currentYear = new Date().getFullYear();
-  let selectedYear = '2026'; // Default initial year set to 2026
+  let selectedYear = 'ALL'; // Default to ALL years so no data is hidden on refresh
   let selectedMonths = new Set(); // 0 = JAN, 1 = FEB, ..., 11 = DEC (empty = all months)
 
   const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
