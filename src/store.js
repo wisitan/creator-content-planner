@@ -345,6 +345,37 @@ class Store extends Emitter {
     });
   }
 
+  mergeData(remoteData) {
+    if (!remoteData) return false;
+
+    const mergeArray = (localArr = [], remoteArr = [], idKey = 'id') => {
+      const map = new Map();
+      remoteArr.forEach(item => {
+        if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
+      });
+      localArr.forEach(item => {
+        if (item && item[idKey]) map.set(String(item[idKey]), { ...item });
+      });
+      return Array.from(map.values());
+    };
+
+    this._data.products = mergeArray(this._data.products, remoteData.products || []);
+    this._data.content = mergeArray(this._data.content, remoteData.content || []);
+    this._data.channelTracker = mergeArray(this._data.channelTracker, remoteData.channelTracker || []);
+    this._data.sponsors = mergeArray(this._data.sponsors, remoteData.sponsors || []);
+
+    if (remoteData.settings) {
+      this._data.settings = { ...remoteData.settings, ...this._data.settings };
+    }
+    if (remoteData.brand) {
+      this._data.brand = { ...remoteData.brand, ...this._data.brand };
+    }
+
+    this.forceSave();
+    this.emit('change', 'all');
+    return true;
+  }
+
   clearAll() {
     this._data = this._defaults();
     this._persist();
