@@ -740,6 +740,9 @@ export function EditableTable(container, config) {
           render();
           return;
         }
+        if (field === idField || field === 'id') {
+          tr.dataset.id = value;
+        }
       }
 
       // Auto re-render table to instantly refresh computed columns (e.g., Product Name auto-show)
