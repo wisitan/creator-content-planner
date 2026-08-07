@@ -146,84 +146,6 @@ class Store extends Emitter {
     };
   }
 
-  makeLocalSnapshot(reason = 'Manual Save') {
-    try {
-      // Save current disk state to snapshot before overwriting
-      const currentStored = localStorage.getItem(STORAGE_KEY);
-      if (currentStored) {
-        const snapshot = {
-          raw: currentStored,
-          snapshotTime: new Date().toISOString(),
-          reason: reason,
-        };
-        localStorage.setItem(BACKUP_SNAPSHOT_KEY, JSON.stringify(snapshot));
-      }
-    } catch (e) {
-      console.warn('[Store] Snapshot failed:', e.message);
-    }
-  }
-
-  getLastLocalSnapshotInfo() {
-    try {
-      const rawSnapshot = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
-      const rawDisk = localStorage.getItem(STORAGE_KEY);
-      const rawData = rawSnapshot ? JSON.parse(rawSnapshot).raw : rawDisk;
-      if (!rawData) return null;
-      
-      const parsedData = JSON.parse(rawData);
-      const totalRecs = (parsedData.products?.length || 0) + 
-                        (parsedData.content?.length || 0) + 
-                        (parsedData.channelTracker?.length || 0) + 
-                        (parsedData.sponsors?.length || 0);
-
-      return {
-        snapshotTime: rawSnapshot ? JSON.parse(rawSnapshot).snapshotTime : new Date().toISOString(),
-        reason: 'Saved State',
-        totalRecords: totalRecs,
-        productsCount: parsedData.products?.length || 0,
-        contentCount: parsedData.content?.length || 0,
-        data: parsedData,
-      };
-    } catch (e) {
-      return null;
-    }
-  }
-
-  restoreLastLocalSnapshot() {
-    let rawData = null;
-    const rawSnapshot = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
-    if (rawSnapshot) {
-      try {
-        const snapshot = JSON.parse(rawSnapshot);
-        rawData = snapshot.raw;
-      } catch (e) {}
-    }
-
-    if (!rawData) {
-      rawData = localStorage.getItem(STORAGE_KEY);
-    }
-
-    if (!rawData) {
-      throw new Error('ไม่พบข้อมูลการเซฟก่อนหน้านี้ในเครื่องค่ะ');
-    }
-
-    const parsedData = JSON.parse(rawData);
-
-    // Directly replace current data with the last saved snapshot data
-    this._data = {
-      settings: { ...DEFAULT_SETTINGS, ...parsedData.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
-      products: parsedData.products || [],
-      content: parsedData.content || [],
-      channelTracker: parsedData.channelTracker || [],
-      sponsors: parsedData.sponsors || [],
-      deletedItems: [],
-      brand: { ...DEFAULT_BRAND, ...parsedData.brand },
-    };
-
-    this.emit('change', 'all');
-    return parsedData;
-  }
-
   _persist() {
     try {
       const totalRecs = (this._data.products?.length || 0) + 
@@ -248,13 +170,12 @@ class Store extends Emitter {
   }
 
   forceSave() {
-    this.makeLocalSnapshot('Manual Save');
     this._persist();
     return true;
   }
 
   _changed(area) {
-    // Only emit change event for UI update; DO NOT auto-save to storage
+    this._save();
     this.emit('change', area);
   }
 

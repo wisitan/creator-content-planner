@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v1.4.11';
+const APP_VERSION = 'v1.4.12';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -64,7 +64,6 @@ function buildShell() {
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary btn-sm" id="btn-manual-save" title="Save data to local browser storage immediately">💾 Save</button>
-        <button class="btn btn-secondary btn-sm" id="btn-restore-snapshot" title="Restore last local save snapshot / กู้คืนข้อมูลเซฟล่าสุดในเครื่อง">⏪ Restore</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdrive-backup" title="Backup to Google Drive">☁️ Drive Backup</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdrive-sync" title="Sync from Google Drive">🔄 Drive Sync</button>
         <button class="btn btn-secondary btn-sm" id="btn-export" title="Export data as JSON">📥 Export</button>
@@ -169,42 +168,7 @@ function buildShell() {
     e.target.value = '';
   });
 
-  document.getElementById('btn-restore-snapshot').addEventListener('click', () => {
-    const info = store.getLastLocalSnapshotInfo();
-    if (!info) {
-      showToast('ไม่พบข้อมูลสำรองการเซฟก่อนหน้านี้ในเครื่องค่ะ ⚠️', 'warning');
-      return;
-    }
-    const timeStr = new Date(info.snapshotTime).toLocaleString('th-TH');
-    showModal({
-      title: '⏪ กู้คืนข้อมูลสำรองในเครื่อง (Restore Last Save)',
-      body: `
-        <div class="p-1">
-          <p class="text-primary font-weight-700 mb-2">พบข้อมูลสำรองการเซฟก่อนหน้านี้ในเครื่องดังนี้ค่ะ:</p>
-          <div class="card p-3 mb-3" style="background:#EFF6FF; border-left:4px solid #3B82F6;">
-            <ul style="margin:0; padding-left:18px; font-size:0.88rem;">
-              <li>ประทับเวลาเซฟ: <strong>${timeStr}</strong></li>
-              <li>เหตุผลการเซฟ: <strong>${info.reason}</strong></li>
-              <li>รายการสินค้า: <strong>${info.productsCount} รายการ</strong></li>
-              <li>แผนคอนเทนต์: <strong>${info.contentCount} รายการ</strong></li>
-            </ul>
-          </div>
-          <p class="text-muted" style="font-size:0.82rem;">ต้องการกู้คืนข้อมูลชุดนี้กลับมาแทนที่ปัจจุบันหรือไม่คะ?</p>
-        </div>
-      `,
-      confirmText: '⏪ ยืนยันกู้คืนข้อมูล (Restore Now)',
-      cancelText: '❌ ยกเลิก',
-      onConfirm: () => {
-        try {
-          store.restoreLastLocalSnapshot();
-          showToast('กู้คืนข้อมูลเซฟล่าสุดในเครื่องเรียบร้อยแล้วค่ะ! ⏪✅', 'success');
-          navigate(currentRoute || 'dashboard');
-        } catch (err) {
-          showToast('Restore Failed: ' + err.message, 'error');
-        }
-      }
-    });
-  });
+
 
   document.getElementById('btn-sample').addEventListener('click', () => {
     if (confirm('Load sample data? ข้อมูลเดิมจะถูกแทนที่')) {
