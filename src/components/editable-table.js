@@ -800,8 +800,10 @@ export function EditableTable(container, config) {
         `;
       } else if (col.compute) {
         fieldsHtml += `<div class="form-input" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
-      } else if (col.readOnly || col.editable === false || col.key === idField) {
+      } else if (col.readOnly || col.editable === false) {
         fieldsHtml += `<input type="text" class="form-input" value="${esc(val)}" readonly style="background:var(--c-bg); font-weight:700;">`;
+      } else if (col.key === idField) {
+        fieldsHtml += `<input type="text" class="form-input modal-row-field" data-field="${col.key}" value="${esc(val)}" style="font-weight:700; color:var(--c-primary);" placeholder="ระบุ ID...">`;
       } else if (col.type === 'dropdown') {
         const options = typeof col.options === 'function' ? col.options() : (col.options || []);
         let optHtml = options.map(o => `<option value="${esc(o)}"${String(o) === String(val) ? ' selected' : ''}>${esc(o)}</option>`).join('');
@@ -830,17 +832,29 @@ export function EditableTable(container, config) {
       cancelText: '❌ Close / ปิด',
       onConfirm: (modalBody) => {
         if (!modalBody) return;
+
+        // Check if ID field changed
+        const idInput = modalBody.querySelector(`.modal-row-field[data-field="${idField}"]`) || modalBody.querySelector('.modal-row-field[data-field="id"]');
+        let currentTargetId = rowId;
+        if (idInput && idInput.value && idInput.value !== rowId) {
+          const newId = idInput.value.trim();
+          if (onChange) onChange(rowId, idField, newId);
+          currentTargetId = newId;
+        }
+
         modalBody.querySelectorAll('.modal-row-field').forEach(input => {
           const f = input.dataset.field;
           const v = input.value;
-          if (f && onChange) onChange(rowId, f, v);
+          if (f && f !== idField && onChange) {
+            onChange(currentTargetId, f, v);
+          }
         });
         modalBody.querySelectorAll('.modal-row-field-cb').forEach(cb => {
           const f = cb.dataset.field;
           const v = cb.checked;
-          if (f && onChange) onChange(rowId, f, v);
+          if (f && onChange) onChange(currentTargetId, f, v);
         });
-        showToast(`Saved details for ${rowId}! 💾✅`, 'success');
+        showToast(`Saved details for ${currentTargetId}! 💾✅`, 'success');
         render();
       }
     });
