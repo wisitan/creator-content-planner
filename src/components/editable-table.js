@@ -992,14 +992,16 @@ export function EditableTable(container, config) {
       modal.element.querySelectorAll('.table-img-preview').forEach(imgEl => {
         imgEl.addEventListener('click', (e) => {
           e.stopPropagation();
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
           const src = e.currentTarget.getAttribute('src');
           const field = e.currentTarget.dataset.field;
-          const id = e.currentTarget.dataset.id || rowId;
           if (src) {
-            showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && id ? () => {
-              if (onChange) onChange(id, field, '');
+            showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && currentId ? () => {
+              if (onChange) onChange(currentId, field, '');
               showToast('Deleted photo successfully! 🗑️', 'info');
               modal.close();
+              openRowDetailModal(currentId);
               render();
             } : undefined);
           }
@@ -1009,8 +1011,10 @@ export function EditableTable(container, config) {
       modal.element.querySelectorAll('.btn-open-product-picker').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
           const field = btn.dataset.field;
-          openProductPickerModal(rowId, field);
+          openProductPickerModal(currentId, field);
           modal.close();
         });
       });
@@ -1019,13 +1023,15 @@ export function EditableTable(container, config) {
         input.addEventListener('change', async (e) => {
           const file = e.target.files[0];
           if (!file) return;
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
           const field = e.target.dataset.field;
           try {
             const dataUrl = await resizeImageFile(file, 400);
-            if (onChange) onChange(rowId, field, dataUrl);
+            if (onChange) onChange(currentId, field, dataUrl);
             showToast('Uploaded image! 📷', 'success');
             modal.close();
-            openRowDetailModal(rowId);
+            openRowDetailModal(currentId);
             render();
           } catch (err) {
             showToast('Upload failed: ' + err.message, 'error');
