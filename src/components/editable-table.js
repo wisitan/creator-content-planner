@@ -307,6 +307,26 @@ export function EditableTable(container, config) {
       return `<button class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📜 ${esc(preview)}</button>`;
     }
 
+    if (col.type === 'productPicker') {
+      const pid = row[col.key] || '';
+      const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+      const pObj = products.find(p => p.id === pid);
+      const imgUrl = pObj ? pObj.imageUrl : '';
+      const pName = pObj ? pObj.name : '';
+
+      return `
+        <div style="display:flex; align-items:center; gap:6px;">
+          ${imgUrl 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(row[idField])}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)}">` 
+            : `<span style="font-size:1.1rem;" title="No photo">📦</span>`
+          }
+          <button class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(row[idField])}" style="padding:2px 8px; font-size:0.78rem; font-weight:700; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to pick product / กดเพื่อเลือกสินค้า">
+            ${esc(pid || '-- Pick --')}
+          </button>
+        </div>
+      `;
+    }
+
     if (col.type === 'image') {
       const imgUrl = row[col.key] || '';
       return `
@@ -716,6 +736,15 @@ export function EditableTable(container, config) {
     });
 
     tbody.addEventListener('click', (e) => {
+      const btnPicker = e.target.closest('.btn-open-product-picker');
+      if (btnPicker) {
+        const tr = btnPicker.closest('tr');
+        const id = tr ? tr.dataset.id : btnPicker.dataset.id;
+        const field = btnPicker.dataset.field;
+        if (id && field) openProductPickerModal(id, field);
+        return;
+      }
+
       const btnDetail = e.target.closest('.btn-open-row-detail');
       if (btnDetail) {
         const id = btnDetail.dataset.id;
@@ -799,6 +828,27 @@ export function EditableTable(container, config) {
           <div>
             <label class="form-label" style="font-size:0.75rem; color:#4F46E5;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
             <textarea class="form-input modal-row-field" data-field="script" style="height:120px;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+          </div>
+        `;
+      } else if (col.type === 'productPicker') {
+        const pid = val || '';
+        const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+        const pObj = products.find(p => p.id === pid);
+        const imgUrl = pObj ? pObj.imageUrl : '';
+        const pName = pObj ? pObj.name : '';
+
+        fieldsHtml += `
+          <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
+            ${imgUrl 
+              ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(rowId)}" style="width:46px; height:46px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)}">` 
+              : `<div style="width:46px; height:46px; border-radius:6px; background:var(--c-bg); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">📦</div>`
+            }
+            <div style="flex:1;">
+              <button class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(rowId)}" style="padding:6px 12px; font-size:0.85rem; font-weight:700;">
+                📦 Select Product: ${esc(pid || '-- Pick Product --')}
+              </button>
+              ${pName ? `<div style="font-size:0.8rem; font-weight:600; color:var(--c-primary); margin-top:4px;">${esc(pName)}</div>` : ''}
+            </div>
           </div>
         `;
       } else if (col.compute) {
@@ -903,6 +953,15 @@ export function EditableTable(container, config) {
         });
       });
 
+      modal.element.querySelectorAll('.btn-open-product-picker').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const field = btn.dataset.field;
+          openProductPickerModal(rowId, field);
+          modal.close();
+        });
+      });
+
       modal.element.querySelectorAll('.input-table-img').forEach(input => {
         input.addEventListener('change', async (e) => {
           const file = e.target.files[0];
@@ -920,6 +979,98 @@ export function EditableTable(container, config) {
           }
         });
       });
+    }
+  }
+
+  function openProductPickerModal(rowId, colKey) {
+    const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+    let searchTerm = '';
+
+    function renderPickerBody(modalBody) {
+      const listEl = modalBody.querySelector('#product-picker-list');
+      if (!listEl) return;
+
+      const filtered = products.filter(p => {
+        if (!searchTerm) return true;
+        const s = searchTerm.toLowerCase();
+        return (p.id || '').toLowerCase().includes(s) || 
+               (p.name || '').toLowerCase().includes(s) || 
+               (p.brand || '').toLowerCase().includes(s) || 
+               (p.category || '').toLowerCase().includes(s);
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-muted">ไม่พบสินค้าที่ตรงกับการค้นหา 📦</div>`;
+        return;
+      }
+
+      let html = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap:10px; max-height:360px; overflow-y:auto; padding:2px;">`;
+      
+      // Clear Option
+      html += `
+        <div class="card p-2 picker-item-card" data-pid="" style="cursor:pointer; border:1px dashed var(--c-border); display:flex; align-items:center; gap:10px; background:var(--c-bg);">
+          <span style="font-size:1.4rem;">🚫</span>
+          <div>
+            <div style="font-weight:700; font-size:0.85rem; color:var(--c-text-muted);">-- ไม่ระบุสินค้า / Clear --</div>
+            <div style="font-size:0.75rem;" class="text-muted">ปลดล็อกการผูกสินค้า</div>
+          </div>
+        </div>
+      `;
+
+      filtered.forEach(p => {
+        html += `
+          <div class="card p-2 picker-item-card" data-pid="${esc(p.id)}" style="cursor:pointer; display:flex; align-items:center; gap:10px; transition:all 0.15s ease;" onmouseover="this.style.borderColor='var(--c-primary)'" onmouseout="this.style.borderColor='var(--c-border)'">
+            ${p.imageUrl 
+              ? `<img src="${esc(p.imageUrl)}" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; flex-shrink:0;">`
+              : `<div style="width:44px; height:44px; border-radius:6px; background:var(--c-bg); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">📦</div>`
+            }
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-weight:700; font-size:0.85rem; color:var(--c-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(p.id)}: ${esc(p.name || 'Untitled')}</div>
+              <div style="font-size:0.75rem; color:var(--c-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="text-muted">${esc(p.brand || p.category || '-')} | ${esc(p.priceRange || '')}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      listEl.innerHTML = html;
+
+      // Click event for selecting item
+      listEl.querySelectorAll('.picker-item-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const selectedPid = card.dataset.pid;
+          if (onChange) onChange(rowId, colKey, selectedPid);
+          showToast(`Selected product ${selectedPid || 'None'}! 📦✅`, 'success');
+          modal.close();
+          render();
+        });
+      });
+    }
+
+    const modal = showModal({
+      title: `📦 Select Product / เลือกสินค้าจากคลัง (${products.length} รายการ)`,
+      body: `
+        <div>
+          <div class="mb-3">
+            <input type="text" id="product-picker-search" class="form-input" placeholder="🔍 พิมพ์เพื่อค้นหาชื่อสินค้า, รหัส P001, หรือแบรนด์..." style="font-size:0.9rem;">
+          </div>
+          <div id="product-picker-list"></div>
+        </div>
+      `,
+      confirmText: '',
+      cancelText: '❌ Cancel / ยกเลิก',
+    });
+
+    if (modal.element) {
+      renderPickerBody(modal.element);
+      const searchInput = modal.element.querySelector('#product-picker-search');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.addEventListener('input', (e) => {
+          searchTerm = e.target.value;
+          renderPickerBody(modal.element);
+        });
+      }
     }
   }
 

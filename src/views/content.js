@@ -23,7 +23,7 @@ export function renderContent(container, store) {
     { key: 'coverUrl', label: 'Cover / รูปปก', type: 'image', width: '110px' },
     { key: 'title', label: 'Content Title', type: 'text', width: '200px' },
     { key: 'contentType', label: 'Content Type', type: 'dropdown', options: () => store.getSettingList('contentTypes'), badge: contentTypeBadge },
-    { key: 'productId', label: 'Product ID', type: 'dropdown', options: () => ['', ...store.getProducts().map(p => p.id)], width: '100px' },
+    { key: 'productId', label: 'Product ID', type: 'productPicker', width: '150px' },
     { key: 'productName', label: 'Product Name (auto)', type: 'computed', compute: (row) => store.getProductName(row.productId) },
     { key: 'contentAngle', label: 'Content Angle', type: 'dropdown', options: () => store.getSettingList('contentAngles') },
     { key: 'hook', label: 'Hook / คำเปิดคลิป', type: 'text', width: '220px' },
@@ -41,6 +41,7 @@ export function renderContent(container, store) {
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getContent(),
+    getProducts: () => store.getProducts(),
     enableYearMonthFilter: true,
     onAdd: () => store.addContent({ id: uid('C'), title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
