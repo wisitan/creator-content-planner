@@ -95,6 +95,17 @@ class Store extends Emitter {
 
   _persist() {
     try {
+      const totalRecs = (this._data.products?.length || 0) + 
+                        (this._data.content?.length || 0) + 
+                        (this._data.channelTracker?.length || 0) + 
+                        (this._data.sponsors?.length || 0);
+
+      this._data.meta = {
+        lastUpdated: new Date().toISOString(),
+        totalRecords: totalRecs,
+        deviceName: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'Mobile Device' : 'PC / Mac',
+      };
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this._data));
       this.emit('saved');
     } catch (e) {
