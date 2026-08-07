@@ -148,9 +148,11 @@ class Store extends Emitter {
 
   makeLocalSnapshot(reason = 'Manual Save') {
     try {
-      if (this._data) {
+      // Save current disk state to snapshot before overwriting
+      const currentStored = localStorage.getItem(STORAGE_KEY);
+      if (currentStored) {
         const snapshot = {
-          raw: JSON.stringify(this._data),
+          raw: currentStored,
           snapshotTime: new Date().toISOString(),
           reason: reason,
         };
@@ -164,17 +166,19 @@ class Store extends Emitter {
   getLastLocalSnapshotInfo() {
     try {
       const rawSnapshot = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
-      if (!rawSnapshot) return null;
-      const snapshot = JSON.parse(rawSnapshot);
-      const parsedData = JSON.parse(snapshot.raw);
+      const rawDisk = localStorage.getItem(STORAGE_KEY);
+      const rawData = rawSnapshot ? JSON.parse(rawSnapshot).raw : rawDisk;
+      if (!rawData) return null;
+      
+      const parsedData = JSON.parse(rawData);
       const totalRecs = (parsedData.products?.length || 0) + 
                         (parsedData.content?.length || 0) + 
                         (parsedData.channelTracker?.length || 0) + 
                         (parsedData.sponsors?.length || 0);
 
       return {
-        snapshotTime: snapshot.snapshotTime,
-        reason: snapshot.reason || 'Previous Save',
+        snapshotTime: rawSnapshot ? JSON.parse(rawSnapshot).snapshotTime : new Date().toISOString(),
+        reason: 'Saved State',
         totalRecords: totalRecs,
         productsCount: parsedData.products?.length || 0,
         contentCount: parsedData.content?.length || 0,
@@ -186,13 +190,24 @@ class Store extends Emitter {
   }
 
   restoreLastLocalSnapshot() {
+    let rawData = null;
     const rawSnapshot = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
-    if (!rawSnapshot) {
-      throw new Error('ไม่พบข้อมูลการเซฟก่อนหน้านี้ในเครื่องค่ะ (กรุณากด 💾 Save อย่างน้อย 1 ครั้ง)');
+    if (rawSnapshot) {
+      try {
+        const snapshot = JSON.parse(rawSnapshot);
+        rawData = snapshot.raw;
+      } catch (e) {}
     }
 
-    const snapshot = JSON.parse(rawSnapshot);
-    const parsedData = JSON.parse(snapshot.raw);
+    if (!rawData) {
+      rawData = localStorage.getItem(STORAGE_KEY);
+    }
+
+    if (!rawData) {
+      throw new Error('ไม่พบข้อมูลการเซฟก่อนหน้านี้ในเครื่องค่ะ');
+    }
+
+    const parsedData = JSON.parse(rawData);
 
     // Directly replace current data with the last saved snapshot data
     this._data = {
@@ -205,13 +220,8 @@ class Store extends Emitter {
       brand: { ...DEFAULT_BRAND, ...parsedData.brand },
     };
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this._data));
-      this.emit('saved');
-    } catch (e) {}
-
     this.emit('change', 'all');
-    return snapshot;
+    return parsedData;
   }
 
   _persist() {
@@ -244,7 +254,7 @@ class Store extends Emitter {
   }
 
   _changed(area) {
-    this._save();
+    // Only emit change event for UI update; DO NOT auto-save to storage
     this.emit('change', area);
   }
 
