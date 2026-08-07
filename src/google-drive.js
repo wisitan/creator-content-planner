@@ -67,26 +67,13 @@ export function authenticateDrive() {
 }
 
 /** Backup data JSON directly to Google Drive */
-/** Backup data JSON directly to Google Drive (With Auto 2-Way Seamless Merge like Google Sheets) */
+/** Backup data JSON directly from local storage to Google Drive (Local -> Drive 100%) */
 export async function backupToDrive(dataObj, store = null) {
   if (!accessToken) {
     await authenticateDrive();
   }
 
   const fileId = await findBackupFileId();
-
-  // Auto 2-Way Seamless Merge with Drive Data if existing file found (Google Sheets style)
-  if (fileId && store) {
-    try {
-      const driveData = await syncFromDrive();
-      if (driveData && (driveData.products || driveData.content)) {
-        store.mergeData(driveData);
-        dataObj = store._data; // Use fresh merged data
-      }
-    } catch (e) {
-      console.warn('[Google Drive] Background auto-merge skipped:', e.message);
-    }
-  }
 
   // Ensure metadata exists
   const totalRecs = (dataObj.products?.length || 0) + 

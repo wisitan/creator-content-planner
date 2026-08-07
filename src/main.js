@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v1.4.07';
+const APP_VERSION = 'v1.4.08';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -108,7 +108,7 @@ function buildShell() {
     showToast('บันทึกข้อมูลลงในเครื่องนี้เรียบร้อยแล้วค่ะ! 💾✅', 'success');
   });
 
-  // Wire Google Drive Backup (Manual Upload to Drive)
+  // Wire Google Drive Backup (Manual Upload from Local to Drive 100%)
   document.getElementById('btn-gdrive-backup').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
@@ -117,16 +117,17 @@ function buildShell() {
       return;
     }
     try {
-      showToast('กำลังเชื่อมต่อและอัปโหลดขึ้น Google Drive... ☁️', 'info');
+      store.forceSave(); // Guarantee local state is saved first
+      showToast('กำลังเชื่อมต่อและอัปโหลดข้อมูลในเครื่องขึ้น Google Drive... ☁️', 'info');
       await initGoogleDrive(googleClientId);
       await backupToDrive(store._data, store);
-      showToast('อัปโหลด Backup ขึ้น Google Drive สำเร็จแล้ว! ☁️🔀✅', 'success');
+      showToast('อัปโหลดข้อมูลจากเครื่องขึ้น Google Drive สำเร็จเรียบร้อยแล้วค่ะ! ☁️⬆️✅', 'success');
     } catch (err) {
       showToast('Drive Backup Failed: ' + err.message, 'error');
     }
   });
 
-  // Wire Google Drive Sync
+  // Wire Google Drive Sync (Download from Drive to Local)
   document.getElementById('btn-gdrive-sync').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
@@ -134,16 +135,16 @@ function buildShell() {
       window.location.hash = '#settings';
       return;
     }
-    if (!confirm('ต้องการ Sync ดึงข้อมูลจาก Google Drive มาทับข้อมูลปัจจุบันใช่หรือไม่?')) return;
+    if (!confirm('ต้องการ Sync ดึงข้อมูลจาก Google Drive ลงมาอัปเดตในเครื่องใช่หรือไม่คะ?')) return;
     try {
-      showToast('กำลัง Sync จาก Google Drive... 🔄', 'info');
+      showToast('กำลังดึงข้อมูลจาก Google Drive... 🔄', 'info');
       await initGoogleDrive(googleClientId);
       const data = await syncFromDrive();
-      store._data = data;
-      store._persist();
-      store.emit('change', 'all');
-      showToast('Sync ข้อมูลจาก Google Drive สำเร็จเรียบร้อย! 🔄✅', 'success');
-      navigate(currentRoute || 'dashboard');
+      if (data) {
+        store.importData(data);
+        showToast('Sync ข้อมูลจาก Google Drive ลงเครื่องสำเร็จเรียบร้อย! 🔄✅', 'success');
+        navigate(currentRoute || 'dashboard');
+      }
     } catch (err) {
       showToast('Drive Sync Failed: ' + err.message, 'error');
     }
