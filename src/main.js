@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.7.2';
+const APP_VERSION = 'v2.8.0';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -101,10 +101,22 @@ function buildShell() {
     nav.appendChild(a);
   });
 
-  // Wire Manual Save Button
-  document.getElementById('btn-manual-save').addEventListener('click', () => {
+  // Wire Manual Save Button (With Auto-Backup to Google Drive)
+  document.getElementById('btn-manual-save').addEventListener('click', async () => {
     store.forceSave();
-    showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
+    
+    const googleClientId = store.getSettings().googleClientId;
+    if (googleClientId) {
+      try {
+        showToast('กำลังบันทึกข้อมูลลงเครื่องและสำรองไปยัง Google Drive... 💾☁️', 'info');
+        await backupToDrive(store._data);
+        showToast('บันทึกข้อมูลลงเครื่อง และ Auto Backup ขึ้น Google Drive เรียบร้อยแล้วค่ะ! 💾☁️✅', 'success');
+      } catch (err) {
+        showToast('บันทึกข้อมูลลงเครื่องสำเร็จ! (แต่ Drive Backup ล้มเหลว: ' + err.message + ')', 'warning');
+      }
+    } else {
+      showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
+    }
   });
 
   // Wire Google Drive Backup
