@@ -264,7 +264,7 @@ class Store extends Emitter {
   }
   updateProduct(id, field, value) {
     if (field === 'id' && String(id) !== String(value)) {
-      const exists = this._data.products.some(p => String(p.id) === String(value));
+      const exists = this._data.products.some(p => String(p.id) === String(value) && String(p.id) !== String(id));
       if (exists) {
         return { error: true, message: `รหัสสินค้า "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
@@ -296,7 +296,7 @@ class Store extends Emitter {
   }
   updateContent(id, field, value) {
     if (field === 'id' && String(id) !== String(value)) {
-      const exists = this._data.content.some(c => String(c.id) === String(value));
+      const exists = this._data.content.some(c => String(c.id) === String(value) && String(c.id) !== String(id));
       if (exists) {
         return { error: true, message: `รหัสคอนเทนต์ "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
@@ -326,7 +326,7 @@ class Store extends Emitter {
   }
   updateChannelEntry(id, field, value) {
     if (field === 'id' && String(id) !== String(value)) {
-      const exists = this._data.channelTracker.some(x => String(x.id) === String(value));
+      const exists = this._data.channelTracker.some(x => String(x.id) === String(value) && String(x.id) !== String(id));
       if (exists) {
         return { error: true, message: `รหัสบันทึก "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
@@ -356,7 +356,7 @@ class Store extends Emitter {
   }
   updateSponsor(id, field, value) {
     if (field === 'id' && String(id) !== String(value)) {
-      const exists = this._data.sponsors.some(s => String(s.id) === String(value));
+      const exists = this._data.sponsors.some(s => String(s.id) === String(value) && String(s.id) !== String(id));
       if (exists) {
         return { error: true, message: `รหัสดีล "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }

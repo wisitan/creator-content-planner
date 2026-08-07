@@ -725,15 +725,17 @@ export function EditableTable(container, config) {
       if (onChange) {
         const res = onChange(id, field, value);
         if (res && res.error) {
+          target.value = id;
           showModal({
             title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
             body: `
               <div class="p-2">
                 <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
-                <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: กรุณาใช้รหัส ID อื่นที่ไม่ซ้ำนะคะ</p>
+                <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(id)}) เรียบร้อยแล้วค่ะ</p>
               </div>
             `,
             cancelText: '❌ ปิดหน้าต่างนี้',
+            onCancel: () => render(),
           });
           render();
           return;
@@ -910,15 +912,17 @@ export function EditableTable(container, config) {
           if (onChange) {
             const res = onChange(rowId, idField, newId);
             if (res && res.error) {
+              idInput.value = rowId;
               showModal({
                 title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
                 body: `
                   <div class="p-2">
                     <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
-                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: กรุณาใช้รหัส ID อื่นที่ไม่ซ้ำนะคะ</p>
+                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(rowId)}) เรียบร้อยแล้วค่ะ</p>
                   </div>
                 `,
                 cancelText: '❌ ปิดหน้าต่างนี้',
+                onCancel: () => render(),
               });
               render();
               return;
