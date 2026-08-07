@@ -859,6 +859,50 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   visibility: visible;
 }
 
+/* ── 25. Month Filter Buttons & Image Zoom Styling ── */
+.btn-month-toggle {
+  background: var(--c-bg-card);
+  color: var(--c-text-secondary);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.btn-month-toggle:hover {
+  background: var(--c-primary-light);
+  color: var(--c-primary);
+  border-color: var(--c-primary);
+}
+.btn-month-toggle.active {
+  background: var(--c-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--c-primary) !important;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.25);
+}
+
+.table-img-preview {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.table-img-preview:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+
+[data-theme="dark"] .btn-month-toggle {
+  background: #1E293B;
+  color: #CBD5E1;
+  border-color: #334155;
+}
+[data-theme="dark"] .btn-month-toggle:hover {
+  background: #334155;
+  color: #F8FAFC;
+}
+[data-theme="dark"] .btn-month-toggle.active {
+  background: #6366F1 !important;
+  color: #FFFFFF !important;
+}
+
 /* Professional Print CSS (Multi-page clean breaks - Always Light Mode) */
 @media print {
   @page {

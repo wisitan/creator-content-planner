@@ -9,7 +9,7 @@ export function renderContent(container, store) {
   header.innerHTML = `
     <div>
       <h2>📝 Content Planner / แผนคอนเทนต์</h2>
-      <p class="text-muted">วางแผนคอนเทนต์ (กดปุ่ม 📄 Script & Details เพื่อเปิดใส่สคริปต์/บทพูดฉบับเต็ม | ลากหัวคอลัมน์เพื่อสลับตำแหน่งได้)</p>
+      <p class="text-muted">วางแผนคอนเทนต์ (อัปโหลดรูป Cover, กรองดูตามปีและเดือน, กดปุ่ม 📜 Script Details เพื่อใส่สคริปต์/คำเปิดคลิป | กดรูปเพื่อขยายดูรูปใหญ่)</p>
     </div>
   `;
   container.appendChild(header);
@@ -20,6 +20,7 @@ export function renderContent(container, store) {
 
   const columns = [
     { key: 'id', label: 'Content ID', type: 'text', width: '100px', editable: true },
+    { key: 'coverUrl', label: 'Cover / รูปปก', type: 'image', width: '110px' },
     { key: 'title', label: 'Content Title', type: 'text', width: '200px' },
     { key: 'contentType', label: 'Content Type', type: 'dropdown', options: () => store.getSettingList('contentTypes'), badge: contentTypeBadge },
     { key: 'productId', label: 'Product ID', type: 'dropdown', options: () => ['', ...store.getProducts().map(p => p.id)], width: '100px' },
@@ -40,6 +41,7 @@ export function renderContent(container, store) {
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getContent(),
+    enableYearMonthFilter: true,
     onAdd: () => store.addContent({ id: uid('C'), title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
     onDelete: (id) => store.deleteContent(id),

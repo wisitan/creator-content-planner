@@ -159,7 +159,7 @@ class Store extends Emitter {
   getContentItem(id) { return this._data.content.find(c => c.id === id); }
   addContent(data = {}) {
     const c = {
-      id: uid('C'), title: '', contentType: '', productId: '', contentAngle: '',
+      id: uid('C'), coverUrl: '', title: '', contentType: '', productId: '', contentAngle: '',
       contentPillar: '', channel: '',
       hook: '', script: '', ctaType: '',
       plannedDate: '', status: '💡 Idea', publishedDate: '',

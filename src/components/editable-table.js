@@ -1,9 +1,9 @@
 /* ──────────────────────────────────────────
    Reusable Editable Table Component 
-   (With Multi-Row Batch Selection/Delete, Excel-Style Filtering, Dynamic Data Binding & Confirmation Popups)
+   (With Multi-Row Selection/Delete, Excel Filtering, Year & Month Quick Filters, Image Zoom & Script Editor)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
-import { showModal } from './modal.js';
+import { showModal, showImageModal } from './modal.js';
 import { showToast } from './toast.js';
 
 export function EditableTable(container, config) {
@@ -13,6 +13,7 @@ export function EditableTable(container, config) {
     emptyText = 'No data yet',
     emptyIcon = '📭',
     idField = 'id',
+    enableYearMonthFilter = false,
   } = config;
 
   let columns = [...initialColumns];
@@ -22,6 +23,13 @@ export function EditableTable(container, config) {
   let columnFilters = {}; // { colKey: [selectedValues] }
   let selectedRowIds = new Set();
   let activeFilterMenu = null;
+
+  // Year & Month Filters state
+  const currentYear = new Date().getFullYear();
+  let selectedYear = currentYear.toString(); // e.g. '2026' or 'ALL'
+  let selectedMonths = new Set(); // 0 = JAN, 1 = FEB, ..., 11 = DEC (empty = all months)
+
+  const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
   // Always fetch fresh data array reference
   function getCurrentData() {
@@ -49,7 +57,48 @@ export function EditableTable(container, config) {
       );
     }
 
-    // 2. Excel Column Filters
+    // 2. Year & Month Filter (If enabled)
+    if (enableYearMonthFilter) {
+      filtered = filtered.filter(row => {
+        // Collect dates in row (plannedDate, publishedDate, deadline, etc.)
+        const datesInRow = [];
+        Object.keys(row).forEach(k => {
+          const val = row[k];
+          if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            datesInRow.push(val);
+          }
+        });
+
+        // If no date found in row, keep it if no month filter is selected
+        if (datesInRow.length === 0) {
+          return selectedMonths.size === 0;
+        }
+
+        // Check year match
+        const yearMatches = datesInRow.some(dStr => {
+          if (selectedYear === 'ALL') return true;
+          return dStr.startsWith(selectedYear);
+        });
+
+        if (!yearMatches) return false;
+
+        // Check month match if any month selected
+        if (selectedMonths.size > 0) {
+          const monthMatches = datesInRow.some(dStr => {
+            const parts = dStr.split('-');
+            const mIdx = parseInt(parts[1], 10) - 1;
+            const yStr = parts[0];
+            const isYearOk = selectedYear === 'ALL' || yStr === selectedYear;
+            return isYearOk && selectedMonths.has(mIdx);
+          });
+          return monthMatches;
+        }
+
+        return true;
+      });
+    }
+
+    // 3. Excel Column Filters
     Object.keys(columnFilters).forEach(colKey => {
       const selectedVals = columnFilters[colKey];
       if (selectedVals && selectedVals.length > 0) {
@@ -62,7 +111,7 @@ export function EditableTable(container, config) {
       }
     });
 
-    // 3. Sorting
+    // 4. Sorting
     if (sortCol) {
       filtered.sort((a, b) => {
         const col = columns.find(c => c.key === sortCol);
@@ -98,9 +147,37 @@ export function EditableTable(container, config) {
     // Toolbar
     const toolbar = document.createElement('div');
     toolbar.className = 'table-toolbar';
+
+    // Year & Month Filter Controls HTML
+    let ymFilterHtml = '';
+    if (enableYearMonthFilter) {
+      const yearsList = ['ALL', '2024', '2025', '2026', '2027', '2028', '2029', '2030'];
+      const yearOpts = yearsList.map(y => `<option value="${y}" ${selectedYear === y ? 'selected' : ''}>${y === 'ALL' ? '🗓️ All Years' : y}</option>`).join('');
+
+      const monthBtns = MONTH_NAMES.map((m, idx) => {
+        const active = selectedMonths.has(idx) ? 'active' : '';
+        return `<button class="btn btn-sm btn-month-toggle ${active}" data-month="${idx}" style="padding:2px 7px; font-size:0.75rem; font-weight:600; min-width:38px;">${m}</button>`;
+      }).join('');
+
+      ymFilterHtml = `
+        <div class="ym-filter-group" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <select id="etable-year-select" class="form-input p-1" style="width:105px; font-size:0.8rem; font-weight:600;">
+            ${yearOpts}
+          </select>
+          <div class="month-buttons-container" style="display:flex; gap:3px; flex-wrap:wrap;">
+            ${monthBtns}
+          </div>
+          ${selectedMonths.size > 0 ? `<button id="btn-reset-months" class="btn btn-sm btn-secondary" style="padding:1px 6px; font-size:0.72rem;">✕ Reset Months</button>` : ''}
+        </div>
+      `;
+    }
+
     toolbar.innerHTML = `
-      <div class="search-box">
-        <input type="text" placeholder="Search... ค้นหา" value="${esc(searchTerm)}" id="etable-search">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:1;">
+        <div class="search-box">
+          <input type="text" placeholder="Search... ค้นหา" value="${esc(searchTerm)}" id="etable-search">
+        </div>
+        ${ymFilterHtml}
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${selectedCount > 0 && onDelete ? `
@@ -212,7 +289,10 @@ export function EditableTable(container, config) {
       const imgUrl = row[col.key] || '';
       return `
         <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
-          ${imgUrl ? `<img src="${esc(imgUrl)}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1;">` : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`}
+          ${imgUrl 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
+            : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`
+          }
           <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo">
             📷
             <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" style="display:none;">
@@ -374,6 +454,37 @@ export function EditableTable(container, config) {
       });
     }
 
+    // Year Select Handler
+    const yearSel = container.querySelector('#etable-year-select');
+    if (yearSel) {
+      yearSel.addEventListener('change', (e) => {
+        selectedYear = e.target.value;
+        render();
+      });
+    }
+
+    // Month Toggle Buttons Handlers
+    container.querySelectorAll('.btn-month-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const mIdx = parseInt(e.currentTarget.dataset.month, 10);
+        if (selectedMonths.has(mIdx)) {
+          selectedMonths.delete(mIdx);
+        } else {
+          selectedMonths.add(mIdx);
+        }
+        render();
+      });
+    });
+
+    // Reset Months Button
+    const btnResetMonths = container.querySelector('#btn-reset-months');
+    if (btnResetMonths) {
+      btnResetMonths.addEventListener('click', () => {
+        selectedMonths.clear();
+        render();
+      });
+    }
+
     // Clear Filters
     const btnClearFilters = container.querySelector('#btn-clear-table-filters');
     if (btnClearFilters) {
@@ -515,9 +626,20 @@ export function EditableTable(container, config) {
       });
     });
 
-    // Table Body Inputs & Script Modal Handler
+    // Table Body Inputs & Script Modal Handler & Image Zoom Handler
     const tbody = container.querySelector('tbody');
     if (!tbody) return;
+
+    // Image Zoom Click Handler
+    container.querySelectorAll('.table-img-preview').forEach(imgEl => {
+      imgEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const src = e.currentTarget.getAttribute('src');
+        if (src) {
+          showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่');
+        }
+      });
+    });
 
     tbody.addEventListener('change', async (e) => {
       const target = e.target;
@@ -531,9 +653,10 @@ export function EditableTable(container, config) {
         const id = tr.dataset.id;
         const field = target.dataset.field;
         try {
-          const dataUrl = await resizeImageFile(file, 200);
+          const dataUrl = await resizeImageFile(file, 400);
           if (onChange) onChange(id, field, dataUrl);
           showToast('Image uploaded! 📷', 'success');
+          render();
         } catch (err) {
           showToast('Image upload failed: ' + err.message, 'error');
         }

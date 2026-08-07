@@ -64,6 +64,20 @@ export function showModal({
   return { close, element: overlay };
 }
 
+/** Convenience: Image Preview Modal */
+export function showImageModal(imgUrl, title = '🖼️ Photo Preview / ดูรูปภาพขนาดใหญ่') {
+  if (!imgUrl) return;
+  showModal({
+    title,
+    body: `
+      <div style="text-align:center; padding:10px;">
+        <img src="${imgUrl}" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.25);">
+      </div>
+    `,
+    cancelText: '❌ Close / ปิด',
+  });
+}
+
 /** Convenience: confirm dialog */
 export function confirmDialog(message) {
   return new Promise((resolve) => {
