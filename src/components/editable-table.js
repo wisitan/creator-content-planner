@@ -704,7 +704,10 @@ export function EditableTable(container, config) {
 
       if (onChange) onChange(id, field, value);
 
-      if (target.tagName === 'SELECT') {
+      // Auto re-render table to instantly refresh computed columns (e.g., Product Name auto-show)
+      if (columns.some(c => c.compute || c.type === 'computed')) {
+        render();
+      } else if (target.tagName === 'SELECT') {
         const col = columns.find(c => c.key === field);
         if (col && col.badge) {
           target.className = `cell-input cell-select ${col.badge(value)}`;
@@ -799,7 +802,7 @@ export function EditableTable(container, config) {
           </div>
         `;
       } else if (col.compute) {
-        fieldsHtml += `<div class="form-input" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
+        fieldsHtml += `<div class="form-input modal-computed-cell" data-field="${col.key}" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
       } else if (col.readOnly || col.editable === false) {
         fieldsHtml += `<input type="text" class="form-input" value="${esc(val)}" readonly style="background:var(--c-bg); font-weight:700;">`;
       } else if (col.key === idField) {
@@ -859,8 +862,30 @@ export function EditableTable(container, config) {
       }
     });
 
-    // Wire image preview zoom & upload inside vertical modal
+    // Wire image preview zoom, upload & dynamic computed values update inside vertical modal
     if (modal.element) {
+      modal.element.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.classList.contains('modal-row-field')) {
+          const field = target.dataset.field;
+          const val = target.value;
+          if (field && onChange) {
+            onChange(rowId, field, val);
+            const updatedData = getCurrentData();
+            const updatedRow = updatedData.find(r => String(r[idField]) === String(rowId)) || row;
+            columns.forEach(col => {
+              if (col.compute) {
+                const computedEl = modal.element.querySelector(`.modal-computed-cell[data-field="${col.key}"]`);
+                if (computedEl) {
+                  computedEl.textContent = col.compute(updatedRow);
+                }
+              }
+            });
+            render();
+          }
+        }
+      });
+
       modal.element.querySelectorAll('.table-img-preview').forEach(imgEl => {
         imgEl.addEventListener('click', (e) => {
           e.stopPropagation();
