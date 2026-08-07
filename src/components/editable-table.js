@@ -3,7 +3,7 @@
    (With Multi-Row Selection/Delete, Excel Filtering, Year & Month Quick Filters, Image Zoom & Script Editor)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
-import { showModal, showImageModal } from './modal.js';
+import { showModal, showImageModal, showTeleprompterModal } from './modal.js';
 import { showToast } from './toast.js';
 
 export function EditableTable(container, config) {
@@ -843,12 +843,19 @@ export function EditableTable(container, config) {
         const currentScript = row.script || val || '';
         fieldsHtml += `
           <div class="mb-2">
-            <label class="form-label" style="font-size:0.75rem; color:#D97706;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label class="form-label m-0" style="font-size:0.75rem; color:#D97706; font-weight:700;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
+            </div>
             <input type="text" class="form-input modal-row-field" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
           </div>
           <div>
-            <label class="form-label" style="font-size:0.75rem; color:#4F46E5;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
-            <textarea class="form-input modal-row-field" data-field="script" style="height:120px;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label m-0" style="font-size:0.75rem; color:#4F46E5; font-weight:700;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
+              <button type="button" class="btn btn-primary btn-sm btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:3px 12px; font-size:0.78rem; background:#8b5cf6; border:none; border-radius:14px; font-weight:700; cursor:pointer;" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+                🎬 Teleprompter (อ่านบทอัดคลิป)
+              </button>
+            </div>
+            <textarea class="form-input modal-row-field tp-script-textarea" data-field="script" style="height:140px; font-family:inherit;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
           </div>
         `;
       } else if (col.type === 'productPicker') {
@@ -1036,6 +1043,16 @@ export function EditableTable(container, config) {
           } catch (err) {
             showToast('Upload failed: ' + err.message, 'error');
           }
+        });
+      });
+
+      modal.element.querySelectorAll('.btn-open-teleprompter').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const ta = modal.element.querySelector('.tp-script-textarea');
+          const scriptText = ta ? ta.value : (row.script || '');
+          const currentTitle = row.hook || row.title || rowId;
+          showTeleprompterModal(currentTitle, scriptText);
         });
       });
     }
