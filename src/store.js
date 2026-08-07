@@ -4,6 +4,7 @@
 import { debounce, uid, clone, Emitter } from './utils.js';
 
 const STORAGE_KEY = 'ccp_data_v1';
+const BACKUP_SNAPSHOT_KEY = 'ccp_data_last_save_v1';
 const DEFAULT_GOOGLE_CLIENT_ID = '586705952935-j91o3ch4j005kh6tjam0tqt8u3ops55s.apps.googleusercontent.com';
 
 // ── Default Settings ──
@@ -113,8 +114,73 @@ class Store extends Emitter {
     };
   }
 
+  makeLocalSnapshot(reason = 'Auto Save') {
+    try {
+      const currentRaw = localStorage.getItem(STORAGE_KEY);
+      if (currentRaw) {
+        const snapshot = {
+          raw: currentRaw,
+          snapshotTime: new Date().toISOString(),
+          reason: reason,
+        };
+        localStorage.setItem(BACKUP_SNAPSHOT_KEY, JSON.stringify(snapshot));
+      }
+    } catch (e) {
+      console.warn('[Store] Snapshot failed:', e.message);
+    }
+  }
+
+  getLastLocalSnapshotInfo() {
+    try {
+      const rawSnapshot = localStorage.getItem(BACKUP_SNAPSHOT_KEY);
+      if (!rawSnapshot) return null;
+      const snapshot = JSON.parse(rawSnapshot);
+      const parsedData = JSON.parse(snapshot.raw);
+      const totalRecs = (parsedData.products?.length || 0) + 
+                        (parsedData.content?.length || 0) + 
+                        (parsedData.channelTracker?.length || 0) + 
+                        (parsedData.sponsors?.length || 0);
+
+      return {
+        snapshotTime: snapshot.snapshotTime,
+        reason: snapshot.reason || 'Previous Save',
+        totalRecords: totalRecs,
+        productsCount: parsedData.products?.length || 0,
+        contentCount: parsedData.content?.length || 0,
+        data: parsedData,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  restoreLastLocalSnapshot() {
+    const info = this.getLastLocalSnapshotInfo();
+    if (!info || !info.data) {
+      throw new Error('ไม่พบข้อมูลสำรองการเซฟก่อนหน้านี้ในเครื่องค่ะ');
+    }
+    // Make safety snapshot of current state before restoring
+    this.makeLocalSnapshot('Pre-Restore State');
+
+    this._data = {
+      settings: { ...DEFAULT_SETTINGS, ...info.data.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
+      products: info.data.products || [],
+      content: info.data.content || [],
+      channelTracker: info.data.channelTracker || [],
+      sponsors: info.data.sponsors || [],
+      deletedItems: info.data.deletedItems || [],
+      brand: { ...DEFAULT_BRAND, ...info.data.brand },
+    };
+
+    this.forceSave();
+    this.emit('change', 'all');
+    return info;
+  }
+
   _persist() {
     try {
+      this.makeLocalSnapshot('Auto Save');
+
       const totalRecs = (this._data.products?.length || 0) + 
                         (this._data.content?.length || 0) + 
                         (this._data.channelTracker?.length || 0) + 
