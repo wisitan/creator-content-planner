@@ -1,9 +1,11 @@
 /* ──────────────────────────────────────────
-   Calendar Grid Component (With Status Filter & Rich Cards)
+   Calendar Grid Component 
+   (With Month & Week Views, Single-Line Content Format, Status Filter & Rich Item Modal)
    ────────────────────────────────────────── */
 import { esc, fmtDate } from '../utils.js';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 export function CalendarGrid(container, config) {
@@ -12,18 +14,47 @@ export function CalendarGrid(container, config) {
   let year = now.getFullYear();
   let month = now.getMonth();
   let selectedStatus = 'ALL';
+  let viewMode = 'month'; // 'month' or 'week'
+
+  // Week View calculation state (Monday of current week)
+  let currentMonday = getMonday(now);
+
+  function getMonday(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(date.setDate(diff));
+  }
 
   function render() {
     container.innerHTML = '';
 
-    // Header with status filter and month navigation
+    // Header Navigation & Actions
     const header = document.createElement('div');
     header.className = 'cal-header';
     header.style.flexWrap = 'wrap';
-    header.style.justify = 'space-between';
+    header.style.justifyContent = 'space-between';
+    header.style.gap = '10px';
 
-    let statusSelectHtml = `<select id="cal-status-filter" class="form-select" style="width: auto; font-size: 0.85rem; padding: 4px 8px;">`;
-    statusSelectHtml += `<option value="ALL">🔍 All Statuses (แสดงทุกสถานะ)</option>`;
+    let headerTitle = '';
+    if (viewMode === 'month') {
+      headerTitle = `${MONTHS[month]} ${year}`;
+    } else {
+      const sunday = new Date(currentMonday);
+      sunday.setDate(sunday.getDate() + 6);
+      const m1 = SHORT_MONTHS[currentMonday.getMonth()];
+      const m2 = SHORT_MONTHS[sunday.getMonth()];
+      const y1 = currentMonday.getFullYear();
+      const y2 = sunday.getFullYear();
+      if (m1 === m2 && y1 === y2) {
+        headerTitle = `${currentMonday.getDate()} - ${sunday.getDate()} ${m1} ${y1}`;
+      } else {
+        headerTitle = `${currentMonday.getDate()} ${m1} - ${sunday.getDate()} ${m2} ${y2}`;
+      }
+    }
+
+    let statusSelectHtml = `<select id="cal-status-filter" class="form-select" style="width: auto; font-size: 0.82rem; padding: 3px 8px;">`;
+    statusSelectHtml += `<option value="ALL">🔍 All Statuses</option>`;
     statusOptions.forEach(st => {
       statusSelectHtml += `<option value="${esc(st)}"${st === selectedStatus ? ' selected' : ''}>${esc(st)}</option>`;
     });
@@ -32,22 +63,28 @@ export function CalendarGrid(container, config) {
     header.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="btn btn-secondary btn-sm" id="cal-prev">◀</button>
-        <h2 style="min-width:180px; text-align:center;">${MONTHS[month]} ${year}</h2>
+        <h3 style="min-width:200px; text-align:center; margin:0; font-size:1.1rem; font-weight:700;">${headerTitle}</h3>
         <button class="btn btn-secondary btn-sm" id="cal-next">▶</button>
         <button class="btn btn-ghost btn-sm" id="cal-today">Today</button>
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <label style="font-size:0.85rem; font-weight:600;">Status Filter:</label>
-        ${statusSelectHtml}
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.82rem; font-weight:600;" class="text-muted">Status:</span>
+          ${statusSelectHtml}
+        </div>
+        <div class="view-toggle-btns" style="display:flex; gap:2px; background:var(--c-bg); padding:2px; border-radius:6px; border:1px solid var(--c-border);">
+          <button id="cal-view-month" class="btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 8px; font-size:0.78rem;">📅 Month View</button>
+          <button id="cal-view-week" class="btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 8px; font-size:0.78rem;">📆 Week View</button>
+        </div>
       </div>
     `;
     container.appendChild(header);
 
-    // Grid
+    // Grid Container
     const grid = document.createElement('div');
-    grid.className = 'cal-grid';
+    grid.className = viewMode === 'month' ? 'cal-grid' : 'cal-grid cal-grid-week';
 
-    // Day headers
+    // Day Headers (Mon - Sun)
     DAYS.forEach(d => {
       const dh = document.createElement('div');
       dh.className = 'cal-day-header';
@@ -55,56 +92,116 @@ export function CalendarGrid(container, config) {
       grid.appendChild(dh);
     });
 
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startOffset = (firstDay.getDay() + 6) % 7;
-
     const todayStr = fmtDate(new Date());
     const items = getItems ? getItems(year, month, selectedStatus) : [];
 
-    // Fill Previous Month
-    const prevMonthDays = new Date(year, month, 0).getDate();
-    for (let i = startOffset - 1; i >= 0; i--) {
-      const d = prevMonthDays - i;
-      const cell = createCell(d, true, '');
-      grid.appendChild(cell);
-    }
+    if (viewMode === 'month') {
+      // ── MONTH VIEW RENDER ──
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startOffset = (firstDay.getDay() + 6) % 7;
 
-    // Current Month Days
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayOfWeek = (startOffset + d - 1) % 7;
-      const isWeekend = dayOfWeek >= 5;
-      const isToday = dateStr === todayStr;
-      
-      // Match items by activeDate (Planned Date or Published Date for 📤 Published)
-      const dayItems = items.filter(it => it.activeDate === dateStr);
+      // Fill Previous Month Days
+      const prevMonthDays = new Date(year, month, 0).getDate();
+      for (let i = startOffset - 1; i >= 0; i--) {
+        const d = prevMonthDays - i;
+        const cell = createCell(d, true, '');
+        grid.appendChild(cell);
+      }
 
-      const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems);
-      grid.appendChild(cell);
-    }
+      // Current Month Days
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = (startOffset + d - 1) % 7;
+        const isWeekend = dayOfWeek >= 5;
+        const isToday = dateStr === todayStr;
+        const dayItems = items.filter(it => it.activeDate === dateStr);
 
-    // Fill Next Month
-    const totalCells = startOffset + daysInMonth;
-    const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-    for (let d = 1; d <= remaining; d++) {
-      const cell = createCell(d, true, '');
-      grid.appendChild(cell);
+        const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems);
+        grid.appendChild(cell);
+      }
+
+      // Fill Next Month Days
+      const totalCells = startOffset + daysInMonth;
+      const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
+      for (let d = 1; d <= remaining; d++) {
+        const cell = createCell(d, true, '');
+        grid.appendChild(cell);
+      }
+    } else {
+      // ── WEEK VIEW RENDER ──
+      for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(currentMonday);
+        dayDate.setDate(currentMonday.getDate() + i);
+
+        const yStr = dayDate.getFullYear();
+        const mStr = String(dayDate.getMonth() + 1).padStart(2, '0');
+        const dStr = String(dayDate.getDate()).padStart(2, '0');
+        const dateStr = `${yStr}-${mStr}-${dStr}`;
+
+        const isWeekend = i >= 5;
+        const isToday = dateStr === todayStr;
+        const dayItems = items.filter(it => it.activeDate === dateStr);
+
+        const displayLabel = `${dayDate.getDate()} ${SHORT_MONTHS[dayDate.getMonth()]}`;
+        const cell = createCell(displayLabel, false, dateStr, isWeekend, isToday, dayItems);
+        cell.classList.add('cal-cell-week');
+        grid.appendChild(cell);
+      }
     }
 
     container.appendChild(grid);
 
     // Nav Events
-    header.querySelector('#cal-prev').addEventListener('click', () => { month--; if (month < 0) { month = 11; year--; } render(); });
-    header.querySelector('#cal-next').addEventListener('click', () => { month++; if (month > 11) { month = 0; year++; } render(); });
-    header.querySelector('#cal-today').addEventListener('click', () => { year = now.getFullYear(); month = now.getMonth(); render(); });
+    header.querySelector('#cal-prev').addEventListener('click', () => {
+      if (viewMode === 'month') {
+        month--;
+        if (month < 0) { month = 11; year--; }
+      } else {
+        currentMonday.setDate(currentMonday.getDate() - 7);
+        year = currentMonday.getFullYear();
+        month = currentMonday.getMonth();
+      }
+      render();
+    });
+
+    header.querySelector('#cal-next').addEventListener('click', () => {
+      if (viewMode === 'month') {
+        month++;
+        if (month > 11) { month = 0; year++; }
+      } else {
+        currentMonday.setDate(currentMonday.getDate() + 7);
+        year = currentMonday.getFullYear();
+        month = currentMonday.getMonth();
+      }
+      render();
+    });
+
+    header.querySelector('#cal-today').addEventListener('click', () => {
+      const t = new Date();
+      year = t.getFullYear();
+      month = t.getMonth();
+      currentMonday = getMonday(t);
+      render();
+    });
+
     header.querySelector('#cal-status-filter').addEventListener('change', (e) => {
       selectedStatus = e.target.value;
       render();
     });
 
-    // Day & Item Click Events
+    header.querySelector('#cal-view-month').addEventListener('click', () => {
+      viewMode = 'month';
+      render();
+    });
+
+    header.querySelector('#cal-view-week').addEventListener('click', () => {
+      viewMode = 'week';
+      render();
+    });
+
+    // Item & Day Click Handlers
     grid.addEventListener('click', (e) => {
       const itemEl = e.target.closest('.cal-item');
       if (itemEl && onItemClick) {
@@ -119,7 +216,7 @@ export function CalendarGrid(container, config) {
     });
   }
 
-  function createCell(day, otherMonth, dateStr, isWeekend = false, isToday = false, dayItems = []) {
+  function createCell(dayLabel, otherMonth, dateStr, isWeekend = false, isToday = false, dayItems = []) {
     const cell = document.createElement('div');
     cell.className = 'cal-cell';
     if (otherMonth) cell.classList.add('other-month');
@@ -127,7 +224,7 @@ export function CalendarGrid(container, config) {
     if (isToday) cell.classList.add('today');
     if (dateStr) cell.dataset.date = dateStr;
 
-    let html = `<div class="cal-date">${day}</div>`;
+    let html = `<div class="cal-date">${dayLabel}</div>`;
     if (dayItems.length > 0) {
       html += '<div class="cal-items">';
       dayItems.forEach(item => {
@@ -138,21 +235,16 @@ export function CalendarGrid(container, config) {
           '🤝 Sponsor': 'background:var(--c-sponsor-lt);color:var(--c-sponsor);border-left:3px solid var(--c-sponsor);',
         };
         const style = colorMap[item.contentType] || 'background:var(--c-bg);color:var(--c-text);';
-        
-        const titleText = item.title || item.hook || item.id;
-        const prodText = item.productName ? `📦 ${item.productName}` : '';
+        const titleText = item.title || item.hook || 'Untitled Content';
         const statusIcon = item.status ? item.status.split(' ')[0] : '';
 
+        // Single-line format: Content ID : Content Title
         html += `
-          <div class="cal-item" style="${style} padding:4px 6px; font-size:0.75rem; line-height:1.25;" data-id="${esc(item.id)}" title="Click to view row in Content Planner">
-            <div style="font-weight:700; display:flex; justify-content:space-between; align-items:center;">
-              <span>${esc(item.id)}</span>
-              <span>${statusIcon}</span>
-            </div>
-            <div style="font-weight:600; font-size:0.8rem; margin:2px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-              ${esc(titleText)}
-            </div>
-            ${prodText ? `<div style="font-size:0.7rem; opacity:0.85; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(prodText)}</div>` : ''}
+          <div class="cal-item" style="${style}" data-id="${esc(item.id)}" title="${esc(item.id)} : ${esc(titleText)} (${esc(item.status || '')})">
+            <span class="cal-item-id">${esc(item.id)}</span>
+            <span class="cal-item-sep">:</span>
+            <span class="cal-item-title">${esc(titleText)}</span>
+            <span class="cal-item-status">${statusIcon}</span>
           </div>
         `;
       });

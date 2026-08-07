@@ -548,17 +548,46 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 .cal-date { font-size: .85rem; font-weight: 600; margin-bottom: 4px; text-align: right; }
 .cal-items { display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
 .cal-item {
-  font-size: .7rem;
-  padding: 3px 6px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform var(--transition);
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 0.76rem !important;
+  padding: 3px 6px !important;
+  border-radius: var(--radius-sm) !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
-.cal-item:hover { transform: scale(1.02); }
+.cal-item:hover {
+  transform: translateY(-1px) scale(1.01) !important;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+}
+.cal-item-id {
+  font-weight: 800 !important;
+  flex-shrink: 0 !important;
+}
+.cal-item-sep {
+  opacity: 0.7 !important;
+  flex-shrink: 0 !important;
+}
+.cal-item-title {
+  font-weight: 600 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+}
+.cal-item-status {
+  flex-shrink: 0 !important;
+  font-size: 0.7rem !important;
+}
+
+.cal-grid-week .cal-cell {
+  min-height: 480px !important;
+}
 
 /* ── 13. Modal ── */
 .modal-overlay {
