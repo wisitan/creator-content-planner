@@ -105,6 +105,11 @@ class Store extends Emitter {
     }
   }
 
+  forceSave() {
+    this._persist();
+    return true;
+  }
+
   _changed(area) {
     this._save();
     this.emit('change', area);

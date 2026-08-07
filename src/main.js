@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.4.1';
+const APP_VERSION = 'v2.4.2';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -60,6 +60,7 @@ function buildShell() {
     <header class="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btn-manual-save" title="Save data to local browser storage immediately">💾 Save</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdrive-backup" title="Backup to Google Drive">☁️ Drive Backup</button>
         <button class="btn btn-secondary btn-sm" id="btn-gdrive-sync" title="Sync from Google Drive">🔄 Drive Sync</button>
         <button class="btn btn-secondary btn-sm" id="btn-export" title="Export data as JSON">📥 Export</button>
@@ -83,6 +84,12 @@ function buildShell() {
     a.dataset.route = r.id;
     a.innerHTML = `<span class="icon">${r.icon}</span><span class="label">${r.label}</span>`;
     nav.appendChild(a);
+  });
+
+  // Wire Manual Save Button
+  document.getElementById('btn-manual-save').addEventListener('click', () => {
+    store.forceSave();
+    showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
   });
 
   // Wire Google Drive Backup
