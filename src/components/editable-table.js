@@ -343,6 +343,22 @@ export function EditableTable(container, config) {
       `;
     }
 
+    if (col.type === 'scriptModal') {
+      const hookText = row.hook || '';
+      const scriptText = row.script || val || '';
+      const previewText = hookText || scriptText ? (hookText ? '🪝 ' + hookText : scriptText) : '';
+      return `
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" class="btn btn-secondary btn-sm btn-open-script-editor" data-id="${esc(row[idField])}" style="padding:3px 8px; font-size:0.75rem; font-weight:600;" title="Edit Hook & Script">
+            ✏️ ${previewText ? esc(previewText.slice(0, 18)) + '...' : 'Edit Script'}
+          </button>
+          <button type="button" class="btn btn-primary btn-sm btn-quick-teleprompter" data-id="${esc(row[idField])}" style="padding:3px 10px; font-size:0.75rem; font-weight:700; background:#8b5cf6; border:none; border-radius:12px; cursor:pointer;" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+            🎬 Teleprompter
+          </button>
+        </div>
+      `;
+    }
+
     if (col.compute) {
       const computedVal = col.compute(row);
       return `<span class="cell-computed">${esc(computedVal)}</span>`;
@@ -570,6 +586,24 @@ export function EditableTable(container, config) {
             render();
           }
         }
+      });
+    });
+
+    // Quick Teleprompter Click Handler from Main Table Cell
+    container.querySelectorAll('.btn-quick-teleprompter').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        const currentData = getCurrentData();
+        const row = currentData.find(r => String(r[idField]) === String(id));
+        if (!row) return;
+
+        const hVal = (row.hook || '').trim();
+        const sVal = (row.script || '').trim();
+        const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+        const fullText = hookPart + sVal;
+        const currentTitle = hVal || row.title || id;
+        showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
       });
     });
 
@@ -842,20 +876,25 @@ export function EditableTable(container, config) {
         const currentHook = row.hook || '';
         const currentScript = row.script || val || '';
         fieldsHtml += `
-          <div class="mb-2">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <label class="form-label m-0" style="font-size:0.75rem; color:#D97706; font-weight:700;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
-            </div>
-            <input type="text" class="form-input modal-row-field" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
-          </div>
-          <div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <label class="form-label m-0" style="font-size:0.75rem; color:#4F46E5; font-weight:700;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
-              <button type="button" class="btn btn-primary btn-sm btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:3px 12px; font-size:0.78rem; background:#8b5cf6; border:none; border-radius:14px; font-weight:700; cursor:pointer;" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
-                🎬 Teleprompter (อ่านบทอัดคลิป)
+          <div class="p-3 mb-3" style="background:#f3e8ff; border-left:5px solid #8b5cf6; border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <strong style="color:#6b21a8; font-size:1.05rem;">🎬 Teleprompter Mode (กล่องอ่านบทอัดคลิป)</strong>
+                <p class="text-muted m-0 mt-1" style="font-size:0.8rem;">รวม 🪝 Hook + 📜 Script เข้าด้วยกันแล้วขึ้นจออ่านบทแบบ Auto-scroll</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:10px 22px; font-size:1rem; background:#8b5cf6; border:none; border-radius:24px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(139,92,246,0.4);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+                🎬 เปิดโหมด Teleprompter
               </button>
             </div>
-            <textarea class="form-input modal-row-field tp-script-textarea" data-field="script" style="height:140px; font-family:inherit;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" style="font-size:0.82rem; color:#D97706; font-weight:700;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
+            <input type="text" class="form-input modal-row-field tp-hook-input" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.82rem; color:#4F46E5; font-weight:700;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
+            <textarea class="form-input modal-row-field tp-script-textarea" data-field="script" style="height:150px; font-family:inherit;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
           </div>
         `;
       } else if (col.type === 'productPicker') {
@@ -1049,10 +1088,15 @@ export function EditableTable(container, config) {
       modal.element.querySelectorAll('.btn-open-teleprompter').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          const ta = modal.element.querySelector('.tp-script-textarea');
-          const scriptText = ta ? ta.value : (row.script || '');
-          const currentTitle = row.hook || row.title || rowId;
-          showTeleprompterModal(currentTitle, scriptText);
+          const hookInput = modal.element.querySelector('.tp-hook-input') || modal.element.querySelector('[data-field="hook"]');
+          const scriptArea = modal.element.querySelector('.tp-script-textarea') || modal.element.querySelector('[data-field="script"]');
+          const hVal = hookInput ? hookInput.value.trim() : (row.hook || '').trim();
+          const sVal = scriptArea ? scriptArea.value.trim() : (row.script || '').trim();
+          
+          const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+          const fullText = hookPart + sVal;
+          const currentTitle = hVal || row.title || rowId;
+          showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
         });
       });
     }
