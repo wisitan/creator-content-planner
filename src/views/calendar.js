@@ -15,7 +15,7 @@ export function renderCalendar(container, store) {
     <div>
       <h2>📅 Content Calendar / ปฏิทินวางแผนคอนเทนต์</h2>
       <p class="text-muted">
-        (กดที่การ์ดคอนเทนต์เพื่อเปิด Pop-up ดูรายละเอียดฉบับเต็ม | สลับมุมมอง Month / Week / Day View ได้ที่มุมขวาบน | ล็อกขนาดความกว้างวันเท่ากันทุกช่อง 100%)
+        (กดที่การ์ดคอนเทนต์เพื่อเปิด Pop-up ดูรายละเอียดฉบับเต็ม | สลับมุมมอง Month / Week / Day View ได้ที่มุมขวาบน)
       </p>
     </div>
   `;
