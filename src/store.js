@@ -267,17 +267,27 @@ class Store extends Emitter {
     const cleanValue = String(value).trim();
 
     if (field === 'id') {
+      if (!cleanValue) return { error: true, message: 'รหัส ID ห้ามเป็นค่าว่างค่ะ' };
       if (cleanId.toLowerCase() === cleanValue.toLowerCase()) return { success: true };
 
-      const existingOther = this._data.products.find(p => 
-        String(p.id).trim().toLowerCase() === cleanValue.toLowerCase() && 
-        String(p.id).trim().toLowerCase() !== cleanId.toLowerCase()
+      const existingWithValue = this._data.products.find(p => 
+        String(p.id).trim().toLowerCase() === cleanValue.toLowerCase()
       );
-      if (existingOther) {
+      const existingWithId = this._data.products.find(p => 
+        String(p.id).trim().toLowerCase() === cleanId.toLowerCase()
+      );
+
+      // Ghost event check: old ID no longer exists, but new ID already exists (was just renamed)
+      if (!existingWithId && existingWithValue) {
+        return { success: true };
+      }
+
+      // Real duplicate check: both exist and are different items
+      if (existingWithValue && existingWithId && existingWithValue !== existingWithId) {
         return { error: true, message: `รหัสสินค้า "${cleanValue}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
 
-      const p = this.getProduct(cleanId) || this.getProduct(cleanValue);
+      const p = existingWithId || existingWithValue;
       if (p) {
         p.id = cleanValue;
         this._changed('products');
@@ -320,17 +330,25 @@ class Store extends Emitter {
     const cleanValue = String(value).trim();
 
     if (field === 'id') {
+      if (!cleanValue) return { error: true, message: 'รหัส ID ห้ามเป็นค่าว่างค่ะ' };
       if (cleanId.toLowerCase() === cleanValue.toLowerCase()) return { success: true };
 
-      const existingOther = this._data.content.find(c => 
-        String(c.id).trim().toLowerCase() === cleanValue.toLowerCase() && 
-        String(c.id).trim().toLowerCase() !== cleanId.toLowerCase()
+      const existingWithValue = this._data.content.find(c => 
+        String(c.id).trim().toLowerCase() === cleanValue.toLowerCase()
       );
-      if (existingOther) {
+      const existingWithId = this._data.content.find(c => 
+        String(c.id).trim().toLowerCase() === cleanId.toLowerCase()
+      );
+
+      if (!existingWithId && existingWithValue) {
+        return { success: true };
+      }
+
+      if (existingWithValue && existingWithId && existingWithValue !== existingWithId) {
         return { error: true, message: `รหัสคอนเทนต์ "${cleanValue}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
 
-      const c = this.getContentItem(cleanId) || this.getContentItem(cleanValue);
+      const c = existingWithId || existingWithValue;
       if (c) {
         c.id = cleanValue;
         this._changed('content');
@@ -368,18 +386,25 @@ class Store extends Emitter {
     const cleanValue = String(value).trim();
 
     if (field === 'id') {
+      if (!cleanValue) return { error: true, message: 'รหัส ID ห้ามเป็นค่าว่างค่ะ' };
       if (cleanId.toLowerCase() === cleanValue.toLowerCase()) return { success: true };
 
-      const existingOther = this._data.channelTracker.find(x => 
-        String(x.id).trim().toLowerCase() === cleanValue.toLowerCase() && 
-        String(x.id).trim().toLowerCase() !== cleanId.toLowerCase()
+      const existingWithValue = this._data.channelTracker.find(x => 
+        String(x.id).trim().toLowerCase() === cleanValue.toLowerCase()
       );
-      if (existingOther) {
+      const existingWithId = this._data.channelTracker.find(x => 
+        String(x.id).trim().toLowerCase() === cleanId.toLowerCase()
+      );
+
+      if (!existingWithId && existingWithValue) {
+        return { success: true };
+      }
+
+      if (existingWithValue && existingWithId && existingWithValue !== existingWithId) {
         return { error: true, message: `รหัสบันทึก "${cleanValue}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
 
-      const e = this._data.channelTracker.find(x => String(x.id).trim().toLowerCase() === cleanId.toLowerCase()) ||
-                this._data.channelTracker.find(x => String(x.id).trim().toLowerCase() === cleanValue.toLowerCase());
+      const e = existingWithId || existingWithValue;
       if (e) {
         e.id = cleanValue;
         this._changed('channelTracker');
@@ -418,18 +443,25 @@ class Store extends Emitter {
     const cleanValue = String(value).trim();
 
     if (field === 'id') {
+      if (!cleanValue) return { error: true, message: 'รหัส ID ห้ามเป็นค่าว่างค่ะ' };
       if (cleanId.toLowerCase() === cleanValue.toLowerCase()) return { success: true };
 
-      const existingOther = this._data.sponsors.find(s => 
-        String(s.id).trim().toLowerCase() === cleanValue.toLowerCase() && 
-        String(s.id).trim().toLowerCase() !== cleanId.toLowerCase()
+      const existingWithValue = this._data.sponsors.find(s => 
+        String(s.id).trim().toLowerCase() === cleanValue.toLowerCase()
       );
-      if (existingOther) {
+      const existingWithId = this._data.sponsors.find(s => 
+        String(s.id).trim().toLowerCase() === cleanId.toLowerCase()
+      );
+
+      if (!existingWithId && existingWithValue) {
+        return { success: true };
+      }
+
+      if (existingWithValue && existingWithId && existingWithValue !== existingWithId) {
         return { error: true, message: `รหัสดีล "${cleanValue}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
       }
 
-      const s = this._data.sponsors.find(x => String(x.id).trim().toLowerCase() === cleanId.toLowerCase()) ||
-                this._data.sponsors.find(x => String(x.id).trim().toLowerCase() === cleanValue.toLowerCase());
+      const s = existingWithId || existingWithValue;
       if (s) {
         s.id = cleanValue;
         this._changed('sponsors');
