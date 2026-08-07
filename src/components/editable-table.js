@@ -956,7 +956,21 @@ export function EditableTable(container, config) {
           const field = target.dataset.field;
           const val = target.value;
           if (field && onChange) {
-            onChange(rowId, field, val);
+            const res = onChange(rowId, field, val);
+            if (res && res.error) {
+              target.value = rowId;
+              showModal({
+                title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+                body: `
+                  <div class="p-2">
+                    <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(rowId)}) เรียบร้อยแล้วค่ะ</p>
+                  </div>
+                `,
+                cancelText: '❌ ปิดหน้าต่างนี้',
+              });
+              return;
+            }
             const updatedData = getCurrentData();
             const updatedRow = updatedData.find(r => String(r[idField]) === String(rowId)) || row;
             columns.forEach(col => {
