@@ -67,10 +67,25 @@ export function authenticateDrive() {
 }
 
 /** Backup data JSON directly to Google Drive */
-/** Backup data JSON directly to Google Drive (With Conflict Prevention) */
-export async function backupToDrive(dataObj, forceOverwrite = false) {
+/** Backup data JSON directly to Google Drive (With Auto 2-Way Seamless Merge like Google Sheets) */
+export async function backupToDrive(dataObj, store = null) {
   if (!accessToken) {
     await authenticateDrive();
+  }
+
+  const fileId = await findBackupFileId();
+
+  // Auto 2-Way Seamless Merge with Drive Data if existing file found (Google Sheets style)
+  if (fileId && store) {
+    try {
+      const driveData = await syncFromDrive();
+      if (driveData && (driveData.products || driveData.content)) {
+        store.mergeData(driveData);
+        dataObj = store._data; // Use fresh merged data
+      }
+    } catch (e) {
+      console.warn('[Google Drive] Background auto-merge skipped:', e.message);
+    }
   }
 
   // Ensure metadata exists
@@ -79,45 +94,11 @@ export async function backupToDrive(dataObj, forceOverwrite = false) {
                     (dataObj.channelTracker?.length || 0) + 
                     (dataObj.sponsors?.length || 0);
 
-  if (!dataObj.meta) {
-    dataObj.meta = {
-      lastUpdated: new Date().toISOString(),
-      totalRecords: totalRecs,
-      deviceName: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'Mobile Device' : 'PC / Mac',
-    };
-  }
-
-  const fileId = await findBackupFileId();
-
-  // Smart Sync Conflict Check before overwriting
-  if (fileId && !forceOverwrite) {
-    try {
-      const driveData = await syncFromDrive();
-      if (driveData && (driveData.meta || driveData.products)) {
-        const driveRecords = driveData.meta?.totalRecords || (
-          (driveData.products?.length || 0) + 
-          (driveData.content?.length || 0) + 
-          (driveData.channelTracker?.length || 0) + 
-          (driveData.sponsors?.length || 0)
-        );
-        const driveTime = new Date(driveData.meta?.lastUpdated || 0).getTime();
-        const localTime = new Date(dataObj.meta?.lastUpdated || 0).getTime();
-
-        // If Drive has MORE records OR Drive is NEWER by more than 1 minute -> Conflict Alert!
-        if (driveRecords > totalRecs || (driveTime > localTime && (driveTime - localTime > 60000))) {
-          const err = new Error('CONFLICT_DRIVE_NEWER');
-          err.isConflict = true;
-          err.driveData = driveData;
-          err.driveMeta = driveData.meta || { totalRecords: driveRecords, lastUpdated: 'Unknown' };
-          err.localMeta = dataObj.meta;
-          throw err;
-        }
-      }
-    } catch (e) {
-      if (e.isConflict) throw e;
-      console.warn('[Google Drive] Conflict check skipped:', e.message);
-    }
-  }
+  dataObj.meta = {
+    lastUpdated: new Date().toISOString(),
+    totalRecords: totalRecs,
+    deviceName: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'Mobile Device' : 'PC / Mac',
+  };
 
   const jsonStr = JSON.stringify(dataObj, null, 2);
 

@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.9.1';
+const APP_VERSION = 'v3.0.0';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -101,92 +101,7 @@ function buildShell() {
     nav.appendChild(a);
   });
 
-  // Helper for Smart Sync Conflict Alert (With 3-Way Choice & Auto Merge)
-  function handleDriveConflict(err) {
-    const driveMeta = err.driveMeta || {};
-    const localMeta = err.localMeta || {};
-    const driveRecs = driveMeta.totalRecords ?? 'ไม่ทราบ';
-    const localRecs = localMeta.totalRecords ?? 'ไม่ทราบ';
-    const driveTime = driveMeta.lastUpdated && driveMeta.lastUpdated !== 'Unknown' ? new Date(driveMeta.lastUpdated).toLocaleString('th-TH') : 'ไม่ระบุเวลา';
-    const localTime = localMeta.lastUpdated ? new Date(localMeta.lastUpdated).toLocaleString('th-TH') : 'ไม่ระบุเวลา';
-
-    const modal = showModal({
-      title: '⚠️ ตรวจพบข้อมูลบน Google Drive ที่ใหม่กว่า!',
-      body: `
-        <div class="p-1">
-          <p class="text-danger font-weight-700 mb-2">ระบบป้องกันข้อมูลสูญหาย: ข้อมูลบน Google Drive มีอัปเดตใหม่กว่าในเครื่องนี้ค่ะ</p>
-          <div class="card p-3 mb-2" style="background:#EFF6FF; border-left:4px solid #3B82F6;">
-            <h4 style="margin:0 0 4px 0; color:#1D4ED8; font-size:0.95rem;">☁️ ข้อมูลบน Google Drive:</h4>
-            <ul style="margin:0; padding-left:18px; font-size:0.82rem;">
-              <li>จำนวนรายการรวม: <strong>${driveRecs} รายการ</strong> (อัปเดตเมื่อ: ${driveTime})</li>
-            </ul>
-          </div>
-          <div class="card p-3 mb-3" style="background:#FFFBEB; border-left:4px solid #F59E0B;">
-            <h4 style="margin:0 0 4px 0; color:#B45309; font-size:0.95rem;">📱 ข้อมูลในเครื่องนี้:</h4>
-            <ul style="margin:0; padding-left:18px; font-size:0.82rem;">
-              <li>จำนวนรายการรวม: <strong>${localRecs} รายการ</strong> (อัปเดตเมื่อ: ${localTime})</li>
-            </ul>
-          </div>
-          <p class="font-weight-600 mb-2" style="font-size:0.85rem; color:var(--c-primary);">กรุณาเลือกวิธีการจัดการข้อมูล:</p>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <button class="btn btn-primary btn-block" id="btn-conflict-merge" style="text-align:left; justify-content:flex-start; padding:10px; flex-direction:column; align-items:flex-start;">
-              <span style="font-weight:700; font-size:0.9rem;">🔀 Merge รวมข้อมูล 2 ฝั่ง (แนะนำที่สุด)</span>
-              <span style="font-size:0.75rem; font-weight:normal; opacity:0.9;">เอารายการใหม่ที่เพิ่งเพิ่มในเครื่องนี้ รวมเข้ากับข้อมูลบน Drive (ไม่สูญเสียข้อมูลทั้ง 2 ฝั่ง)</span>
-            </button>
-            <button class="btn btn-secondary btn-block" id="btn-conflict-sync" style="text-align:left; justify-content:flex-start; padding:10px; flex-direction:column; align-items:flex-start;">
-              <span style="font-weight:700; font-size:0.9rem;">🔄 Sync ดึงข้อมูลจาก Drive</span>
-              <span style="font-size:0.75rem; font-weight:normal; opacity:0.8;">ดึงข้อมูลบน Drive มาแทนที่ในเครื่องนี้ทั้งหมด</span>
-            </button>
-            <button class="btn btn-ghost btn-block" id="btn-conflict-overwrite" style="text-align:left; justify-content:flex-start; padding:10px; color:#EF4444; flex-direction:column; align-items:flex-start;">
-              <span style="font-weight:700; font-size:0.9rem;">⚠️ เขียนทับข้อมูลบน Drive</span>
-              <span style="font-size:0.75rem; font-weight:normal; opacity:0.8;">เอาข้อมูลในเครื่องนี้ไปเขียนทับบน Drive (ใช้กรณีตั้งใจลบข้อมูลเก่า)</span>
-            </button>
-          </div>
-        </div>
-      `,
-      confirmText: '',
-      cancelText: '❌ ปิดหน้าต่างนี้',
-    });
-
-    if (modal.element) {
-      modal.element.querySelector('#btn-conflict-merge').addEventListener('click', async () => {
-        if (err.driveData) {
-          showToast('กำลังรวมข้อมูล 2 ฝั่งเข้าด้วยกัน... 🔀', 'info');
-          store.mergeData(err.driveData);
-          try {
-            await backupToDrive(store._data, true);
-            showToast('รวมข้อมูลทั้ง 2 ฝั่ง และ Auto Backup บน Google Drive เรียบร้อยแล้วค่ะ! 🔀☁️✅', 'success');
-            modal.close();
-            setTimeout(() => location.reload(), 800);
-          } catch (e) {
-            showToast('Merge backup failed: ' + e.message, 'error');
-          }
-        }
-      });
-
-      modal.element.querySelector('#btn-conflict-sync').addEventListener('click', () => {
-        if (err.driveData) {
-          store.importData(err.driveData);
-          showToast('ซิงก์ดึงข้อมูลจาก Google Drive มาใส่เครื่องนี้เรียบร้อยแล้วค่ะ! 🔄✅', 'success');
-          modal.close();
-          setTimeout(() => location.reload(), 800);
-        }
-      });
-
-      modal.element.querySelector('#btn-conflict-overwrite').addEventListener('click', async () => {
-        try {
-          showToast('กำลังเขียนทับข้อมูลบน Google Drive... ☁️', 'info');
-          await backupToDrive(store._data, true);
-          showToast('เขียนทับข้อมูลบน Google Drive เรียบร้อยแล้วค่ะ ☁️✅', 'warning');
-          modal.close();
-        } catch (e) {
-          showToast('Overwrite failed: ' + e.message, 'error');
-        }
-      });
-    }
-  }
-
-  // Wire Manual Save Button (With Auto-Backup & Smart Conflict Guard)
+  // Wire Manual Save Button (With Seamless Auto-Sync & Merge with Google Drive)
   document.getElementById('btn-manual-save').addEventListener('click', async () => {
     store.forceSave();
     
@@ -194,14 +109,10 @@ function buildShell() {
     if (googleClientId) {
       try {
         await initGoogleDrive(googleClientId);
-        await backupToDrive(store._data);
-        showToast('บันทึกข้อมูลลงเครื่อง และ Auto Backup ขึ้น Google Drive เรียบร้อยแล้วค่ะ! 💾☁️✅', 'success');
+        await backupToDrive(store._data, store);
+        showToast('บันทึกข้อมูลลงเครื่อง และ Auto Sync รวมข้อมูลบน Google Drive เรียบร้อยแล้วค่ะ! 💾☁️🔀✅', 'success');
       } catch (err) {
-        if (err.isConflict) {
-          handleDriveConflict(err);
-        } else {
-          showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
-        }
+        showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
       }
     } else {
       showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
@@ -219,14 +130,10 @@ function buildShell() {
     try {
       showToast('กำลังเชื่อมต่อ Google Drive... ☁️', 'info');
       await initGoogleDrive(googleClientId);
-      await backupToDrive(store._data);
-      showToast('Backup ไปยัง Google Drive สำเร็จแล้ว! ☁️✅', 'success');
+      await backupToDrive(store._data, store);
+      showToast('Sync รวมข้อมูลไปยัง Google Drive สำเร็จแล้ว! ☁️🔀✅', 'success');
     } catch (err) {
-      if (err.isConflict) {
-        handleDriveConflict(err);
-      } else {
-        showToast('Drive Backup Failed: ' + err.message, 'error');
-      }
+      showToast('Drive Backup Failed: ' + err.message, 'error');
     }
   });
 
