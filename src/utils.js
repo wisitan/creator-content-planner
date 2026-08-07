@@ -15,6 +15,38 @@ export function uid(prefix = '') {
   return prefix + String(_seq).slice(-4);
 }
 
+/**
+ * Auto-generate next ID based on existing records
+ * If no records exist -> defaults to prefix + '0001'
+ * If records exist -> detects digit length and increments highest existing number
+ */
+export function getNextId(prefix = '', items = [], defaultPad = 4) {
+  if (!items || items.length === 0) {
+    return prefix + String(1).padStart(defaultPad, '0');
+  }
+
+  let maxNum = 0;
+  let maxDigits = defaultPad;
+
+  items.forEach(item => {
+    if (!item || !item.id) return;
+    const strId = String(item.id).trim();
+    // Match ID pattern: Prefix + Digits or Digits
+    const match = strId.match(/^([A-Za-z]+)?(\d+)$/);
+    if (match) {
+      const numStr = match[2];
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+        maxDigits = Math.max(maxDigits, numStr.length);
+      }
+    }
+  });
+
+  const nextNum = maxNum + 1;
+  return prefix + String(nextNum).padStart(maxDigits, '0');
+}
+
 /** Escape HTML to prevent XSS */
 export function esc(s) {
   if (s == null) return '';

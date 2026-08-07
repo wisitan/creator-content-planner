@@ -1,5 +1,4 @@
 import { EditableTable, statusBadge } from '../components/editable-table.js';
-import { uid } from '../utils.js';
 
 export function renderProducts(container, store) {
   container.innerHTML = '';
@@ -38,7 +37,7 @@ export function renderProducts(container, store) {
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getProducts(),
-    onAdd: () => store.addProduct({ id: uid('P'), name: 'New Product', status: 'To Review' }),
+    onAdd: () => store.addProduct({ name: 'New Product', status: 'To Review' }),
     onChange: (id, field, value) => store.updateProduct(id, field, value),
     onDelete: (id) => store.deleteProduct(id),
     addLabel: '+ Add Product / เพิ่มสินค้า',

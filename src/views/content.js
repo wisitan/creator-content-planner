@@ -1,5 +1,4 @@
 import { EditableTable, contentTypeBadge, statusBadge } from '../components/editable-table.js';
-import { uid } from '../utils.js';
 
 export function renderContent(container, store) {
   container.innerHTML = '';
@@ -45,7 +44,7 @@ export function renderContent(container, store) {
     getCategories: () => store.getSettingList('productCategories'),
     getStatuses: () => store.getSettingList('productStatuses'),
     enableYearMonthFilter: true,
-    onAdd: () => store.addContent({ id: uid('C'), title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
+    onAdd: () => store.addContent({ title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
     onDelete: (id) => store.deleteContent(id),
     addLabel: '+ Add Content / เพิ่ม content',

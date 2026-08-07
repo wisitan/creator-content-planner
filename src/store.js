@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────
    Data Store — localStorage backed
    ────────────────────────────────────────── */
-import { debounce, uid, clone, Emitter } from './utils.js';
+import { debounce, uid, getNextId, clone, Emitter } from './utils.js';
 
 const STORAGE_KEY = 'ccp_data_v1';
 const BACKUP_SNAPSHOT_KEY = 'ccp_data_last_save_v1';
@@ -219,8 +219,9 @@ class Store extends Emitter {
   getProducts() { return this._data.products; }
   getProduct(id) { return this._data.products.find(p => p.id === id); }
   addProduct(data = {}) {
+    const nextId = (data && data.id) || getNextId('P', this._data.products, 4);
     const p = {
-      id: uid('P'), name: '', category: '', brand: '', priceRange: '',
+      id: nextId, name: '', category: '', brand: '', priceRange: '',
       platform: '', commission: '', affiliateLink: '',
       sellingPoints: '', productType: 'A สินค้าขายดี', targetAudience: '',
       imageUrl: '', status: 'To Review', notes: '', ...data,
@@ -281,8 +282,9 @@ class Store extends Emitter {
     return this._data.content.find(c => String(c.id).trim().toLowerCase() === clean); 
   }
   addContent(data = {}) {
+    const nextId = (data && data.id) || getNextId('C', this._data.content, 4);
     const c = {
-      id: uid('C'), coverUrl: '', title: '', contentType: '', productId: '', contentAngle: '',
+      id: nextId, coverUrl: '', title: '', contentType: '', productId: '', contentAngle: '',
       contentPillar: '', channel: '',
       hook: '', script: '', ctaType: '',
       plannedDate: '', status: '💡 Idea', publishedDate: '',
@@ -338,8 +340,9 @@ class Store extends Emitter {
   /* ── Channel Tracker ── */
   getChannelTracker() { return this._data.channelTracker; }
   addChannelEntry(data = {}) {
+    const nextId = (data && data.id) || getNextId('CH', this._data.channelTracker, 4);
     const e = {
-      id: uid('CH'), contentId: '', channel: '', publishedDate: '',
+      id: nextId, contentId: '', channel: '', publishedDate: '',
       views: '', likes: '', comments: '', shares: '', saves: '',
       avgWatchTime: '', productClicks: '', orders: '', revenue: '',
       notes: '', ...data,
@@ -395,8 +398,9 @@ class Store extends Emitter {
   /* ── Sponsors ── */
   getSponsors() { return this._data.sponsors; }
   addSponsor(data = {}) {
+    const nextId = (data && data.id) || getNextId('D', this._data.sponsors, 4);
     const s = {
-      id: uid('D'), brandClient: '', contactPerson: '', contactInfo: '',
+      id: nextId, brandClient: '', contactPerson: '', contactInfo: '',
       dealType: '', agreedFee: '', deliverables: '', deadline: '',
       contentIds: '', draftSent: false, approved: false, published: false,
       paymentStatus: 'Pending', paymentDate: '', notes: '', ...data,
