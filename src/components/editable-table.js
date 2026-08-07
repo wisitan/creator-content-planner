@@ -984,40 +984,82 @@ export function EditableTable(container, config) {
 
   function openProductPickerModal(rowId, colKey) {
     const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+    const categories = typeof config.getCategories === 'function' ? config.getCategories() : [];
+    const statuses = typeof config.getStatuses === 'function' ? config.getStatuses() : [];
+
     let searchTerm = '';
+    let selectedCategory = 'ALL';
+    let selectedStatus = 'ALL';
+    let currentPage = 1;
+    const PAGE_SIZE = 12;
 
     function renderPickerBody(modalBody) {
       const listEl = modalBody.querySelector('#product-picker-list');
-      if (!listEl) return;
+      const pagEl = modalBody.querySelector('#product-picker-pagination');
+      if (!listEl || !pagEl) return;
 
+      // 1. Filter products
       const filtered = products.filter(p => {
-        if (!searchTerm) return true;
-        const s = searchTerm.toLowerCase();
-        return (p.id || '').toLowerCase().includes(s) || 
-               (p.name || '').toLowerCase().includes(s) || 
-               (p.brand || '').toLowerCase().includes(s) || 
-               (p.category || '').toLowerCase().includes(s);
+        if (searchTerm) {
+          const s = searchTerm.toLowerCase();
+          const match = (p.id || '').toLowerCase().includes(s) || 
+                        (p.name || '').toLowerCase().includes(s) || 
+                        (p.brand || '').toLowerCase().includes(s) || 
+                        (p.category || '').toLowerCase().includes(s);
+          if (!match) return false;
+        }
+        if (selectedCategory !== 'ALL' && p.category !== selectedCategory) {
+          return false;
+        }
+        if (selectedStatus !== 'ALL' && p.status !== selectedStatus) {
+          return false;
+        }
+        return true;
       });
 
-      if (filtered.length === 0) {
-        listEl.innerHTML = `<div class="p-4 text-center text-muted">ไม่พบสินค้าที่ตรงกับการค้นหา 📦</div>`;
-        return;
-      }
+      // Calculate Pagination
+      const totalFiltered = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
 
-      let html = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap:10px; max-height:360px; overflow-y:auto; padding:2px;">`;
-      
-      // Clear Option
-      html += `
-        <div class="card p-2 picker-item-card" data-pid="" style="cursor:pointer; border:1px dashed var(--c-border); display:flex; align-items:center; gap:10px; background:var(--c-bg);">
-          <span style="font-size:1.4rem;">🚫</span>
-          <div>
-            <div style="font-weight:700; font-size:0.85rem; color:var(--c-text-muted);">-- ไม่ระบุสินค้า / Clear --</div>
-            <div style="font-size:0.75rem;" class="text-muted">ปลดล็อกการผูกสินค้า</div>
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+      // Render Pagination Bar
+      pagEl.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+          <div style="font-size:0.8rem; font-weight:600;" class="text-muted">
+            พบ ${totalFiltered} รายการ (แสดง ${pageItems.length} รายการในหน้านี้)
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-picker-prev" ${currentPage <= 1 ? 'disabled' : ''}>◀ Prev</button>
+            <span style="font-size:0.82rem; font-weight:700;">Page ${currentPage} / ${totalPages}</span>
+            <button class="btn btn-secondary btn-sm" id="btn-picker-next" ${currentPage >= totalPages ? 'disabled' : ''}>Next ▶</button>
           </div>
         </div>
       `;
 
-      filtered.forEach(p => {
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-muted" style="grid-column: 1 / -1;">ไม่พบสินค้าที่ตรงกับตัวกรอง 📦</div>`;
+        return;
+      }
+
+      let html = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap:10px; min-height:240px; align-content:start; padding:2px;">`;
+      
+      // Clear Option (Show only on Page 1)
+      if (currentPage === 1) {
+        html += `
+          <div class="card p-2 picker-item-card" data-pid="" style="cursor:pointer; border:1px dashed var(--c-border); display:flex; align-items:center; gap:10px; background:var(--c-bg);">
+            <span style="font-size:1.4rem;">🚫</span>
+            <div>
+              <div style="font-weight:700; font-size:0.85rem; color:var(--c-text-muted);">-- ไม่ระบุสินค้า / Clear --</div>
+              <div style="font-size:0.75rem;" class="text-muted">ปลดล็อกการผูกสินค้า</div>
+            </div>
+          </div>
+        `;
+      }
+
+      pageItems.forEach(p => {
         html += `
           <div class="card p-2 picker-item-card" data-pid="${esc(p.id)}" style="cursor:pointer; display:flex; align-items:center; gap:10px; transition:all 0.15s ease;" onmouseover="this.style.borderColor='var(--c-primary)'" onmouseout="this.style.borderColor='var(--c-border)'">
             ${p.imageUrl 
@@ -1026,7 +1068,7 @@ export function EditableTable(container, config) {
             }
             <div style="flex:1; overflow:hidden;">
               <div style="font-weight:700; font-size:0.85rem; color:var(--c-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(p.id)}: ${esc(p.name || 'Untitled')}</div>
-              <div style="font-size:0.75rem; color:var(--c-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="text-muted">${esc(p.brand || p.category || '-')} | ${esc(p.priceRange || '')}</div>
+              <div style="font-size:0.75rem; color:var(--c-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="text-muted">${esc(p.brand || p.category || '-')} | ${esc(p.status || '')}</div>
             </div>
           </div>
         `;
@@ -1045,15 +1087,47 @@ export function EditableTable(container, config) {
           render();
         });
       });
+
+      // Pagination Button Events
+      const btnPrev = pagEl.querySelector('#btn-picker-prev');
+      const btnNext = pagEl.querySelector('#btn-picker-next');
+      if (btnPrev && !btnPrev.disabled) {
+        btnPrev.addEventListener('click', () => {
+          currentPage--;
+          renderPickerBody(modalBody);
+        });
+      }
+      if (btnNext && !btnNext.disabled) {
+        btnNext.addEventListener('click', () => {
+          currentPage++;
+          renderPickerBody(modalBody);
+        });
+      }
     }
+
+    let catOptions = `<option value="ALL">📁 All Categories (ทุกหมวด)</option>`;
+    categories.forEach(cat => {
+      catOptions += `<option value="${esc(cat)}">${esc(cat)}</option>`;
+    });
+
+    let statusOptions = `<option value="ALL">🏷️ All Statuses (ทุกสถานะ)</option>`;
+    statuses.forEach(st => {
+      statusOptions += `<option value="${esc(st)}">${esc(st)}</option>`;
+    });
 
     const modal = showModal({
       title: `📦 Select Product / เลือกสินค้าจากคลัง (${products.length} รายการ)`,
       body: `
         <div>
-          <div class="mb-3">
-            <input type="text" id="product-picker-search" class="form-input" placeholder="🔍 พิมพ์เพื่อค้นหาชื่อสินค้า, รหัส P001, หรือแบรนด์..." style="font-size:0.9rem;">
+          <!-- Search & Filter Controls -->
+          <div style="display:grid; grid-template-columns: 2fr 1.2fr 1fr; gap:8px; margin-bottom:10px;">
+            <input type="text" id="product-picker-search" class="form-input" placeholder="🔍 ค้นชื่อ, P001, แบรนด์..." style="font-size:0.85rem;">
+            <select id="product-picker-category" class="form-select" style="font-size:0.85rem;">${catOptions}</select>
+            <select id="product-picker-status" class="form-select" style="font-size:0.85rem;">${statusOptions}</select>
           </div>
+          <!-- Pagination Control Bar -->
+          <div id="product-picker-pagination" class="mb-2 p-2 card" style="background:var(--c-bg);"></div>
+          <!-- List Container -->
           <div id="product-picker-list"></div>
         </div>
       `,
@@ -1064,10 +1138,28 @@ export function EditableTable(container, config) {
     if (modal.element) {
       renderPickerBody(modal.element);
       const searchInput = modal.element.querySelector('#product-picker-search');
+      const catSelect = modal.element.querySelector('#product-picker-category');
+      const statusSelect = modal.element.querySelector('#product-picker-status');
+
       if (searchInput) {
         searchInput.focus();
         searchInput.addEventListener('input', (e) => {
           searchTerm = e.target.value;
+          currentPage = 1;
+          renderPickerBody(modal.element);
+        });
+      }
+      if (catSelect) {
+        catSelect.addEventListener('change', (e) => {
+          selectedCategory = e.target.value;
+          currentPage = 1;
+          renderPickerBody(modal.element);
+        });
+      }
+      if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+          selectedStatus = e.target.value;
+          currentPage = 1;
           renderPickerBody(modal.element);
         });
       }

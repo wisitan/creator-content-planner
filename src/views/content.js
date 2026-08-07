@@ -42,6 +42,8 @@ export function renderContent(container, store) {
     columns: columns,
     getData: () => store.getContent(),
     getProducts: () => store.getProducts(),
+    getCategories: () => store.getSettingList('productCategories'),
+    getStatuses: () => store.getSettingList('productStatuses'),
     enableYearMonthFilter: true,
     onAdd: () => store.addContent({ id: uid('C'), title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
