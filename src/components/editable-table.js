@@ -722,10 +722,26 @@ export function EditableTable(container, config) {
         value = target.value;
       }
 
-      if (onChange) onChange(id, field, value);
+      if (onChange) {
+        const res = onChange(id, field, value);
+        if (res && res.error) {
+          showModal({
+            title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+            body: `
+              <div class="p-2">
+                <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: กรุณาใช้รหัส ID อื่นที่ไม่ซ้ำนะคะ</p>
+              </div>
+            `,
+            cancelText: '❌ ปิดหน้าต่างนี้',
+          });
+          render();
+          return;
+        }
+      }
 
       // Auto re-render table to instantly refresh computed columns (e.g., Product Name auto-show)
-      if (columns.some(c => c.compute || c.type === 'computed')) {
+      if (columns.some(c => c.compute || c.type === 'computed') || field === idField || field === 'id') {
         render();
       } else if (target.tagName === 'SELECT') {
         const col = columns.find(c => c.key === field);
@@ -891,7 +907,23 @@ export function EditableTable(container, config) {
         let currentTargetId = rowId;
         if (idInput && idInput.value && idInput.value !== rowId) {
           const newId = idInput.value.trim();
-          if (onChange) onChange(rowId, idField, newId);
+          if (onChange) {
+            const res = onChange(rowId, idField, newId);
+            if (res && res.error) {
+              showModal({
+                title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+                body: `
+                  <div class="p-2">
+                    <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: กรุณาใช้รหัส ID อื่นที่ไม่ซ้ำนะคะ</p>
+                  </div>
+                `,
+                cancelText: '❌ ปิดหน้าต่างนี้',
+              });
+              render();
+              return;
+            }
+          }
           currentTargetId = newId;
         }
 

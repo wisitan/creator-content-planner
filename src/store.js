@@ -197,8 +197,15 @@ class Store extends Emitter {
     return p;
   }
   updateProduct(id, field, value) {
+    if (field === 'id' && String(id) !== String(value)) {
+      const exists = this._data.products.some(p => String(p.id) === String(value));
+      if (exists) {
+        return { error: true, message: `รหัสสินค้า "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
+      }
+    }
     const p = this.getProduct(id);
-    if (p) { p[field] = value; this._changed('products'); }
+    if (p) { p[field] = value; this._changed('products'); return { success: true }; }
+    return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteProduct(id) {
     this._trackDelete(id, 'product');
@@ -222,8 +229,15 @@ class Store extends Emitter {
     return c;
   }
   updateContent(id, field, value) {
+    if (field === 'id' && String(id) !== String(value)) {
+      const exists = this._data.content.some(c => String(c.id) === String(value));
+      if (exists) {
+        return { error: true, message: `รหัสคอนเทนต์ "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
+      }
+    }
     const c = this.getContentItem(id);
-    if (c) { c[field] = value; this._changed('content'); }
+    if (c) { c[field] = value; this._changed('content'); return { success: true }; }
+    return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteContent(id) {
     this._trackDelete(id, 'content');
@@ -245,8 +259,15 @@ class Store extends Emitter {
     return e;
   }
   updateChannelEntry(id, field, value) {
+    if (field === 'id' && String(id) !== String(value)) {
+      const exists = this._data.channelTracker.some(x => String(x.id) === String(value));
+      if (exists) {
+        return { error: true, message: `รหัสบันทึก "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
+      }
+    }
     const e = this._data.channelTracker.find(x => x.id === id);
-    if (e) { e[field] = value; this._changed('channelTracker'); }
+    if (e) { e[field] = value; this._changed('channelTracker'); return { success: true }; }
+    return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteChannelEntry(id) {
     this._trackDelete(id, 'channel');
@@ -268,8 +289,15 @@ class Store extends Emitter {
     return s;
   }
   updateSponsor(id, field, value) {
+    if (field === 'id' && String(id) !== String(value)) {
+      const exists = this._data.sponsors.some(s => String(s.id) === String(value));
+      if (exists) {
+        return { error: true, message: `รหัสดีล "${value}" มีอยู่ในระบบแล้วค่ะ! ไม่สามารถใช้ ID ซ้ำได้` };
+      }
+    }
     const s = this._data.sponsors.find(x => x.id === id);
-    if (s) { s[field] = value; this._changed('sponsors'); }
+    if (s) { s[field] = value; this._changed('sponsors'); return { success: true }; }
+    return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteSponsor(id) {
     this._trackDelete(id, 'sponsor');
