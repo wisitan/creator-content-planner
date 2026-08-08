@@ -301,58 +301,16 @@ export function EditableTable(container, config) {
       return `<button class="btn btn-secondary btn-sm btn-open-row-detail" data-id="${esc(val)}" style="font-weight:700; font-family:monospace;" title="Click to view/edit full row details in vertical popup / กดเพื่อเปิดดูรายละเอียดแถวแนวตั้ง">📱 ${esc(val)}</button>`;
     }
 
-    if (col.type === 'scriptModal') {
-      const scriptVal = row[col.key] || '';
-      const preview = scriptVal.length > 25 ? scriptVal.slice(0, 25) + '...' : (scriptVal || '✏️ Edit Details / Script');
-      return `<button class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📜 ${esc(preview)}</button>`;
-    }
-
-    if (col.type === 'productPicker') {
-      const pid = row[col.key] || '';
-      const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
-      const pObj = products.find(p => p.id === pid);
-      const imgUrl = pObj ? pObj.imageUrl : '';
-      const pName = pObj ? pObj.name : '';
-
-      return `
-        <div style="display:flex; align-items:center; gap:6px;">
-          ${imgUrl 
-            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(row[idField])}" style="width:30px; height:30px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)}">` 
-            : `<span style="font-size:1.1rem;" title="No photo">📦</span>`
-          }
-          <button class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(row[idField])}" style="padding:2px 8px; font-size:0.78rem; font-weight:700; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to pick product / กดเพื่อเลือกสินค้า">
-            ${esc(pid || '-- Pick --')}
-          </button>
-        </div>
-      `;
-    }
-
-    if (col.type === 'image') {
-      const imgUrl = row[col.key] || '';
-      return `
-        <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
-          ${imgUrl 
-            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-field="${col.key}" data-id="${esc(row[idField])}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
-            : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`
-          }
-          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo">
-            📷
-            <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" style="display:none;">
-          </label>
-        </div>
-      `;
-    }
-
-    if (col.type === 'scriptModal') {
+    if (col.type === 'scriptModal' || col.key === 'script') {
       const hookText = row.hook || '';
       const scriptText = row.script || val || '';
       const previewText = hookText || scriptText ? (hookText ? '🪝 ' + hookText : scriptText) : '';
       return `
         <div style="display:flex; align-items:center; gap:6px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-open-script-editor" data-id="${esc(row[idField])}" style="padding:3px 8px; font-size:0.75rem; font-weight:600;" title="Edit Hook & Script">
-            ✏️ ${previewText ? esc(previewText.slice(0, 18)) + '...' : 'Edit Script'}
+          <button type="button" class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="padding:3px 8px; font-size:0.75rem; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to view/edit full script & hook">
+            📜 ${previewText ? esc(previewText.slice(0, 16)) + '...' : 'Edit Script'}
           </button>
-          <button type="button" class="btn btn-primary btn-sm btn-quick-teleprompter" data-id="${esc(row[idField])}" style="padding:3px 10px; font-size:0.75rem; font-weight:700; background:#8b5cf6; border:none; border-radius:12px; cursor:pointer;" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+          <button type="button" class="btn btn-primary btn-sm btn-quick-teleprompter" data-id="${esc(row[idField])}" style="padding:3px 10px; font-size:0.75rem; font-weight:700; background:#8b5cf6; border:none; border-radius:12px; cursor:pointer;" title="Open Teleprompter mode">
             🎬 Teleprompter
           </button>
         </div>
@@ -877,6 +835,10 @@ export function EditableTable(container, config) {
     columns.forEach(col => {
       const val = row[col.key] ?? '';
       
+      if (col.key === 'hook' && columns.some(c => c.key === 'script' || c.type === 'scriptModal')) {
+        return; // Already rendered inside script block
+      }
+
       fieldsHtml += `<div class="form-group mb-3 pb-2" style="border-bottom:1px solid var(--c-border);">`;
       fieldsHtml += `<label class="form-label" style="font-weight:700; color:var(--c-primary);">${esc(col.label)}:</label>`;
 
@@ -891,7 +853,7 @@ export function EditableTable(container, config) {
             </label>
           </div>
         `;
-      } else if (col.type === 'scriptModal') {
+      } else if (col.type === 'scriptModal' || col.key === 'script') {
         const currentHook = row.hook || '';
         const currentScript = row.script || val || '';
         fieldsHtml += `
