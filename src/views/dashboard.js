@@ -484,44 +484,44 @@ function openInProgressModal(inProgressList, store) {
 
   const modalOverlay = document.createElement('div');
   modalOverlay.className = 'modal-overlay open';
-  modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px); p:16px;';
+  modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.82) !important; z-index:99999; display:flex; align-items:center; justify-content:center; padding:24px;';
 
   modalOverlay.innerHTML = `
-    <div class="card p-4" style="width:100%; max-width:540px; max-height:85vh; overflow-y:auto; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.3); background:var(--c-surface); border:1px solid var(--c-border); animation: modalEnter 0.2s ease-out;">
+    <div class="modal-card-solid" style="width:100%; max-width:580px; max-height:88vh; overflow-y:auto; border-radius:20px; padding:28px 32px; position:relative; z-index:100000; animation: modalEnter 0.2s ease-out;">
       
-      <!-- Modal Header -->
-      <div class="flex-between border-bottom pb-3 mb-3">
+      <!-- Modal Header (Spacious Layout) -->
+      <div class="flex-between border-bottom pb-3 mb-4" style="border-bottom-color:var(--c-border) !important;">
         <div>
-          <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:8px;">
+          <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:8px;">
             ⏳ ${t('modal_inprogress_title')}
           </h3>
-          <p class="text-muted m-0 mt-1" style="font-size:0.83rem;">
+          <p class="text-muted m-0 mt-1" style="font-size:0.85rem;">
             ${t('modal_inprogress_sub')} (<strong style="color:#F59E0B;">${totalInProgress}</strong>)
           </p>
         </div>
-        <button id="btn-close-inprogress-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700;">
+        <button id="btn-close-inprogress-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0;">
           ✕
         </button>
       </div>
 
-      <!-- Status Breakdown List -->
-      <div class="mb-4">
+      <!-- Status Breakdown List (Inset Cards with Generous Padding) -->
+      <div class="mb-4" style="display:flex; flex-direction:column; gap:12px;">
         ${Object.keys(statusCounts).length ? Object.entries(statusCounts).map(([stName, count]) => {
           const pct = totalInProgress > 0 ? Math.round((count / totalInProgress) * 100) : 0;
           return `
-            <div class="p-2.5 mb-2.5" style="border:1px solid var(--c-border); border-radius:10px; background:var(--c-bg);">
-              <div class="flex-between mb-1" style="font-size:0.9rem;">
+            <div class="p-3" style="border:1px solid var(--c-border); border-radius:12px; background:var(--c-bg) !important;">
+              <div class="flex-between mb-1.5" style="font-size:0.9rem;">
                 <span style="font-weight:700; color:var(--c-text);">${esc(stName)}</span>
                 <span style="font-weight:700;" class="badge badge-yellow">${count} (${pct}%)</span>
               </div>
               
-              <div style="background:var(--c-border); border-radius:4px; height:6px; overflow:hidden; margin-bottom:6px;">
+              <div style="background:var(--c-border); border-radius:4px; height:6px; overflow:hidden; margin-bottom:8px;">
                 <div style="width:${pct}%; background:#F59E0B; height:100%; border-radius:4px;"></div>
               </div>
 
               ${statusItems[stName] && statusItems[stName].length ? `
-                <div style="font-size:0.8rem; color:var(--c-text-muted); padding-left:4px;">
-                  ${statusItems[stName].map(c => `• ${esc(c.title || c.hook || c.id)} <small style="opacity:0.7;">(${esc(c.channel || 'N/A')})</small>`).join('<br>')}
+                <div style="font-size:0.83rem; color:var(--c-text); padding-left:4px; line-height:1.5;">
+                  ${statusItems[stName].map(c => `• <strong>${esc(c.title || c.hook || c.id)}</strong> <small class="text-muted">(${esc(c.channel || 'N/A')})</small>`).join('<br>')}
                 </div>
               ` : `<div style="font-size:0.78rem; color:var(--c-text-muted); font-style:italic; padding-left:4px;">${t('modal_inprogress_empty')}</div>`}
             </div>
@@ -529,9 +529,9 @@ function openInProgressModal(inProgressList, store) {
         }).join('') : `<div class="text-center p-3 text-muted">${t('modal_no_inprogress')}</div>`}
       </div>
 
-      <!-- Modal Footer -->
-      <div class="text-right border-top pt-3">
-        <button id="btn-dismiss-inprogress-modal" type="button" class="btn btn-primary" style="padding:6px 20px; font-weight:700; border-radius:8px;">
+      <!-- Modal Footer (Centered Button) -->
+      <div style="display:flex; align-items:center; justify-content:center; border-top:1px solid var(--c-border); padding-top:20px; margin-top:10px;">
+        <button id="btn-dismiss-inprogress-modal" type="button" class="btn btn-primary" style="padding:10px 42px; font-weight:700; border-radius:12px; font-size:0.92rem; box-shadow:0 4px 14px rgba(99,102,241,0.35);">
           ${t('modal_ok_close')}
         </button>
       </div>
