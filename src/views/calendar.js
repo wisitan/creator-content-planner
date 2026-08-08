@@ -50,76 +50,85 @@ export function renderCalendar(container, store) {
       const titleText = c.title || c.hook || c.id;
       const isPublishedEntry = item.dateType === 'published';
 
-      // Show Rich Content Item Modal with 100% Solid Non-Transparent Background
+      // Show Rich Content Item Modal with Premium Balanced Layout & Generous Padding
       const modalOverlay = document.createElement('div');
       modalOverlay.className = 'modal-overlay open';
-      modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.82) !important; z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px;';
+      modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.82) !important; z-index:99999; display:flex; align-items:center; justify-content:center; padding:24px;';
 
       modalOverlay.innerHTML = `
-        <div class="modal-card-solid p-4" style="width:100%; max-width:530px; max-height:88vh; overflow-y:auto; border-radius:18px; position:relative; z-index:100000; animation: modalEnter 0.2s ease-out;">
+        <div class="modal-card-solid" style="width:100%; max-width:580px; max-height:88vh; overflow-y:auto; border-radius:20px; padding:28px 32px; position:relative; z-index:100000; animation: modalEnter 0.2s ease-out;">
           
-          <div class="flex-between border-bottom pb-3 mb-3">
-            <div>
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;" class="mb-1">
-                <span class="badge badge-blue" style="font-size:0.8rem; font-weight:700;">${esc(c.id)}</span>
+          <!-- Modal Header (Spacious Layout) -->
+          <div class="border-bottom pb-3 mb-4" style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <span class="badge badge-blue" style="font-size:0.82rem; font-weight:700; padding:4px 10px;">${esc(c.id)}</span>
                 ${isPublishedEntry 
-                  ? `<span class="badge" style="background:#10B981; color:#fff; font-weight:700; font-size:0.75rem;">🟢 Published Date pin</span>`
-                  : `<span class="badge" style="background:#F97316; color:#fff; font-weight:700; font-size:0.75rem;">🟠 Planned Date pin</span>`
+                  ? `<span class="badge" style="background:#10B981; color:#fff; font-weight:700; font-size:0.78rem; padding:4px 10px;">🟢 Published Date pin</span>`
+                  : `<span class="badge" style="background:#F97316; color:#fff; font-weight:700; font-size:0.78rem; padding:4px 10px;">🟠 Planned Date pin</span>`
                 }
               </div>
-              <h3 style="margin:0; font-size:1.15rem; font-weight:800; line-height:1.3;">
+              <h3 style="margin:0; font-size:1.25rem; font-weight:800; line-height:1.35; color:var(--c-text);">
                 ${esc(titleText)}
               </h3>
             </div>
-            <button id="btn-close-cal-item-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0;">
+
+            <button id="btn-close-cal-item-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0;">
               ✕
             </button>
           </div>
 
-          <div class="mb-4" style="display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Status:</span>
-              <span class="badge badge-green" style="font-weight:700;">${esc(c.status || '-')}</span>
+          <!-- Metadata Grid (2 Columns, Inset Card Boxes, No edge stretching) -->
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px;" class="mb-4">
+            
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Status:</span>
+              <span class="badge badge-green" style="font-weight:700; font-size:0.8rem;">${esc(c.status || '-')}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Planned Date:</span>
-              <span style="font-weight:700; color:#F97316;">🟠 ${esc(c.plannedDate || '-')}</span>
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Content Type:</span>
+              <span style="font-weight:700; font-size:0.83rem; color:var(--c-primary);">${esc(c.contentType || '-')}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Published Date:</span>
-              <span style="font-weight:700; color:#10B981;">🟢 ${esc(c.publishedDate || '-')}</span>
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Planned Date:</span>
+              <span style="font-weight:700; font-size:0.83rem; color:#F97316;">🟠 ${esc(c.plannedDate || '-')}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Content Type:</span>
-              <span style="font-weight:700; color:var(--c-primary);">${esc(c.contentType || '-')}</span>
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Published Date:</span>
+              <span style="font-weight:700; font-size:0.83rem; color:#10B981;">🟢 ${esc(c.publishedDate || '-')}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Product:</span>
-              <span style="font-weight:700;">📦 ${esc(prodName)}</span>
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; grid-column: 1 / -1; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Product:</span>
+              <span style="font-weight:700; font-size:0.85rem;">📦 ${esc(prodName)}</span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Channel:</span>
-              <span style="font-weight:700;">📺 ${esc(c.channel || '-')}</span>
+            <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; grid-column: 1 / -1; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">Channel:</span>
+              <span style="font-weight:700; font-size:0.85rem;">📺 ${esc(c.channel || '-')}</span>
             </div>
 
-            ${c.script ? `
-              <div class="p-3 mt-2" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:10px;">
-                <div style="font-size:0.82rem; font-weight:800; color:var(--c-primary); margin-bottom:4px;">📜 Script & Outline Preview:</div>
-                <div style="font-size:0.85rem; white-space:pre-wrap; line-height:1.5; max-height:140px; overflow-y:auto;">${esc(c.script)}</div>
-              </div>
-            ` : ''}
           </div>
 
-          <div class="flex-between border-top pt-3">
-            <a href="#content" class="btn btn-secondary btn-sm" id="btn-go-to-content" style="font-weight:700;">
+          <!-- Script & Outline Preview Box (Generous Inset Padding) -->
+          ${c.script ? `
+            <div class="p-3.5 mb-4" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:14px;">
+              <div style="font-size:0.82rem; font-weight:800; color:var(--c-primary); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                📜 Script & Outline Preview:
+              </div>
+              <div style="font-size:0.88rem; color:var(--c-text); white-space:pre-wrap; line-height:1.55; max-height:160px; overflow-y:auto; padding-right:4px;">${esc(c.script)}</div>
+            </div>
+          ` : ''}
+
+          <!-- Modal Footer Buttons -->
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--c-border); padding-top:20px; margin-top:10px;">
+            <a href="#content" class="btn btn-secondary btn-sm" id="btn-go-to-content" style="font-weight:700; padding:8px 16px; border-radius:10px;">
               📝 Go to Content Planner
             </a>
-            <button id="btn-dismiss-cal-item-modal" type="button" class="btn btn-primary btn-sm" style="padding:6px 20px; font-weight:700; border-radius:8px;">
+            <button id="btn-dismiss-cal-item-modal" type="button" class="btn btn-primary btn-sm" style="padding:8px 24px; font-weight:700; border-radius:10px;">
               OK / Close
             </button>
           </div>
