@@ -624,11 +624,36 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 }
 
 /* ── 13. Modal ── */
+.modal-card-solid {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .modal-card-solid {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .modal-card-solid .text-muted {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .modal-card-solid div[style*="background:var(--c-bg)"],
+[data-theme="dark"] .modal-card-solid div[style*="background: var(--c-bg)"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,.5);
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,.75);
   display: flex;
   align-items: center;
   justify-content: center;
