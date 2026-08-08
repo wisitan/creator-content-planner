@@ -1,12 +1,16 @@
 /* ──────────────────────────────────────────
-   🚀 Main — App Shell + Hash Router + Google Drive Sync
+   🚀 Main — App Shell + Hash Router + Google Drive Sync + i18n
    ────────────────────────────────────────── */
 import './style.css';
 import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
+import { getLang, setLang, t } from './i18n.js';
 
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.7.0';
+
+// Apply saved Language & Theme
+setLang(store.getLanguage());
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -32,21 +36,22 @@ import { renderSponsors } from './views/sponsors.js';
 import { renderSettings } from './views/settings.js';
 
 // ── Routes ──
-const ROUTES = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard',      render: renderDashboard },
-  { id: 'products',  icon: '🛍️', label: 'Products',        render: renderProducts },
-  { id: 'content',   icon: '📝', label: 'Content Planner', render: renderContent },
-  { id: 'calendar',  icon: '📅', label: 'Calendar',        render: renderCalendar },
-  { id: 'channels',  icon: '📺', label: 'Channels',        render: renderChannels },
-  { id: 'brand',     icon: '🎨', label: 'Brand Identity',  render: renderBrand },
-  { id: 'sponsors',  icon: '🤝', label: 'Sponsors',        render: renderSponsors },
-  { id: 'settings',  icon: '⚙️', label: 'Settings',        render: renderSettings },
+const getRoutes = () => [
+  { id: 'dashboard', icon: '📊', label: t('nav_dashboard'), render: renderDashboard },
+  { id: 'products',  icon: '🛍️', label: t('nav_products'),  render: renderProducts },
+  { id: 'content',   icon: '📝', label: t('nav_content'),   render: renderContent },
+  { id: 'calendar',  icon: '📅', label: t('nav_calendar'),  render: renderCalendar },
+  { id: 'channels',  icon: '📺', label: t('nav_channels'),  render: renderChannels },
+  { id: 'brand',     icon: '🎨', label: t('nav_brand'),     render: renderBrand },
+  { id: 'sponsors',  icon: '🤝', label: t('nav_sponsors'),  render: renderSponsors },
+  { id: 'settings',  icon: '⚙️', label: t('nav_settings'),  render: renderSettings },
 ];
 
 let currentRoute = null;
 
 // ── Build App Shell ──
 function buildShell() {
+  const routes = getRoutes();
   const app = document.getElementById('app');
   app.innerHTML = `
     <aside class="sidebar">
@@ -89,7 +94,7 @@ function buildShell() {
 
   // Build nav items
   const nav = document.getElementById('sidebar-nav');
-  ROUTES.forEach(r => {
+  routes.forEach(r => {
     const a = document.createElement('a');
     a.className = 'nav-item';
     a.href = '#' + r.id;
@@ -101,47 +106,47 @@ function buildShell() {
     nav.appendChild(a);
   });
 
-  // Wire Manual Save Button (Pure Local Save 100% - No Auto Drive Upload)
+  // Wire Manual Save Button
   document.getElementById('btn-manual-save').addEventListener('click', () => {
     store.forceSave();
-    showToast('บันทึกข้อมูลลงในเครื่องนี้เรียบร้อยแล้วค่ะ! 💾✅', 'success');
+    showToast(getLang() === 'th' ? 'บันทึกข้อมูลลงในเครื่องนี้เรียบร้อยแล้วค่ะ! 💾✅' : 'Data saved locally successfully! 💾✅', 'success');
   });
 
-  // Wire Google Drive Backup (Manual Upload from Local to Drive 100%)
+  // Wire Google Drive Backup
   document.getElementById('btn-gdrive-backup').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
-      showToast('กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ', 'error');
+      showToast(getLang() === 'th' ? 'กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ' : 'Please enter Google Client ID in ⚙️ Settings first.', 'error');
       window.location.hash = '#settings';
       return;
     }
     try {
-      store.forceSave(); // Guarantee local state is saved first
-      showToast('กำลังเชื่อมต่อและอัปโหลดข้อมูลในเครื่องขึ้น Google Drive... ☁️', 'info');
+      store.forceSave();
+      showToast(getLang() === 'th' ? 'กำลังเชื่อมต่อและอัปโหลดข้อมูลในเครื่องขึ้น Google Drive... ☁️' : 'Connecting & uploading local data to Google Drive... ☁️', 'info');
       await initGoogleDrive(googleClientId);
       await backupToDrive(store._data, store);
-      showToast('อัปโหลดข้อมูลจากเครื่องขึ้น Google Drive สำเร็จเรียบร้อยแล้วค่ะ! ☁️⬆️✅', 'success');
+      showToast(getLang() === 'th' ? 'อัปโหลดข้อมูลขึ้น Google Drive สำเร็จเรียบร้อยแล้วค่ะ! ☁️⬆️✅' : 'Backup to Google Drive succeeded! ☁️⬆️✅', 'success');
     } catch (err) {
       showToast('Drive Backup Failed: ' + err.message, 'error');
     }
   });
 
-  // Wire Google Drive Sync (Download from Drive to Local)
+  // Wire Google Drive Sync
   document.getElementById('btn-gdrive-sync').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
-      showToast('กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ', 'error');
+      showToast(getLang() === 'th' ? 'กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ' : 'Please enter Google Client ID in ⚙️ Settings first.', 'error');
       window.location.hash = '#settings';
       return;
     }
-    if (!confirm('ต้องการ Sync ดึงข้อมูลจาก Google Drive ลงมาอัปเดตในเครื่องใช่หรือไม่คะ?')) return;
+    if (!confirm(getLang() === 'th' ? 'ต้องการ Sync ดึงข้อมูลจาก Google Drive ลงมาอัปเดตในเครื่องใช่หรือไม่คะ?' : 'Sync and overwrite local data with Google Drive backup?')) return;
     try {
-      showToast('กำลังดึงข้อมูลจาก Google Drive... 🔄', 'info');
+      showToast(getLang() === 'th' ? 'กำลังดึงข้อมูลจาก Google Drive... 🔄' : 'Syncing data from Google Drive... 🔄', 'info');
       await initGoogleDrive(googleClientId);
       const data = await syncFromDrive();
       if (data) {
         store.importData(data);
-        showToast('Sync ข้อมูลจาก Google Drive ลงเครื่องสำเร็จเรียบร้อย! 🔄✅', 'success');
+        showToast(getLang() === 'th' ? 'Sync ข้อมูลจาก Google Drive สำเร็จเรียบร้อย! 🔄✅' : 'Synced from Google Drive successfully! 🔄✅', 'success');
         navigate(currentRoute || 'dashboard');
       }
     } catch (err) {
@@ -149,7 +154,7 @@ function buildShell() {
     }
   });
 
-  // Wire up top-bar actions
+  // Top-bar actions
   document.getElementById('btn-export').addEventListener('click', () => {
     store.exportAll();
     showToast('Data exported! ✅', 'success');
@@ -168,10 +173,8 @@ function buildShell() {
     e.target.value = '';
   });
 
-
-
   document.getElementById('btn-sample').addEventListener('click', () => {
-    if (confirm('Load sample data? ข้อมูลเดิมจะถูกแทนที่')) {
+    if (confirm(getLang() === 'th' ? 'โหลดข้อมูลตัวอย่าง? ข้อมูลเดิมจะถูกแทนที่' : 'Load sample data? Existing data will be replaced.')) {
       store.loadSampleData();
       showToast('Sample data loaded! 📦', 'success');
       navigate(currentRoute || 'dashboard');
@@ -181,7 +184,8 @@ function buildShell() {
 
 // ── Router ──
 function navigate(routeId) {
-  const route = ROUTES.find(r => r.id === routeId) || ROUTES[0];
+  const routes = getRoutes();
+  const route = routes.find(r => r.id === routeId) || routes[0];
   currentRoute = route.id;
 
   document.querySelectorAll('.nav-item').forEach(el => {

@@ -1,4 +1,5 @@
 import { EditableTable, statusBadge } from '../components/editable-table.js';
+import { t } from '../i18n.js';
 
 export function renderProducts(container, store) {
   container.innerHTML = '';
@@ -7,8 +8,8 @@ export function renderProducts(container, store) {
   header.className = 'card-header';
   header.innerHTML = `
     <div>
-      <h2>🛍️ Products / จัดการสินค้า</h2>
-      <p class="text-muted">Manage your affiliate products database (สามารถใส่ราคาเองได้อิสระ อัปโหลดรูปภาพสินค้า Thumbnail และแก้ Product ID ได้)</p>
+      <h2>🛍️ ${t('prod_title')}</h2>
+      <p class="text-muted">${t('prod_subtitle')}</p>
     </div>
   `;
   container.appendChild(header);
@@ -18,20 +19,20 @@ export function renderProducts(container, store) {
   container.appendChild(tableContainer);
 
   const columns = [
-    { key: 'id', label: 'Product ID', type: 'text', width: '100px', editable: true },
-    { key: 'imageUrl', label: 'Photo / รูปสินค้า', type: 'image', width: '130px' },
-    { key: 'name', label: 'Product Name', type: 'text', width: '180px' },
-    { key: 'category', label: 'Category', type: 'dropdown', options: () => store.getSettingList('productCategories') },
-    { key: 'brand', label: 'Brand', type: 'text', width: '110px' },
-    { key: 'priceRange', label: 'Price ฿ / ราคา', type: 'text', width: '120px', editable: true },
-    { key: 'platform', label: 'Platform', type: 'dropdown', options: () => store.getSettingList('channels') },
-    { key: 'commission', label: 'Commission %', type: 'number', width: '90px' },
-    { key: 'affiliateLink', label: 'Affiliate Link', type: 'url', width: '180px' },
-    { key: 'sellingPoints', label: 'Selling Points', type: 'textarea', width: '220px' },
-    { key: 'productType', label: 'Product Type', type: 'dropdown', options: () => store.getSettingList('productTypes') },
-    { key: 'targetAudience', label: 'Target Audience', type: 'text', width: '170px' },
-    { key: 'status', label: 'Status', type: 'dropdown', options: () => store.getSettingList('productStatuses'), badge: statusBadge },
-    { key: 'notes', label: 'Notes', type: 'text', width: '170px' }
+    { key: 'id', label: t('col_prod_id'), type: 'text', width: '100px', editable: true },
+    { key: 'imageUrl', label: t('col_prod_photo'), type: 'image', width: '130px' },
+    { key: 'name', label: t('col_prod_name'), type: 'text', width: '180px' },
+    { key: 'category', label: t('col_prod_category'), type: 'dropdown', options: () => store.getSettingList('productCategories') },
+    { key: 'brand', label: t('col_prod_brand'), type: 'text', width: '110px' },
+    { key: 'priceRange', label: t('col_prod_price'), type: 'text', width: '120px', editable: true },
+    { key: 'platform', label: t('col_prod_platform'), type: 'dropdown', options: () => store.getSettingList('channels') },
+    { key: 'commission', label: t('col_prod_commission'), type: 'number', width: '90px' },
+    { key: 'affiliateLink', label: t('col_prod_aff_link'), type: 'url', width: '180px' },
+    { key: 'sellingPoints', label: t('col_prod_selling_points'), type: 'textarea', width: '220px' },
+    { key: 'productType', label: t('col_prod_type'), type: 'dropdown', options: () => store.getSettingList('productTypes') },
+    { key: 'targetAudience', label: t('col_prod_audience'), type: 'text', width: '170px' },
+    { key: 'status', label: t('col_prod_status'), type: 'dropdown', options: () => store.getSettingList('productStatuses'), badge: statusBadge },
+    { key: 'notes', label: t('col_prod_notes'), type: 'text', width: '170px' }
   ];
 
   EditableTable(tableContainer, {
@@ -40,8 +41,8 @@ export function renderProducts(container, store) {
     onAdd: () => store.addProduct({ name: 'New Product', status: 'To Review' }),
     onChange: (id, field, value) => store.updateProduct(id, field, value),
     onDelete: (id) => store.deleteProduct(id),
-    addLabel: '+ Add Product / เพิ่มสินค้า',
-    emptyText: 'No products yet · ยังไม่มีสินค้า',
+    addLabel: t('prod_add_btn'),
+    emptyText: t('prod_empty'),
     emptyIcon: '🛍️'
   });
 }

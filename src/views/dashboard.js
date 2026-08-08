@@ -1,4 +1,5 @@
 import { esc, fmtNum, fmtBaht } from '../utils.js';
+import { t } from '../i18n.js';
 
 let selectedYear = 'ALL';
 let selectedMonths = new Set(); // Set of month indices (0-11), empty means ALL
@@ -115,7 +116,7 @@ export function renderDashboard(container, store) {
     mixData[t] = { count, percentage };
   });
 
-  // SVG Donut Chart Ring Segments (Clean empty center hole)
+  // SVG Donut Chart Ring Segments
   let svgOffset = 25; // 25% starts top (-90deg)
   const svgSegments = contentTypes.map(t => {
     const item = mixData[t] || { percentage: 0 };
@@ -131,7 +132,7 @@ export function renderDashboard(container, store) {
   // Calculate Product Category & Status Breakdown
   const categoryBreakdown = {};
   filteredProducts.forEach(p => {
-    const cat = p.category || 'Uncategorized / ไม่ระบุหมวด';
+    const cat = p.category || 'Uncategorized';
     if (!categoryBreakdown[cat]) {
       categoryBreakdown[cat] = { total: 0, statuses: {} };
     }
@@ -162,7 +163,7 @@ export function renderDashboard(container, store) {
     channelStats[ch].revenue += Number(entry.revenue) || 0;
   });
 
-  const monthShorts = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const monthShorts = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   container.innerHTML = `
     <div class="view-enter">
@@ -170,7 +171,7 @@ export function renderDashboard(container, store) {
       <div class="card p-3 mb-4" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px;">
         
         <div class="mb-3">
-          <h2 style="margin:0; font-size:1.4rem; font-weight:800; color:var(--c-text);">📊 Dashboard</h2>
+          <h2 style="margin:0; font-size:1.4rem; font-weight:800; color:var(--c-text);">📊 ${t('dash_title')}</h2>
         </div>
 
         <!-- Clean Filter Grid -->
@@ -178,27 +179,27 @@ export function renderDashboard(container, store) {
           
           <!-- Year Filter -->
           <div style="display: grid; grid-template-columns: 95px 1fr; align-items: center; gap: 6px;">
-            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📅 ปี:</label>
+            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📅 ${t('dash_filter_year')}</label>
             <select id="dash-filter-year" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
-              <option value="ALL" ${selectedYear === 'ALL' ? 'selected' : ''}>ทุกปี (All)</option>
+              <option value="ALL" ${selectedYear === 'ALL' ? 'selected' : ''}>${t('dash_all_years')}</option>
               ${availableYears.map(y => `<option value="${y}" ${String(selectedYear) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
             </select>
           </div>
 
           <!-- Category Filter -->
           <div style="display: grid; grid-template-columns: 95px 1fr; align-items: center; gap: 6px;">
-            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📦 หมวดสินค้า:</label>
+            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📦 ${t('dash_filter_category')}</label>
             <select id="dash-filter-category" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
-              <option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>ทุกหมวด (All)</option>
+              <option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>${t('dash_all_categories')}</option>
               ${productCategories.map(cat => `<option value="${esc(cat)}" ${selectedCategory === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
             </select>
           </div>
 
           <!-- Product Type Filter -->
           <div style="display: grid; grid-template-columns: 95px 1fr; align-items: center; gap: 6px;">
-            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">🏷️ ประเภทสินค้า:</label>
+            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">🏷️ ${t('dash_filter_producttype')}</label>
             <select id="dash-filter-producttype" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
-              <option value="ALL" ${selectedProductType === 'ALL' ? 'selected' : ''}>ทุกประเภท (All)</option>
+              <option value="ALL" ${selectedProductType === 'ALL' ? 'selected' : ''}>${t('dash_all_types')}</option>
               ${productTypes.map(pt => `<option value="${esc(pt)}" ${selectedProductType === pt ? 'selected' : ''}>${esc(pt)}</option>`).join('')}
             </select>
           </div>
@@ -207,9 +208,9 @@ export function renderDashboard(container, store) {
 
         <!-- Multi-Select Months Toggle Bar -->
         <div style="border-top:1px solid var(--c-border); padding-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted); flex-shrink:0;">🗓️ เลือกเดือน:</span>
+          <span style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted); flex-shrink:0;">🗓️ ${t('dash_filter_month')}</span>
           <button type="button" class="btn btn-sm ${selectedMonths.size === 0 ? 'btn-primary' : 'btn-secondary'}" id="btn-dash-month-all" style="padding:2px 10px; font-size:0.78rem; font-weight:700; border-radius:12px;">
-            ทุกเดือน (All)
+            ${t('dash_all_months')}
           </button>
           <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
             ${monthShorts.map((mName, mIdx) => {
@@ -228,29 +229,29 @@ export function renderDashboard(container, store) {
       <!-- Top Stat Cards -->
       <div class="stat-grid mb-4" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
         <div class="stat-card card p-2.5" style="border-top:4px solid #6366F1; padding: 10px 12px;">
-          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Total Product Active<br><small class="text-muted" style="font-size:0.7rem;">สินค้า Active ในคลัง</small></div>
+          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_active_products')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_active_products_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #6366F1; margin-top:2px;">${activeProductsCount}</div>
         </div>
         <div class="stat-card card p-2.5" style="border-top:4px solid #3B82F6; padding: 10px 12px;">
-          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Total Content<br><small class="text-muted" style="font-size:0.7rem;">คอนเทนต์ทั้งหมด</small></div>
+          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_total_content')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_total_content_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #3B82F6; margin-top:2px;">${totalContent}</div>
         </div>
         <div class="stat-card card p-2.5" style="border-top:4px solid #10B981; padding: 10px 12px;">
-          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Published<br><small class="text-muted" style="font-size:0.7rem;">เผยแพร่แล้ว</small></div>
+          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_published')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_published_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #10B981; margin-top:2px;">${publishedCount}</div>
         </div>
 
         <!-- Interactive In Progress Stat Card -->
-        <div id="btn-open-inprogress-modal" class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="คลิกเพื่อดูรายละเอียดแต่ละสถานะ">
+        <div id="btn-open-inprogress-modal" class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view details per status">
           <div class="flex-between" style="align-items:flex-start;">
-            <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">In Progress 🔍<br><small class="text-muted" style="font-size:0.7rem;">กำลังดำเนินการ (กดดูรายละเอียด)</small></div>
-            <span class="badge badge-yellow" style="font-size:0.7rem; font-weight:700; padding:2px 6px;">คลิกดู 🔍</span>
+            <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_in_progress')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_in_progress_sub')}</small></div>
+            <span class="badge badge-yellow" style="font-size:0.7rem; font-weight:700; padding:2px 6px;">${t('stat_click_view')}</span>
           </div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #F59E0B; margin-top:2px;">${inProgressCount}</div>
         </div>
 
         <div class="stat-card card p-2.5" style="border-top:4px solid #8B5CF6; padding: 10px 12px; grid-column: span 2;">
-          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Sponsor Deals<br><small class="text-muted" style="font-size:0.7rem;">ดีลสปอนเซอร์</small></div>
+          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_sponsor_deals')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_sponsor_deals_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #8B5CF6; margin-top:2px;">${sponsorDeals}</div>
         </div>
       </div>
@@ -261,13 +262,13 @@ export function renderDashboard(container, store) {
         <!-- Content Mix Donut Chart Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom flex-between flex-wrap gap-2">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 Content Mix</h3>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 ${t('mix_title')}</h3>
             
             <!-- Content Status Filter -->
             <div style="display:flex; align-items:center; gap:6px;">
-              <label style="font-size:0.78rem; font-weight:700; color:var(--c-text-muted);">Status:</label>
+              <label style="font-size:0.78rem; font-weight:700; color:var(--c-text-muted);">${t('mix_status')}</label>
               <select id="dash-mix-filter-status" class="form-select" style="padding:3px 8px; font-size:0.8rem; width:135px;">
-                <option value="ALL" ${mixSelectedStatus === 'ALL' ? 'selected' : ''}>ทุกสถานะ (All)</option>
+                <option value="ALL" ${mixSelectedStatus === 'ALL' ? 'selected' : ''}>${t('mix_all_statuses')}</option>
                 ${contentStatuses.map(st => `<option value="${esc(st)}" ${mixSelectedStatus === st ? 'selected' : ''}>${esc(st)}</option>`).join('')}
               </select>
             </div>
@@ -276,34 +277,32 @@ export function renderDashboard(container, store) {
           <div class="p-3" style="flex:1; display:flex; align-items:center;">
             <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
               
-              <!-- Pure SVG Donut Chart Ring (Truly Hollow Center - No Background Fill) -->
+              <!-- Pure SVG Donut Chart Ring -->
               <div style="position:relative; width:145px; height:145px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <svg width="145" height="145" viewBox="0 0 42 42" style="width:100%; height:100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));">
-                  <!-- Background Track Ring -->
                   <circle cx="21" cy="21" r="15.91549430918954" fill="none" stroke="var(--c-border)" stroke-width="6.5"></circle>
-                  <!-- Dynamic Segments -->
                   ${svgSegments}
                 </svg>
                 
-                <!-- Center Hole Text (Transparent overlay showing clean card background) -->
+                <!-- Center Hole Text -->
                 <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
-                  <span style="font-size:0.68rem; font-weight:700; color:var(--c-text-muted); line-height:1.1;" class="text-muted">Total Content</span>
+                  <span style="font-size:0.68rem; font-weight:700; color:var(--c-text-muted); line-height:1.1;" class="text-muted">${t('mix_total_content')}</span>
                   <span style="font-size:1.55rem; font-weight:800; color:var(--c-text); line-height:1; margin-top:2px;">${mixTotalContent}</span>
                 </div>
               </div>
 
               <!-- Donut Chart Legend & Numbers -->
               <div style="flex:1; min-width:160px;">
-                ${contentTypes.map(t => {
-                  const item = mixData[t] || { count: 0, percentage: 0 };
-                  const color = mixColors[t] || '#64748b';
+                ${contentTypes.map(tItem => {
+                  const item = mixData[tItem] || { count: 0, percentage: 0 };
+                  const color = mixColors[tItem] || '#64748b';
                   return `
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.83rem;">
                       <div style="display:flex; align-items:center; gap:6px;">
                         <span style="width:10px; height:10px; border-radius:3px; background:${color}; display:inline-block; flex-shrink:0;"></span>
-                        <span style="font-weight:700; color:var(--c-text);">${esc(t)}</span>
+                        <span style="font-weight:700; color:var(--c-text);">${esc(tItem)}</span>
                       </div>
-                      <span style="font-weight:700; font-size:0.82rem; color:var(--c-text-muted);">${item.count} คลิป (${item.percentage}%)</span>
+                      <span style="font-weight:700; font-size:0.82rem; color:var(--c-text-muted);">${item.count} ${t('mix_items')} (${item.percentage}%)</span>
                     </div>
                   `;
                 }).join('')}
@@ -316,15 +315,15 @@ export function renderDashboard(container, store) {
         <!-- Product Categories & Status Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom flex-between">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📦 Product Categories & Status</h3>
-            <span class="badge" style="font-size:0.78rem; background:var(--c-bg); border:1px solid var(--c-border);">${Object.keys(categoryBreakdown).length} หมวดหมู่</span>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📦 ${t('cat_breakdown_title')}</h3>
+            <span class="badge" style="font-size:0.78rem; background:var(--c-bg); border:1px solid var(--c-border);">${Object.keys(categoryBreakdown).length} ${t('cat_count')}</span>
           </div>
           <div class="p-3" style="flex:1; max-height:340px; overflow-y:auto;">
             ${Object.keys(categoryBreakdown).length ? Object.entries(categoryBreakdown).map(([catName, info]) => `
               <div class="mb-3 p-2" style="border:1px solid var(--c-border); border-radius:8px; background:var(--c-bg);">
                 <div class="flex-between mb-2">
                   <strong style="font-size:0.9rem; color:var(--c-primary);">${esc(catName)}</strong>
-                  <span class="badge badge-blue" style="font-weight:700;">${info.total} สินค้า</span>
+                  <span class="badge badge-blue" style="font-weight:700;">${info.total} ${t('cat_items_suffix')}</span>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:6px;">
                   ${Object.entries(info.statuses).map(([stName, stCount]) => {
@@ -340,7 +339,7 @@ export function renderDashboard(container, store) {
                   }).join('')}
                 </div>
               </div>
-            `).join('') : '<div class="empty-state text-muted p-4 text-center">ยังไม่มีรายการสินค้าในระบบ 📦</div>'}
+            `).join('') : `<div class="empty-state text-muted p-4 text-center">${t('cat_empty')}</div>`}
           </div>
         </div>
 
@@ -350,7 +349,7 @@ export function renderDashboard(container, store) {
       <div class="card mb-4">
         <div class="card-header p-3 border-bottom flex-between">
           <div>
-            <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:var(--c-text);">📺 Content Performance by Channel / ประสิทธิภาพรายช่องทาง</h3>
+            <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:var(--c-text);">📺 ${t('channel_perf_title')}</h3>
           </div>
         </div>
         
@@ -358,13 +357,13 @@ export function renderDashboard(container, store) {
           <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.85rem; min-width:650px;">
             <thead>
               <tr style="background:var(--c-bg); text-align:left; border-bottom:1px solid var(--c-border);">
-                <th style="padding:8px 12px; font-weight:700;">Channel / ช่องทาง</th>
-                <th style="padding:8px 12px; text-align:center; font-weight:700;">Videos / คลิป</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">Views / ยอดวิว</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">Clicks / คลิกสินค้า</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">Orders / ออเดอร์</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">Revenue / รายได้รวม</th>
-                <th style="padding:8px 12px; text-align:center; font-weight:700;">Engagement %</th>
+                <th style="padding:8px 12px; font-weight:700;">${t('channel_col_channel')}</th>
+                <th style="padding:8px 12px; text-align:center; font-weight:700;">${t('channel_col_videos')}</th>
+                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_views')}</th>
+                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_clicks')}</th>
+                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_orders')}</th>
+                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_revenue')}</th>
+                <th style="padding:8px 12px; text-align:center; font-weight:700;">${t('channel_col_engagement')}</th>
               </tr>
             </thead>
             <tbody>
@@ -505,10 +504,10 @@ function openInProgressModal(inProgressList, store) {
       <div class="flex-between border-bottom pb-3 mb-3">
         <div>
           <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:8px;">
-            ⏳ In Progress Details / รายละเอียดงานที่กำลังทำ
+            ⏳ ${t('modal_inprogress_title')}
           </h3>
           <p class="text-muted m-0 mt-1" style="font-size:0.83rem;">
-            คอนเทนต์ที่อยู่ระหว่างดำเนินการทั้งหมด <strong style="color:#F59E0B;">${totalInProgress} รายการ</strong> (ไม่รวมที่เผยแพร่แล้ว)
+            ${t('modal_inprogress_sub')} (<strong style="color:#F59E0B;">${totalInProgress}</strong>)
           </p>
         </div>
         <button id="btn-close-inprogress-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700;">
@@ -524,29 +523,27 @@ function openInProgressModal(inProgressList, store) {
             <div class="p-2.5 mb-2.5" style="border:1px solid var(--c-border); border-radius:10px; background:var(--c-bg);">
               <div class="flex-between mb-1" style="font-size:0.9rem;">
                 <span style="font-weight:700; color:var(--c-text);">${esc(stName)}</span>
-                <span style="font-weight:700;" class="badge badge-yellow">${count} คลิป (${pct}%)</span>
+                <span style="font-weight:700;" class="badge badge-yellow">${count} (${pct}%)</span>
               </div>
               
-              <!-- Progress Bar -->
               <div style="background:var(--c-border); border-radius:4px; height:6px; overflow:hidden; margin-bottom:6px;">
                 <div style="width:${pct}%; background:#F59E0B; height:100%; border-radius:4px;"></div>
               </div>
 
-              <!-- List of content titles under this status -->
               ${statusItems[stName] && statusItems[stName].length ? `
                 <div style="font-size:0.8rem; color:var(--c-text-muted); padding-left:4px;">
-                  ${statusItems[stName].map(c => `• ${esc(c.title || c.hook || c.id)} <small style="opacity:0.7;">(${esc(c.channel || 'ไม่ระบุช่องทาง')})</small>`).join('<br>')}
+                  ${statusItems[stName].map(c => `• ${esc(c.title || c.hook || c.id)} <small style="opacity:0.7;">(${esc(c.channel || 'N/A')})</small>`).join('<br>')}
                 </div>
-              ` : '<div style="font-size:0.78rem; color:var(--c-text-muted); font-style:italic; padding-left:4px;">ไม่มีรายการในสถานะนี้</div>'}
+              ` : `<div style="font-size:0.78rem; color:var(--c-text-muted); font-style:italic; padding-left:4px;">${t('modal_inprogress_empty')}</div>`}
             </div>
           `;
-        }).join('') : '<div class="text-center p-3 text-muted">ไม่มีงานที่อยู่ระหว่างดำเนินการ 🎉</div>'}
+        }).join('') : `<div class="text-center p-3 text-muted">${t('modal_no_inprogress')}</div>`}
       </div>
 
       <!-- Modal Footer -->
       <div class="text-right border-top pt-3">
         <button id="btn-dismiss-inprogress-modal" type="button" class="btn btn-primary" style="padding:6px 20px; font-weight:700; border-radius:8px;">
-          ตกลง / ปิดหน้าต่าง
+          ${t('modal_ok_close')}
         </button>
       </div>
 

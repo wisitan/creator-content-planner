@@ -1,4 +1,5 @@
 import { EditableTable, statusBadge } from '../components/editable-table.js';
+import { t } from '../i18n.js';
 
 export function renderSponsors(container, store) {
   container.innerHTML = '';
@@ -7,8 +8,8 @@ export function renderSponsors(container, store) {
   header.className = 'card-header';
   header.innerHTML = `
     <div>
-      <h2>🤝 Sponsor Deals / จัดการดีลสปอนเซอร์</h2>
-      <p class="text-muted">บันทึกข้อมูลดีล ค่าจ้าง สถานะร่าง/อนุมัติ/โพสต์ และการชำระเงิน</p>
+      <h2>🤝 ${t('spon_title')}</h2>
+      <p class="text-muted">${t('spon_subtitle')}</p>
     </div>
   `;
   container.appendChild(header);
@@ -18,7 +19,7 @@ export function renderSponsors(container, store) {
   container.appendChild(tableContainer);
 
   const columns = [
-    { key: 'id', label: 'Deal ID', type: 'text', width: '90px' },
+    { key: 'id', label: 'Deal ID', type: 'text', width: '80px', editable: true },
     { key: 'brandClient', label: 'Brand / Client', type: 'text', width: '150px' },
     { key: 'contactPerson', label: 'Contact Person', type: 'text', width: '120px' },
     { key: 'contactInfo', label: 'Contact Info', type: 'text', width: '140px' },
@@ -32,7 +33,7 @@ export function renderSponsors(container, store) {
     { key: 'published', label: 'Published', type: 'checkbox', width: '80px' },
     { key: 'paymentStatus', label: 'Payment Status', type: 'dropdown', options: () => store.getSettingList('paymentStatuses'), badge: statusBadge },
     { key: 'paymentDate', label: 'Payment Date', type: 'date', width: '110px' },
-    { key: 'notes', label: 'Notes', type: 'text', width: '200px' }
+    { key: 'notes', label: t('col_prod_notes'), type: 'text', width: '200px' }
   ];
 
   EditableTable(tableContainer, {
@@ -41,8 +42,8 @@ export function renderSponsors(container, store) {
     onAdd: () => store.addSponsor(),
     onChange: (id, field, value) => store.updateSponsor(id, field, value),
     onDelete: (id) => store.deleteSponsor(id),
-    addLabel: '+ Add Deal / เพิ่ม deal',
-    emptyText: 'No sponsor deals yet · ยังไม่มี deal กับ sponsor',
+    addLabel: t('spon_add_btn'),
+    emptyText: t('spon_empty'),
     emptyIcon: '🤝'
   });
 }

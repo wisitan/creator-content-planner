@@ -1,4 +1,5 @@
-import { EditableTable, contentTypeBadge, statusBadge } from '../components/editable-table.js';
+import { EditableTable, statusBadge, contentTypeBadge } from '../components/editable-table.js';
+import { t } from '../i18n.js';
 
 export function renderContent(container, store) {
   container.innerHTML = '';
@@ -7,8 +8,8 @@ export function renderContent(container, store) {
   header.className = 'card-header';
   header.innerHTML = `
     <div>
-      <h2>📝 Content Planner / แผนคอนเทนต์</h2>
-      <p class="text-muted">วางแผนคอนเทนต์ (อัปโหลดรูป Cover, กรองดูตามปีและเดือน, กดปุ่ม 📜 Script Details เพื่อใส่สคริปต์/คำเปิดคลิป | กดรูปเพื่อขยายดูรูปใหญ่)</p>
+      <h2>📝 ${t('cnt_title')}</h2>
+      <p class="text-muted">${t('cnt_subtitle')}</p>
     </div>
   `;
   container.appendChild(header);
@@ -18,37 +19,33 @@ export function renderContent(container, store) {
   container.appendChild(tableContainer);
 
   const columns = [
-    { key: 'id', label: 'Content ID', type: 'text', width: '100px', editable: true },
-    { key: 'coverUrl', label: 'Cover / รูปปก', type: 'image', width: '110px' },
-    { key: 'title', label: 'Content Title', type: 'text', width: '200px' },
-    { key: 'contentType', label: 'Content Type', type: 'dropdown', options: () => store.getSettingList('contentTypes'), badge: contentTypeBadge },
-    { key: 'productId', label: 'Product ID', type: 'productPicker', width: '150px' },
-    { key: 'productName', label: 'Product Name (auto)', type: 'computed', compute: (row) => store.getProductName(row.productId) },
-    { key: 'contentAngle', label: 'Content Angle', type: 'dropdown', options: () => store.getSettingList('contentAngles') },
-    { key: 'hook', label: 'Hook / คำเปิดคลิป', type: 'text', width: '220px' },
-    { key: 'scriptModal', label: 'Script & Content Details', type: 'scriptModal', width: '220px' },
-    { key: 'contentPillar', label: 'Content Pillar', type: 'dropdown', options: () => store.getSettingList('contentPillars') },
-    { key: 'channel', label: 'Channel', type: 'dropdown', options: () => store.getSettingList('channels') },
-    { key: 'ctaType', label: 'CTA Type', type: 'dropdown', options: () => store.getSettingList('ctaTypes') },
-    { key: 'plannedDate', label: 'Planned Date', type: 'date', width: '110px' },
-    { key: 'status', label: 'Status', type: 'dropdown', options: () => store.getSettingList('contentStatuses'), badge: statusBadge },
-    { key: 'publishedDate', label: 'Published Date', type: 'date', width: '110px' },
-    { key: 'publishedUrl', label: 'Published URL', type: 'url', width: '170px' },
-    { key: 'performanceNotes', label: 'Performance Notes', type: 'text', width: '220px' }
+    { key: 'id', label: t('col_cnt_id'), type: 'text', width: '100px', editable: true },
+    { key: 'coverUrl', label: t('col_cnt_cover'), type: 'image', width: '120px' },
+    { key: 'title', label: t('col_cnt_title'), type: 'text', width: '200px' },
+    { key: 'contentType', label: t('col_cnt_type'), type: 'dropdown', options: () => store.getSettingList('contentTypes'), badge: contentTypeBadge },
+    { key: 'productId', label: t('col_cnt_prod_id'), type: 'dropdown', options: () => store.getProducts().map(p => p.id), width: '100px' },
+    { key: 'productName', label: t('col_cnt_prod_name'), type: 'computed', compute: (row) => store.getProductName(row.productId), width: '160px' },
+    { key: 'contentAngle', label: t('col_cnt_angle'), type: 'dropdown', options: () => store.getSettingList('contentAngles') },
+    { key: 'contentPillar', label: t('col_cnt_pillar'), type: 'dropdown', options: () => store.getSettingList('contentPillars') },
+    { key: 'channel', label: t('col_cnt_channel'), type: 'dropdown', options: () => store.getSettingList('channels') },
+    { key: 'hook', label: t('col_cnt_hook'), type: 'textarea', width: '220px' },
+    { key: 'script', label: t('col_cnt_script'), type: 'textarea', width: '260px', showTeleprompter: true },
+    { key: 'ctaType', label: t('col_cnt_cta'), type: 'dropdown', options: () => store.getSettingList('ctaTypes') },
+    { key: 'plannedDate', label: t('col_cnt_planned_date'), type: 'date', width: '110px' },
+    { key: 'status', label: t('col_cnt_status'), type: 'dropdown', options: () => store.getSettingList('contentStatuses'), badge: statusBadge },
+    { key: 'publishedDate', label: t('col_cnt_pub_date'), type: 'date', width: '110px' },
+    { key: 'publishedUrl', label: t('col_cnt_pub_url'), type: 'url', width: '170px' },
+    { key: 'performanceNotes', label: t('col_cnt_perf_notes'), type: 'text', width: '220px' }
   ];
 
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getContent(),
-    getProducts: () => store.getProducts(),
-    getCategories: () => store.getSettingList('productCategories'),
-    getStatuses: () => store.getSettingList('productStatuses'),
-    enableYearMonthFilter: true,
-    onAdd: () => store.addContent({ title: 'New Content Title', contentType: '🛒 Affiliate', status: '💡 Idea' }),
+    onAdd: () => store.addContent({ status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
     onDelete: (id) => store.deleteContent(id),
-    addLabel: '+ Add Content / เพิ่ม content',
-    emptyText: 'No content planned yet · ยังไม่มีแผน content',
+    addLabel: t('cnt_add_btn'),
+    emptyText: t('cnt_empty'),
     emptyIcon: '📝'
   });
 }

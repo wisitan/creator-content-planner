@@ -179,11 +179,19 @@ class Store extends Emitter {
     this.emit('change', area);
   }
 
-  /* ── Settings & Theme ── */
+  /* ── Settings, Theme & Language ── */
   getSettings() { return this._data.settings; }
   getTheme() { return this._data.settings.theme || 'light'; }
   setTheme(theme) {
     this._data.settings.theme = theme;
+    this._changed('settings');
+  }
+  getLanguage() { 
+    return this._data.settings.language || localStorage.getItem('ccp_lang') || 'en'; 
+  }
+  setLanguage(lang) {
+    this._data.settings.language = lang;
+    localStorage.setItem('ccp_lang', lang);
     this._changed('settings');
   }
   getSettingList(key) { return this._data.settings[key] || []; }
