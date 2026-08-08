@@ -1170,21 +1170,19 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     color: #0f172a !important;
   }
 
-  .color-rect-swatch {
-    border: 1px solid #94a3b8 !important;
+  .brand-board-sheet,
+  .brand-board-sheet * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
-  .color-rect-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px 10px !important;
-  }
-
-  .pillar-box, .stat-mini-box, .color-rect-item {
+  .color-rect-swatch,
+  .brand-header-spotlight,
+  .card-section-header-banner {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .badge {
