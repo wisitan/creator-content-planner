@@ -77,7 +77,6 @@ export function renderDashboard(container, store) {
   });
 
   // Calculate Stat Cards Values
-  // Total Product Active = count products with Active status
   const activeProductsCount = filteredProducts.filter(p => p.status && (p.status === 'Active' || p.status.includes('Active'))).length;
   const totalContent = filteredContent.length;
   const publishedCount = filteredContent.filter(c => c.status && c.status.includes('Published')).length;
@@ -157,40 +156,42 @@ export function renderDashboard(container, store) {
       <div class="card p-3 mb-4" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px;">
         <div class="flex-between flex-wrap gap-3 mb-3">
           <div>
-            <h2 style="margin:0; font-size:1.4rem; display:flex; align-items:center; gap:8px;">
-              📊 Dashboard <span style="font-size:0.9rem; font-weight:normal;" class="text-muted">/ แดชบอร์ด v1.5.3</span>
+            <h2 style="margin:0; font-size:1.4rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+              📊 Dashboard
             </h2>
             <p class="text-muted m-0 mt-1" style="font-size:0.85rem;">สรุปสถานะสินค้า Active, Pie Chart สัดส่วนคอนเทนต์ และประสิทธิภาพแยกตามช่องทาง</p>
           </div>
 
-          <!-- Quick Dropdown Filters: Year, Category, Product Type -->
-          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <!-- Year Filter -->
-            <div style="display:flex; align-items:center; gap:6px;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">📅 ปี:</label>
-              <select id="dash-filter-year" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:110px;">
+          <!-- Quick Dropdown Filters with Fixed Label Grid Alignment -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; width: 100%; max-width: 780px;">
+            
+            <!-- Year Filter Item -->
+            <div style="display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 6px;">
+              <label style="font-size:0.83rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📅 ปี:</label>
+              <select id="dash-filter-year" class="form-select" style="padding:6px 10px; font-size:0.85rem; width:100%;">
                 <option value="ALL" ${selectedYear === 'ALL' ? 'selected' : ''}>ทุกปี (All)</option>
                 ${availableYears.map(y => `<option value="${y}" ${String(selectedYear) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
               </select>
             </div>
 
-            <!-- Category Filter -->
-            <div style="display:flex; align-items:center; gap:6px;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">📦 หมวดสินค้า:</label>
-              <select id="dash-filter-category" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:160px;">
+            <!-- Category Filter Item -->
+            <div style="display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 6px;">
+              <label style="font-size:0.83rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📦 หมวดสินค้า:</label>
+              <select id="dash-filter-category" class="form-select" style="padding:6px 10px; font-size:0.85rem; width:100%;">
                 <option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>ทุกหมวด (All)</option>
                 ${productCategories.map(cat => `<option value="${esc(cat)}" ${selectedCategory === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
               </select>
             </div>
 
-            <!-- Product Type Filter -->
-            <div style="display:flex; align-items:center; gap:6px;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">🏷️ ประเภทสินค้า:</label>
-              <select id="dash-filter-producttype" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:160px;">
+            <!-- Product Type Filter Item -->
+            <div style="display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 6px;">
+              <label style="font-size:0.83rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">🏷️ ประเภทสินค้า:</label>
+              <select id="dash-filter-producttype" class="form-select" style="padding:6px 10px; font-size:0.85rem; width:100%;">
                 <option value="ALL" ${selectedProductType === 'ALL' ? 'selected' : ''}>ทุกประเภท (All)</option>
                 ${productTypes.map(pt => `<option value="${esc(pt)}" ${selectedProductType === pt ? 'selected' : ''}>${esc(pt)}</option>`).join('')}
               </select>
             </div>
+
           </div>
         </div>
 
