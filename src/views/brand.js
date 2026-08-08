@@ -76,7 +76,7 @@ export function renderBrand(container, store) {
     <div class="card brand-board-sheet p-4" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:20px; box-shadow:var(--shadow-md); max-width:960px; margin:0 auto; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
       
       <!-- 🌟 RATE CARD HEADER SPOTLIGHT (Customizable Color Theme) -->
-      <div class="brand-header-spotlight p-4 mb-4" style="background:${selectedHeaderPreset.style}; border:2px solid ${selectedHeaderPreset.border}; border-radius:16px; position:relative; overflow:hidden; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
+      <div class="brand-header-spotlight p-4" style="background:${selectedHeaderPreset.style}; border:2px solid ${selectedHeaderPreset.border}; border-radius:16px; position:relative; overflow:hidden; margin-bottom:1.75rem !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
         
         ${isEditMode ? `
           <div class="mb-3 p-2 no-print" style="background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); border-radius:10px; border:1px solid var(--c-border); display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -137,7 +137,7 @@ export function renderBrand(container, store) {
       </div>
 
       <!-- 📊 MEDIA KIT KEY METRICS DASHBOARD (3 Stat Cards Equal Columns) -->
-      <div class="mb-4" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:1.75rem !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
         <div class="p-3 text-center" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; border-top:4px solid #6366F1;">
           <div style="font-size:0.72rem; font-weight:800; color:var(--c-text-muted); text-transform:uppercase; letter-spacing:0.04em;">TOTAL AUDIENCE</div>
           ${isEditMode ? `
