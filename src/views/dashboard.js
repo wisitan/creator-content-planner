@@ -3,8 +3,9 @@ import { t } from '../i18n.js';
 
 let selectedYear = 'ALL';
 let selectedMonths = new Set(); // Set of month indices (0-11), empty means ALL
+let selectedContentType = 'ALL';
 let selectedCategory = 'ALL';
-let selectedProductType = 'ALL';
+let selectedChannel = 'ALL';
 let mixSelectedStatus = 'ALL';
 
 export function renderDashboard(container, store) {
@@ -12,8 +13,8 @@ export function renderDashboard(container, store) {
   const contentList = store.getContent() || [];
   const channelEntries = store.getChannelTracker() || [];
   const productCategories = store.getSettingList('productCategories') || [];
-  const productTypes = store.getSettingList('productTypes') || [
-    'A สินค้าขายดี', 'B สินค้ามาใหม่', 'C สินค้าราคาประหยัด', 'D สินค้าค่าคอมสูง'
+  const contentTypes = store.getSettingList('contentTypes') || [
+    '🛒 Affiliate', '🎯 Personal Brand', '📚 Knowledge', '🤝 Sponsor'
   ];
   const contentStatuses = store.getSettingList('contentStatuses') || [
     '💡 Idea', '✍️ Scripting', '🎬 Filming', '✂️ Editing', '✅ Ready', '📤 Published', '❌ Cancelled'
@@ -39,7 +40,7 @@ export function renderDashboard(container, store) {
   });
   const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
 
-  // Filter content & channels by selected Year, Multi-Months, Category & Product Type
+  // Filter content & channels by selected Year, Multi-Months, Content Type, Category & Channel
   const filteredContent = contentList.filter(c => {
     const dStr = c.publishedDate || c.plannedDate;
     if (dStr) {
@@ -47,19 +48,24 @@ export function renderDashboard(container, store) {
       if (selectedYear !== 'ALL' && d.getFullYear() !== parseInt(selectedYear, 10)) return false;
       if (selectedMonths.size > 0 && !selectedMonths.has(d.getMonth())) return false;
     }
-    const p = products.find(prod => prod.id === c.productId);
-    if (selectedCategory !== 'ALL') {
-      if (!p || p.category !== selectedCategory) return false;
+    // 🏷️ Content Type Filter
+    if (selectedContentType !== 'ALL' && c.contentType !== selectedContentType) {
+      return false;
     }
-    if (selectedProductType !== 'ALL') {
-      if (!p || p.productType !== selectedProductType) return false;
+    // 📺 Channel Filter
+    if (selectedChannel !== 'ALL' && c.channel !== selectedChannel) {
+      return false;
+    }
+    // 📦 Category Filter
+    if (selectedCategory !== 'ALL') {
+      const p = products.find(prod => prod.id === c.productId);
+      if (!p || p.category !== selectedCategory) return false;
     }
     return true;
   });
 
   const filteredProducts = products.filter(p => {
     if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
-    if (selectedProductType !== 'ALL' && p.productType !== selectedProductType) return false;
     return true;
   });
 
@@ -69,13 +75,17 @@ export function renderDashboard(container, store) {
       if (selectedYear !== 'ALL' && d.getFullYear() !== parseInt(selectedYear, 10)) return false;
       if (selectedMonths.size > 0 && !selectedMonths.has(d.getMonth())) return false;
     }
-    if (selectedCategory !== 'ALL' || selectedProductType !== 'ALL') {
+    if (selectedChannel !== 'ALL' && ch.channel !== selectedChannel) {
+      return false;
+    }
+    if (selectedContentType !== 'ALL' || selectedCategory !== 'ALL') {
       const cItem = contentList.find(c => c.id === ch.contentId);
       if (cItem) {
-        const p = products.find(prod => prod.id === cItem.productId);
-        if (!p) return false;
-        if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
-        if (selectedProductType !== 'ALL' && p.productType !== selectedProductType) return false;
+        if (selectedContentType !== 'ALL' && cItem.contentType !== selectedContentType) return false;
+        if (selectedCategory !== 'ALL') {
+          const p = products.find(prod => prod.id === cItem.productId);
+          if (!p || p.category !== selectedCategory) return false;
+        }
       }
     }
     return true;
@@ -98,29 +108,26 @@ export function renderDashboard(container, store) {
   });
 
   const mixTotalContent = mixFilteredContent.length;
+  const mixData = {};
+  contentTypes.forEach(tName => {
+    const label = tName.split(' ')[1] || tName;
+    const count = mixFilteredContent.filter(x => x.contentType === tName || (x.contentType && x.contentType.includes(label))).length;
+    const percentage = mixTotalContent > 0 ? Math.round((count / mixTotalContent) * 100) : 0;
+    mixData[tName] = { count, percentage };
+  });
 
-  // Calculate Content Mix
   const mixColors = {
     '🛒 Affiliate': '#F97316',
     '🎯 Personal Brand': '#3B82F6',
     '📚 Knowledge': '#10B981',
-    '🤝 Sponsor': '#8B5CF6'
+    '🤝 Sponsor': '#8B5CF6',
   };
 
-  const contentTypes = ['🛒 Affiliate', '🎯 Personal Brand', '📚 Knowledge', '🤝 Sponsor'];
-  const mixData = {};
-  contentTypes.forEach(t => {
-    const label = t.split(' ')[1] || t;
-    const count = mixFilteredContent.filter(c => c.contentType === t || (c.contentType && c.contentType.includes(label))).length;
-    const percentage = mixTotalContent > 0 ? Math.round((count / mixTotalContent) * 100) : 0;
-    mixData[t] = { count, percentage };
-  });
-
-  // SVG Donut Chart Ring Segments
+  // Build SVG Doughnut Slices for Content Mix Chart
   let svgOffset = 25; // 25% starts top (-90deg)
-  const svgSegments = contentTypes.map(t => {
-    const item = mixData[t] || { percentage: 0 };
-    const color = mixColors[t] || '#64748b';
+  const svgSegments = contentTypes.map(tName => {
+    const item = mixData[tName] || { percentage: 0 };
+    const color = mixColors[tName] || '#64748b';
     const pct = item.percentage;
     if (pct <= 0) return '';
     const strokeDash = `${pct} ${100 - pct}`;
@@ -174,7 +181,7 @@ export function renderDashboard(container, store) {
           <h2 style="margin:0; font-size:1.4rem; font-weight:800; color:var(--c-text);">📊 ${t('dash_title')}</h2>
         </div>
 
-        <!-- Clean Filter Grid -->
+        <!-- Clean Filter Grid (Content Type in Front of Category, Channel replaces Product Type) -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: 100%; margin-bottom: 12px;">
           
           <!-- Year Filter -->
@@ -186,7 +193,16 @@ export function renderDashboard(container, store) {
             </select>
           </div>
 
-          <!-- Category Filter -->
+          <!-- 🏷️ Content Type Filter (Placing in FRONT of Category!) -->
+          <div style="display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 6px;">
+            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">🏷️ Type / ประเภท:</label>
+            <select id="dash-filter-content-type" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
+              <option value="ALL" ${selectedContentType === 'ALL' ? 'selected' : ''}>-- All Types (ทุกประเภท) --</option>
+              ${contentTypes.map(ct => `<option value="${esc(ct)}" ${selectedContentType === ct ? 'selected' : ''}>${esc(ct)}</option>`).join('')}
+            </select>
+          </div>
+
+          <!-- 📦 Category Filter (หมวดสินค้า) -->
           <div style="display: grid; grid-template-columns: 95px 1fr; align-items: center; gap: 6px;">
             <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📦 ${t('dash_filter_category')}</label>
             <select id="dash-filter-category" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
@@ -195,12 +211,12 @@ export function renderDashboard(container, store) {
             </select>
           </div>
 
-          <!-- Product Type Filter -->
-          <div style="display: grid; grid-template-columns: 95px 1fr; align-items: center; gap: 6px;">
-            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">🏷️ ${t('dash_filter_producttype')}</label>
-            <select id="dash-filter-producttype" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
-              <option value="ALL" ${selectedProductType === 'ALL' ? 'selected' : ''}>${t('dash_all_types')}</option>
-              ${productTypes.map(pt => `<option value="${esc(pt)}" ${selectedProductType === pt ? 'selected' : ''}>${esc(pt)}</option>`).join('')}
+          <!-- 📺 Channel Filter (Replaced Product Type Filter with Channel!) -->
+          <div style="display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 6px;">
+            <label style="font-size:0.82rem; font-weight:700; color:var(--c-text-muted); white-space: nowrap;">📺 Channel / ช่องทาง:</label>
+            <select id="dash-filter-channel" class="form-select" style="padding:5px 8px; font-size:0.84rem; width:100%;">
+              <option value="ALL" ${selectedChannel === 'ALL' ? 'selected' : ''}>-- All Channels (ทุกช่องทาง) --</option>
+              ${configuredChannels.map(ch => `<option value="${esc(ch)}" ${selectedChannel === ch ? 'selected' : ''}>${esc(ch)}</option>`).join('')}
             </select>
           </div>
 
@@ -226,7 +242,7 @@ export function renderDashboard(container, store) {
 
       </div>
 
-      <!-- Top Stat Cards -->
+      <!-- Top Stat Cards (2 Cards Per Row On Mobile Responsive) -->
       <div class="stat-grid mb-4" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
         <div class="stat-card card p-2.5" style="border-top:4px solid #6366F1; padding: 10px 12px;">
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_active_products')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_active_products_sub')}</small></div>
@@ -240,179 +256,152 @@ export function renderDashboard(container, store) {
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_published')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_published_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #10B981; margin-top:2px;">${publishedCount}</div>
         </div>
-
-        <!-- Interactive In Progress Stat Card -->
-        <div id="btn-open-inprogress-modal" class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="Click to view details per status">
-          <div class="flex-between" style="align-items:flex-start;">
+        
+        <!-- Interactive In Progress Stat Card with Clickable Detail Popup -->
+        <div class="stat-card card p-2.5" id="btn-open-inprogress-modal" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; position:relative; transition:transform 0.15s ease;" title="Click to view In Progress Status Breakdown Details">
+          <div class="flex-between">
             <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_in_progress')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_in_progress_sub')}</small></div>
-            <span class="badge badge-yellow" style="font-size:0.7rem; font-weight:700; padding:2px 6px;">${t('stat_click_view')}</span>
+            <span style="font-size:0.7rem; font-weight:700; color:#F59E0B; background:rgba(245,158,11,0.15); padding:2px 6px; border-radius:10px;">🔍 Detail</span>
           </div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #F59E0B; margin-top:2px;">${inProgressCount}</div>
         </div>
 
-        <div class="stat-card card p-2.5" style="border-top:4px solid #8B5CF6; padding: 10px 12px; grid-column: span 2;">
+        <div class="stat-card card p-2.5" style="border-top:4px solid #8B5CF6; grid-column: span 2; padding: 10px 12px;">
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">${t('stat_sponsor_deals')}<br><small class="text-muted" style="font-size:0.7rem;">${t('stat_sponsor_deals_sub')}</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #8B5CF6; margin-top:2px;">${sponsorDeals}</div>
         </div>
       </div>
 
-      <!-- Content Mix (Pure SVG Donut Ring) & Product Categories & Status -->
-      <div class="dash-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+      <!-- Main Dashboard Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;" class="mb-4">
         
-        <!-- Content Mix Donut Chart Card -->
-        <div class="card" style="display:flex; flex-direction:column;">
-          <div class="card-header p-3 border-bottom flex-between flex-wrap gap-2">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 ${t('mix_title')}</h3>
+        <!-- 🎨 CONTENT MIX (DOUGHNUT CHART WITH HOLE TOTAL & STATUS FILTER) -->
+        <div class="card p-4">
+          <div class="flex-between mb-3" style="flex-wrap:wrap; gap:8px;">
+            <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:6px;">
+              🎨 Content Mix
+            </h3>
             
-            <!-- Content Status Filter -->
+            <!-- Status Filter for Content Mix -->
             <div style="display:flex; align-items:center; gap:6px;">
-              <label style="font-size:0.78rem; font-weight:700; color:var(--c-text-muted);">${t('mix_status')}</label>
-              <select id="dash-mix-filter-status" class="form-select" style="padding:3px 8px; font-size:0.8rem; width:135px;">
-                <option value="ALL" ${mixSelectedStatus === 'ALL' ? 'selected' : ''}>${t('mix_all_statuses')}</option>
+              <span style="font-size:0.78rem; font-weight:600;" class="text-muted">Status:</span>
+              <select id="dash-mix-status-filter" class="form-select" style="padding:2px 6px; font-size:0.78rem; width:auto;">
+                <option value="ALL" ${mixSelectedStatus === 'ALL' ? 'selected' : ''}>🔍 All Statuses</option>
                 ${contentStatuses.map(st => `<option value="${esc(st)}" ${mixSelectedStatus === st ? 'selected' : ''}>${esc(st)}</option>`).join('')}
               </select>
             </div>
           </div>
 
-          <div class="p-3" style="flex:1; display:flex; align-items:center;">
-            <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
-              
-              <!-- Pure SVG Donut Chart Ring -->
-              <div style="position:relative; width:145px; height:145px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <svg width="145" height="145" viewBox="0 0 42 42" style="width:100%; height:100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));">
-                  <circle cx="21" cy="21" r="15.91549430918954" fill="none" stroke="var(--c-border)" stroke-width="6.5"></circle>
-                  ${svgSegments}
-                </svg>
-                
-                <!-- Center Hole Text -->
-                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
-                  <span style="font-size:0.68rem; font-weight:700; color:var(--c-text-muted); line-height:1.1;" class="text-muted">${t('mix_total_content')}</span>
-                  <span style="font-size:1.55rem; font-weight:800; color:var(--c-text); line-height:1; margin-top:2px;">${mixTotalContent}</span>
-                </div>
-              </div>
+          <!-- Clean SVG Doughnut Chart with Unfilled Transparent Center & Total Content Counter -->
+          <div style="display:flex; align-items:center; justify-content:center; position:relative; margin: 15px 0 25px 0;">
+            <svg viewBox="0 0 42 42" style="width:170px; height:170px; transform: rotate(-90deg); filter:drop-shadow(0 4px 10px rgba(0,0,0,0.06));">
+              <!-- Base Track Circle -->
+              <circle cx="21" cy="21" r="15.91549430918954" fill="none" stroke="var(--c-border)" stroke-width="6.5"></circle>
+              <!-- Colored Segments -->
+              ${svgSegments}
+            </svg>
 
-              <!-- Donut Chart Legend & Numbers -->
-              <div style="flex:1; min-width:160px;">
-                ${contentTypes.map(tItem => {
-                  const item = mixData[tItem] || { count: 0, percentage: 0 };
-                  const color = mixColors[tItem] || '#64748b';
-                  return `
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:0.83rem;">
-                      <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:${color}; display:inline-block; flex-shrink:0;"></span>
-                        <span style="font-weight:700; color:var(--c-text);">${esc(tItem)}</span>
-                      </div>
-                      <span style="font-weight:700; font-size:0.82rem; color:var(--c-text-muted);">${item.count} ${t('mix_items')} (${item.percentage}%)</span>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-
+            <!-- Unfilled Center Hole Content Counter -->
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none;">
+              <div style="font-size:1.5rem; font-weight:800; color:var(--c-text); line-height:1;">${mixTotalContent}</div>
+              <div style="font-size:0.7rem; font-weight:700; color:var(--c-text-muted); text-transform:uppercase; margin-top:2px;">Total Content</div>
             </div>
+          </div>
+
+          <!-- Content Mix Legend Bars -->
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${contentTypes.map(tName => {
+              const item = mixData[tName] || { count: 0, percentage: 0 };
+              const color = mixColors[tName] || '#64748b';
+              return `
+                <div>
+                  <div class="flex-between mb-1" style="font-size:0.85rem;">
+                    <span style="font-weight:700; color:var(--c-text);">${tName}</span>
+                    <span style="font-weight:700; color:var(--c-text-muted);">${item.count} (${item.percentage}%)</span>
+                  </div>
+                  <div style="background:var(--c-border); border-radius:4px; height:8px; overflow:hidden;">
+                    <div style="width:${item.percentage}%; background:${color}; height:100%; border-radius:4px; transition:width 0.4s ease;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
 
-        <!-- Product Categories & Status Card -->
-        <div class="card" style="display:flex; flex-direction:column;">
-          <div class="card-header p-3 border-bottom flex-between">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📦 ${t('cat_breakdown_title')}</h3>
-            <span class="badge" style="font-size:0.78rem; background:var(--c-bg); border:1px solid var(--c-border);">${Object.keys(categoryBreakdown).length} ${t('cat_count')}</span>
+        <!-- 📺 CHANNEL PERFORMANCE DISTRIBUTION -->
+        <div class="card p-4">
+          <div class="flex-between mb-3">
+            <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--c-text);">📺 Channel Performance & Views</h3>
           </div>
-          <div class="p-3" style="flex:1; max-height:340px; overflow-y:auto;">
-            ${Object.keys(categoryBreakdown).length ? Object.entries(categoryBreakdown).map(([catName, info]) => `
-              <div class="mb-3 p-2" style="border:1px solid var(--c-border); border-radius:8px; background:var(--c-bg);">
-                <div class="flex-between mb-2">
-                  <strong style="font-size:0.9rem; color:var(--c-primary);">${esc(catName)}</strong>
-                  <span class="badge badge-blue" style="font-weight:700;">${info.total} ${t('cat_items_suffix')}</span>
+
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+            ${configuredChannels.map(ch => {
+              const st = channelStats[ch] || { count: 0, views: 0, clicks: 0, orders: 0, revenue: 0 };
+              return `
+                <div class="p-3" style="border:1px solid var(--c-border); border-radius:10px; background:var(--c-bg);">
+                  <div class="flex-between mb-1.5">
+                    <span style="font-weight:800; font-size:0.9rem; color:var(--c-primary);">${esc(ch)}</span>
+                    <span class="badge badge-blue" style="font-size:0.75rem; font-weight:700;">${st.count} Clips</span>
+                  </div>
+                  
+                  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; font-size:0.78rem; color:var(--c-text-muted);" class="mt-2">
+                    <div>👁️ <strong>${fmtNum(st.views)}</strong> Views</div>
+                    <div>🛒 <strong>${fmtNum(st.clicks)}</strong> Clicks</div>
+                    <div>💰 <strong style="color:#10B981;">฿${fmtBaht(st.revenue)}</strong></div>
+                  </div>
                 </div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                  ${Object.entries(info.statuses).map(([stName, stCount]) => {
-                    let stBadge = 'badge-gray';
-                    if (stName.includes('Active') || stName.includes('Approved')) stBadge = 'badge-green';
-                    if (stName.includes('Review')) stBadge = 'badge-yellow';
-                    if (stName.includes('Paused') || stName.includes('Out')) stBadge = 'badge-red';
-                    return `
-                      <span class="badge ${stBadge}" style="font-size:0.75rem; font-weight:600;">
-                        ${esc(stName)}: <strong>${stCount}</strong>
-                      </span>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-            `).join('') : `<div class="empty-state text-muted p-4 text-center">${t('cat_empty')}</div>`}
+              `;
+            }).join('')}
           </div>
         </div>
 
       </div>
 
-      <!-- Content Performance by Channel Table -->
-      <div class="card mb-4">
-        <div class="card-header p-3 border-bottom flex-between">
-          <div>
-            <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:var(--c-text);">📺 ${t('channel_perf_title')}</h3>
-          </div>
-        </div>
+      <!-- 📦 PRODUCT CATEGORY & STATUS BREAKDOWN -->
+      <div class="card p-4 mb-4">
+        <h3 class="mb-3" style="margin:0; font-size:1.1rem; font-weight:800; color:var(--c-text);">
+          📦 Product Category Status Breakdown
+        </h3>
         
-        <div class="p-0" style="overflow-x:auto;">
-          <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.85rem; min-width:650px;">
-            <thead>
-              <tr style="background:var(--c-bg); text-align:left; border-bottom:1px solid var(--c-border);">
-                <th style="padding:8px 12px; font-weight:700;">${t('channel_col_channel')}</th>
-                <th style="padding:8px 12px; text-align:center; font-weight:700;">${t('channel_col_videos')}</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_views')}</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_clicks')}</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_orders')}</th>
-                <th style="padding:8px 12px; text-align:right; font-weight:700;">${t('channel_col_revenue')}</th>
-                <th style="padding:8px 12px; text-align:center; font-weight:700;">${t('channel_col_engagement')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${Object.entries(channelStats).map(([ch, st]) => {
-                const totalEng = st.likes + st.comments + st.shares + st.saves;
-                const engPct = st.views > 0 ? ((totalEng / st.views) * 100).toFixed(2) + '%' : '-';
-                return `
-                  <tr style="border-bottom:1px solid var(--c-border);">
-                    <td style="padding:8px 12px; font-weight:700; color:var(--c-text);">
-                      ${esc(ch)}
-                    </td>
-                    <td style="padding:8px 12px; text-align:center;">
-                      <span class="badge badge-gray" style="font-weight:700;">${st.count}</span>
-                    </td>
-                    <td style="padding:8px 12px; text-align:right; font-weight:600;">
-                      ${st.views ? fmtNum(st.views) : '-'}
-                    </td>
-                    <td style="padding:8px 12px; text-align:right;">
-                      ${st.clicks ? fmtNum(st.clicks) : '-'}
-                    </td>
-                    <td style="padding:8px 12px; text-align:right;">
-                      ${st.orders ? fmtNum(st.orders) : '-'}
-                    </td>
-                    <td style="padding:8px 12px; text-align:right; font-weight:700; color:#10B981;">
-                      ${st.revenue ? fmtBaht(st.revenue) : '-'}
-                    </td>
-                    <td style="padding:8px 12px; text-align:center;">
-                      <span style="font-size:0.82rem; font-weight:700; color:${parseFloat(engPct) > 5 ? '#10B981' : 'var(--c-text-muted)'};">${engPct}</span>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          ${Object.keys(categoryBreakdown).length ? Object.entries(categoryBreakdown).map(([catName, data]) => `
+            <div class="p-3" style="border:1px solid var(--c-border); border-radius:10px; background:var(--c-bg);">
+              <div class="flex-between mb-2 border-bottom pb-2">
+                <span style="font-weight:800; font-size:0.9rem; color:var(--c-text);">${esc(catName)}</span>
+                <span class="badge badge-purple" style="font-size:0.78rem; font-weight:700;">${data.total} Items</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:var(--c-text-muted);">
+                ${Object.entries(data.statuses).map(([st, cnt]) => `
+                  <div class="flex-between">
+                    <span>${esc(st)}</span>
+                    <strong style="color:var(--c-text);">${cnt}</strong>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('') : `<div class="text-center p-3 text-muted">No product category data available</div>`}
         </div>
       </div>
 
     </div>
   `;
 
-  // Wire Event Listeners for Filters
+  // WIRE EVENT LISTENERS FOR FILTERS
   const ySel = container.querySelector('#dash-filter-year');
+  const ctSel = container.querySelector('#dash-filter-content-type');
   const cSel = container.querySelector('#dash-filter-category');
-  const ptSel = container.querySelector('#dash-filter-producttype');
-  const mixStSel = container.querySelector('#dash-mix-filter-status');
+  const chSel = container.querySelector('#dash-filter-channel');
+  const mixStSel = container.querySelector('#dash-mix-status-filter');
 
   if (ySel) {
     ySel.addEventListener('change', (e) => {
       selectedYear = e.target.value;
+      renderDashboard(container, store);
+    });
+  }
+  if (ctSel) {
+    ctSel.addEventListener('change', (e) => {
+      selectedContentType = e.target.value;
       renderDashboard(container, store);
     });
   }
@@ -422,9 +411,9 @@ export function renderDashboard(container, store) {
       renderDashboard(container, store);
     });
   }
-  if (ptSel) {
-    ptSel.addEventListener('change', (e) => {
-      selectedProductType = e.target.value;
+  if (chSel) {
+    chSel.addEventListener('change', (e) => {
+      selectedChannel = e.target.value;
       renderDashboard(container, store);
     });
   }
