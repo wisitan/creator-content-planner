@@ -80,7 +80,9 @@ export function renderDashboard(container, store) {
   const activeProductsCount = filteredProducts.filter(p => p.status && (p.status === 'Active' || p.status.includes('Active'))).length;
   const totalContent = filteredContent.length;
   const publishedCount = filteredContent.filter(c => c.status && c.status.includes('Published')).length;
-  const inProgressCount = filteredContent.filter(c => !c.status || !c.status.includes('Published')).length;
+  // In Progress = All content that is NOT Published
+  const inProgressList = filteredContent.filter(c => !c.status || !c.status.includes('Published'));
+  const inProgressCount = inProgressList.length;
   const sponsorDeals = (store.getSponsors() || []).length;
 
   // Calculate Content Mix & Pie Chart
@@ -112,7 +114,7 @@ export function renderDashboard(container, store) {
 
   const pieChartStyle = totalContent > 0 
     ? `background: conic-gradient(${gradientParts.join(', ')});`
-    : `background: #e2e8f0;`;
+    : `background: var(--c-border);`;
 
   // Calculate Product Category & Status Breakdown
   const categoryBreakdown = {};
@@ -155,12 +157,11 @@ export function renderDashboard(container, store) {
       <!-- Clean Top Header & Filter Card -->
       <div class="card p-3 mb-4" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px;">
         
-        <!-- Header Title (No Subtitle Description) -->
         <div class="mb-3">
-          <h2 style="margin:0; font-size:1.4rem; font-weight:800;">📊 Dashboard</h2>
+          <h2 style="margin:0; font-size:1.4rem; font-weight:800; color:var(--c-text);">📊 Dashboard</h2>
         </div>
 
-        <!-- Clean Filter Grid (Mobile-friendly stacked layout) -->
+        <!-- Clean Filter Grid -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: 100%; margin-bottom: 12px;">
           
           <!-- Year Filter -->
@@ -212,7 +213,7 @@ export function renderDashboard(container, store) {
 
       </div>
 
-      <!-- Top Stat Cards (2 Cards per Row on Mobile / Responsive Grid) -->
+      <!-- Top Stat Cards (Clickable In Progress Card) -->
       <div class="stat-grid mb-4" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
         <div class="stat-card card p-2.5" style="border-top:4px solid #6366F1; padding: 10px 12px;">
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Total Product Active<br><small class="text-muted" style="font-size:0.7rem;">สินค้า Active ในคลัง</small></div>
@@ -226,31 +227,37 @@ export function renderDashboard(container, store) {
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Published<br><small class="text-muted" style="font-size:0.7rem;">เผยแพร่แล้ว</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #10B981; margin-top:2px;">${publishedCount}</div>
         </div>
-        <div class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px;">
-          <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">In Progress<br><small class="text-muted" style="font-size:0.7rem;">กำลังดำเนินการ</small></div>
+
+        <!-- Interactive In Progress Stat Card with Popup Trigger -->
+        <div id="btn-open-inprogress-modal" class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="คลิกเพื่อดูรายละเอียดแต่ละสถานะ">
+          <div class="flex-between" style="align-items:flex-start;">
+            <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">In Progress 🔍<br><small class="text-muted" style="font-size:0.7rem;">กำลังดำเนินการ (กดดูรายละเอียด)</small></div>
+            <span class="badge badge-yellow" style="font-size:0.7rem; font-weight:700; padding:2px 6px;">คลิกดู 🔍</span>
+          </div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #F59E0B; margin-top:2px;">${inProgressCount}</div>
         </div>
+
         <div class="stat-card card p-2.5" style="border-top:4px solid #8B5CF6; padding: 10px 12px; grid-column: span 2;">
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Sponsor Deals<br><small class="text-muted" style="font-size:0.7rem;">ดีลสปอนเซอร์</small></div>
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #8B5CF6; margin-top:2px;">${sponsorDeals}</div>
         </div>
       </div>
 
-      <!-- Content Mix (Pie Chart) & Product Categories & Status -->
+      <!-- Content Mix (Pie Chart Theme Adaptive) & Product Categories & Status -->
       <div class="dash-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
         
         <!-- Content Mix Pie Chart Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700;">📝 Content Mix / สัดส่วนประเภทคอนเทนต์</h3>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 Content Mix / สัดส่วนประเภทคอนเทนต์</h3>
           </div>
           <div class="p-3" style="flex:1; display:flex; align-items:center;">
             <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
               
-              <!-- Donut / Pie Chart Element -->
-              <div style="position:relative; width:140px; height:140px; border-radius:50%; ${pieChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.08);">
-                <div style="width:86px; height:86px; border-radius:50%; background:var(--c-surface, #ffffff); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-                  <span style="font-size:1.4rem; font-weight:800; color:var(--c-text);">${totalContent}</span>
+              <!-- Donut / Pie Chart Element (Dark Mode Dynamic var(--c-surface) background) -->
+              <div style="position:relative; width:140px; height:140px; border-radius:50%; ${pieChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+                <div style="width:86px; height:86px; border-radius:50%; background:var(--c-surface); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+                  <span style="font-size:1.5rem; font-weight:800; color:var(--c-text);">${totalContent}</span>
                   <span style="font-size:0.7rem; color:var(--c-text-muted);" class="text-muted">รายการ</span>
                 </div>
               </div>
@@ -266,7 +273,7 @@ export function renderDashboard(container, store) {
                         <span style="width:10px; height:10px; border-radius:3px; background:${color}; display:inline-block; flex-shrink:0;"></span>
                         <span style="font-weight:700; color:var(--c-text);">${esc(t)}</span>
                       </div>
-                      <span style="font-weight:700; font-size:0.82rem;" class="text-muted">${item.count} คลิป (${item.percentage}%)</span>
+                      <span style="font-weight:700; font-size:0.82rem; color:var(--c-text-muted);">${item.count} คลิป (${item.percentage}%)</span>
                     </div>
                   `;
                 }).join('')}
@@ -279,7 +286,7 @@ export function renderDashboard(container, store) {
         <!-- Product Categories & Status Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom flex-between">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700;">📦 Product Categories & Status</h3>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📦 Product Categories & Status</h3>
             <span class="badge" style="font-size:0.78rem; background:var(--c-bg); border:1px solid var(--c-border);">${Object.keys(categoryBreakdown).length} หมวดหมู่</span>
           </div>
           <div class="p-3" style="flex:1; max-height:340px; overflow-y:auto;">
@@ -313,7 +320,7 @@ export function renderDashboard(container, store) {
       <div class="card mb-4">
         <div class="card-header p-3 border-bottom flex-between">
           <div>
-            <h3 style="margin:0; font-size:1.05rem; font-weight:700;">📺 Content Performance by Channel / ประสิทธิภาพรายช่องทาง</h3>
+            <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:var(--c-text);">📺 Content Performance by Channel / ประสิทธิภาพรายช่องทาง</h3>
           </div>
         </div>
         
@@ -411,6 +418,117 @@ export function renderDashboard(container, store) {
       }
       renderDashboard(container, store);
     });
+  });
+
+  // Wire Click Handler for In Progress Modal Popup
+  const inProgressBtn = container.querySelector('#btn-open-inprogress-modal');
+  if (inProgressBtn) {
+    inProgressBtn.addEventListener('click', () => {
+      openInProgressModal(inProgressList, store);
+    });
+  }
+}
+
+// Function to render In Progress Breakdown Modal Popup
+function openInProgressModal(inProgressList, store) {
+  // Group in-progress items by status (excluding Published)
+  const statusCounts = {};
+  const statusItems = {};
+
+  const defaultStatuses = store.getSettingList('contentStatuses') || [
+    '💡 Idea', '✍️ Scripting', '🎬 Filming', '✂️ Editing', '✅ Ready', '❌ Cancelled'
+  ];
+
+  defaultStatuses.filter(st => !st.includes('Published')).forEach(st => {
+    statusCounts[st] = 0;
+    statusItems[st] = [];
+  });
+
+  inProgressList.forEach(item => {
+    const st = item.status || '💡 Idea';
+    if (!st.includes('Published')) {
+      if (!statusCounts[st]) {
+        statusCounts[st] = 0;
+        statusItems[st] = [];
+      }
+      statusCounts[st] += 1;
+      statusItems[st].push(item);
+    }
+  });
+
+  const totalInProgress = inProgressList.length;
+
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay open';
+  modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px); p:16px;';
+
+  modalOverlay.innerHTML = `
+    <div class="card p-4" style="width:100%; max-width:540px; max-height:85vh; overflow-y:auto; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.3); background:var(--c-surface); border:1px solid var(--c-border); animation: modalEnter 0.2s ease-out;">
+      
+      <!-- Modal Header -->
+      <div class="flex-between border-bottom pb-3 mb-3">
+        <div>
+          <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:8px;">
+            ⏳ In Progress Details / รายละเอียดงานที่กำลังทำ
+          </h3>
+          <p class="text-muted m-0 mt-1" style="font-size:0.83rem;">
+            คอนเทนต์ที่อยู่ระหว่างดำเนินการทั้งหมด <strong style="color:#F59E0B;">${totalInProgress} รายการ</strong> (ไม่รวมที่เผยแพร่แล้ว)
+          </p>
+        </div>
+        <button id="btn-close-inprogress-modal" type="button" class="btn btn-secondary" style="border-radius:50%; width:34px; height:34px; padding:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700;">
+          ✕
+        </button>
+      </div>
+
+      <!-- Status Breakdown List -->
+      <div class="mb-4">
+        ${Object.keys(statusCounts).length ? Object.entries(statusCounts).map(([stName, count]) => {
+          const pct = totalInProgress > 0 ? Math.round((count / totalInProgress) * 100) : 0;
+          return `
+            <div class="p-2.5 mb-2.5" style="border:1px solid var(--c-border); border-radius:10px; background:var(--c-bg);">
+              <div class="flex-between mb-1" style="font-size:0.9rem;">
+                <span style="font-weight:700; color:var(--c-text);">${esc(stName)}</span>
+                <span style="font-weight:700;" class="badge badge-yellow">${count} คลิป (${pct}%)</span>
+              </div>
+              
+              <!-- Progress Bar -->
+              <div style="background:var(--c-border); border-radius:4px; height:6px; overflow:hidden; margin-bottom:6px;">
+                <div style="width:${pct}%; background:#F59E0B; height:100%; border-radius:4px;"></div>
+              </div>
+
+              <!-- List of content titles under this status -->
+              ${statusItems[stName] && statusItems[stName].length ? `
+                <div style="font-size:0.8rem; color:var(--c-text-muted); padding-left:4px;">
+                  ${statusItems[stName].map(c => `• ${esc(c.title || c.hook || c.id)} <small style="opacity:0.7;">(${esc(c.channel || 'ไม่ระบุช่องทาง')})</small>`).join('<br>')}
+                </div>
+              ` : '<div style="font-size:0.78rem; color:var(--c-text-muted); font-style:italic; padding-left:4px;">ไม่มีรายการในสถานะนี้</div>'}
+            </div>
+          `;
+        }).join('') : '<div class="text-center p-3 text-muted">ไม่มีงานที่อยู่ระหว่างดำเนินการ 🎉</div>'}
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="text-right border-top pt-3">
+        <button id="btn-dismiss-inprogress-modal" type="button" class="btn btn-primary" style="padding:6px 20px; font-weight:700; border-radius:8px;">
+          ตกลง / ปิดหน้าต่าง
+        </button>
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modalOverlay);
+
+  const closeModal = () => {
+    if (modalOverlay && modalOverlay.parentNode) {
+      modalOverlay.parentNode.removeChild(modalOverlay);
+    }
+  };
+
+  modalOverlay.querySelector('#btn-close-inprogress-modal').addEventListener('click', closeModal);
+  modalOverlay.querySelector('#btn-dismiss-inprogress-modal').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
   });
 }
 
