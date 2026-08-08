@@ -13,7 +13,7 @@ export function renderDashboard(container, store) {
     'TikTok', 'Shopee Video', 'YouTube Shorts', 'YouTube Long', 'Instagram Reels', 'Facebook Reels'
   ];
 
-  // Extract available years from content & channel data
+  // Extract available years
   const yearsSet = new Set([new Date().getFullYear()]);
   contentList.forEach(c => {
     const dStr = c.publishedDate || c.plannedDate;
@@ -30,7 +30,7 @@ export function renderDashboard(container, store) {
   });
   const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
 
-  // Filter content & channel entries by selected Year & Month & Category
+  // Filter content & channels by selected Year, Month & Category
   const filteredContent = contentList.filter(c => {
     const dStr = c.publishedDate || c.plannedDate;
     if (dStr) {
@@ -70,11 +70,10 @@ export function renderDashboard(container, store) {
   const totalProducts = filteredProducts.length;
   const totalContent = filteredContent.length;
   const publishedCount = filteredContent.filter(c => c.status && c.status.includes('Published')).length;
-  // In Progress = All content that is NOT Published
   const inProgressCount = filteredContent.filter(c => !c.status || !c.status.includes('Published')).length;
   const sponsorDeals = (store.getSponsors() || []).length;
 
-  // Calculate Content Mix
+  // Calculate Content Mix & Pie Chart
   const mixColors = {
     '🛒 Affiliate': '#F97316',
     '🎯 Personal Brand': '#3B82F6',
@@ -90,6 +89,20 @@ export function renderDashboard(container, store) {
     const percentage = totalContent > 0 ? Math.round((count / totalContent) * 100) : 0;
     mixData[t] = { count, percentage };
   });
+
+  // Generate Conic Gradient for Pie Chart
+  let cumulativePct = 0;
+  const gradientParts = contentTypes.map(t => {
+    const item = mixData[t] || { percentage: 0 };
+    const color = mixColors[t] || '#64748b';
+    const start = cumulativePct;
+    cumulativePct += item.percentage;
+    return `${color} ${start}% ${cumulativePct}%`;
+  });
+
+  const pieChartStyle = totalContent > 0 
+    ? `background: conic-gradient(${gradientParts.join(', ')});`
+    : `background: #e2e8f0;`;
 
   // Calculate Product Category & Status Breakdown
   const categoryBreakdown = {};
@@ -138,15 +151,13 @@ export function renderDashboard(container, store) {
         <div class="flex-between flex-wrap gap-3 mb-3">
           <div>
             <h2 style="margin:0; font-size:1.4rem; display:flex; align-items:center; gap:8px;">
-              📊 Dashboard <span style="font-size:0.9rem; font-weight:normal;" class="text-muted">/ แดชบอร์ดสรุปผลภาพรวม v1.5.1</span>
+              📊 Dashboard <span style="font-size:0.9rem; font-weight:normal;" class="text-muted">/ แดชบอร์ดสรุปผลภาพรวม v1.5.2</span>
             </h2>
-            <p class="text-muted m-0 mt-1" style="font-size:0.85rem;">วิเคราะห์สถานะสินค้า สัดส่วนคอนเทนต์ และประสิทธิภาพแยกตามช่องทาง</p>
+            <p class="text-muted m-0 mt-1" style="font-size:0.85rem;">วิเคราะห์สถานะสินค้า สัดส่วนคอนเทนต์ (Pie Chart) และประสิทธิภาพรายช่องทาง</p>
           </div>
 
-          <!-- Quick Filters: Year, Month, Category -->
+          <!-- Quick Filters -->
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            
-            <!-- Year Filter -->
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">📅 ปี:</label>
               <select id="dash-filter-year" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:110px;">
@@ -155,7 +166,6 @@ export function renderDashboard(container, store) {
               </select>
             </div>
 
-            <!-- Month Filter -->
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">🗓️ เดือน:</label>
               <select id="dash-filter-month" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:150px;">
@@ -164,7 +174,6 @@ export function renderDashboard(container, store) {
               </select>
             </div>
 
-            <!-- Category Filter -->
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="font-size:0.8rem; font-weight:700; color:var(--c-text-muted);">📦 หมวดสินค้า:</label>
               <select id="dash-filter-category" class="form-select" style="padding:4px 10px; font-size:0.85rem; width:170px;">
@@ -172,7 +181,6 @@ export function renderDashboard(container, store) {
                 ${productCategories.map(cat => `<option value="${esc(cat)}" ${selectedCategory === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
               </select>
             </div>
-
           </div>
         </div>
       </div>
@@ -201,37 +209,50 @@ export function renderDashboard(container, store) {
         </div>
       </div>
 
-      <!-- Content Mix & Product Category Breakdown -->
-      <div class="dash-grid mb-4" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 1.5rem;">
+      <!-- Content Mix (Pie Chart) & Product Category Breakdown -->
+      <div class="dash-grid mb-4" style="display: grid; grid-template-columns: 1.1fr 1.2fr; gap: 1.5rem;">
         
-        <!-- Content Mix Card -->
+        <!-- Content Mix Pie Chart Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom">
             <h3 style="margin: 0; font-size: 1.05rem; font-weight:700;">📝 Content Mix / สัดส่วนประเภทคอนเทนต์</h3>
           </div>
-          <div class="p-3" style="flex:1;">
-            ${contentTypes.map(t => {
-              const item = mixData[t] || { count: 0, percentage: 0 };
-              const color = mixColors[t] || '#64748b';
-              return `
-                <div class="dash-mix-item mb-3">
-                  <div class="flex-between mb-1" style="font-size:0.9rem;">
-                    <span style="font-weight:700; color:var(--c-text);">${esc(t)}</span>
-                    <span style="font-weight:600; font-size:0.85rem;" class="text-muted">${item.count} รายการ (${item.percentage}%)</span>
-                  </div>
-                  <div class="progress-bar-container" style="background:var(--c-border); border-radius:4px; height:9px; overflow:hidden;">
-                    <div class="progress-bar-fill" style="width:${item.percentage}%; background:${color}; height:100%; border-radius:4px;"></div>
-                  </div>
+          <div class="p-3" style="flex:1; display:flex; align-items:center;">
+            <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
+              
+              <!-- Donut / Pie Chart Element -->
+              <div style="position:relative; width:150px; height:150px; border-radius:50%; ${pieChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.08);">
+                <div style="width:92px; height:92px; border-radius:50%; background:var(--c-surface, #ffffff); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+                  <span style="font-size:1.5rem; font-weight:800; color:var(--c-text);">${totalContent}</span>
+                  <span style="font-size:0.72rem; color:var(--c-text-muted);" class="text-muted">รายการ</span>
                 </div>
-              `;
-            }).join('')}
+              </div>
+
+              <!-- Pie Chart Legend & Numbers -->
+              <div style="flex:1; min-width:180px;">
+                ${contentTypes.map(t => {
+                  const item = mixData[t] || { count: 0, percentage: 0 };
+                  const color = mixColors[t] || '#64748b';
+                  return `
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-size:0.85rem;">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="width:12px; height:12px; border-radius:3px; background:${color}; display:inline-block; flex-shrink:0;"></span>
+                        <span style="font-weight:700; color:var(--c-text);">${esc(t)}</span>
+                      </div>
+                      <span style="font-weight:700; font-size:0.85rem;" class="text-muted">${item.count} คลิป (${item.percentage}%)</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+
+            </div>
           </div>
         </div>
 
         <!-- Product Category & Status Breakdown Card -->
         <div class="card" style="display:flex; flex-direction:column;">
           <div class="card-header p-3 border-bottom flex-between">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700;">📦 Product Categories & Status / แยกตามหมวดสินค้าและสถานะ</h3>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700;">📦 Product Categories & Status / แยกตามหมวดสินค้า</h3>
             <span class="badge" style="font-size:0.8rem; background:var(--c-bg); border:1px solid var(--c-border);">${Object.keys(categoryBreakdown).length} หมวดหมู่</span>
           </div>
           <div class="p-3" style="flex:1; max-height:340px; overflow-y:auto;">
@@ -261,7 +282,7 @@ export function renderDashboard(container, store) {
 
       </div>
 
-      <!-- Content Performance by Channel Table (Clean & Compact) -->
+      <!-- Content Performance by Channel Table -->
       <div class="card mb-4">
         <div class="card-header p-3 border-bottom flex-between">
           <div>

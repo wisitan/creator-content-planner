@@ -60,7 +60,22 @@ export function renderChannels(container, store) {
     columns: columns,
     getData: () => store.getChannelTracker(),
     onAdd: () => store.addChannelEntry(),
-    onChange: (id, field, value) => store.updateChannelEntry(id, field, value),
+    onChange: (id, field, value) => {
+      const res = store.updateChannelEntry(id, field, value);
+      if (field === 'contentId' && value) {
+        const cItem = store.getContent().find(c => String(c.id).trim() === String(value).trim());
+        if (cItem) {
+          if (cItem.channel) {
+            store.updateChannelEntry(id, 'channel', cItem.channel);
+          }
+          const pDate = cItem.publishedDate || cItem.plannedDate;
+          if (pDate) {
+            store.updateChannelEntry(id, 'publishedDate', pDate);
+          }
+        }
+      }
+      return res;
+    },
     onDelete: (id) => store.deleteChannelEntry(id),
     addLabel: '+ Add Entry / เพิ่มข้อมูล',
     emptyText: 'No channel data yet · ยังไม่มีข้อมูล channel',
