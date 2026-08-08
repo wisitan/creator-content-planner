@@ -4,6 +4,7 @@ let selectedYear = 'ALL';
 let selectedMonths = new Set(); // Set of month indices (0-11), empty means ALL
 let selectedCategory = 'ALL';
 let selectedProductType = 'ALL';
+let mixSelectedStatus = 'ALL';
 
 export function renderDashboard(container, store) {
   const products = store.getProducts() || [];
@@ -12,6 +13,9 @@ export function renderDashboard(container, store) {
   const productCategories = store.getSettingList('productCategories') || [];
   const productTypes = store.getSettingList('productTypes') || [
     'A สินค้าขายดี', 'B สินค้ามาใหม่', 'C สินค้าราคาประหยัด', 'D สินค้าค่าคอมสูง'
+  ];
+  const contentStatuses = store.getSettingList('contentStatuses') || [
+    '💡 Idea', '✍️ Scripting', '🎬 Filming', '✂️ Editing', '✅ Ready', '📤 Published', '❌ Cancelled'
   ];
   const configuredChannels = store.getSettingList('channels') || [
     'TikTok', 'Shopee Video', 'YouTube Shorts', 'YouTube Long', 'Instagram Reels', 'Facebook Reels'
@@ -80,12 +84,21 @@ export function renderDashboard(container, store) {
   const activeProductsCount = filteredProducts.filter(p => p.status && (p.status === 'Active' || p.status.includes('Active'))).length;
   const totalContent = filteredContent.length;
   const publishedCount = filteredContent.filter(c => c.status && c.status.includes('Published')).length;
-  // In Progress = All content that is NOT Published
   const inProgressList = filteredContent.filter(c => !c.status || !c.status.includes('Published'));
   const inProgressCount = inProgressList.length;
   const sponsorDeals = (store.getSponsors() || []).length;
 
-  // Calculate Content Mix & Pie Chart
+  // Content Mix Filter by Status
+  const mixFilteredContent = filteredContent.filter(c => {
+    if (mixSelectedStatus !== 'ALL') {
+      return c.status === mixSelectedStatus || (c.status && c.status.includes(mixSelectedStatus));
+    }
+    return true;
+  });
+
+  const mixTotalContent = mixFilteredContent.length;
+
+  // Calculate Content Mix & Donut Chart
   const mixColors = {
     '🛒 Affiliate': '#F97316',
     '🎯 Personal Brand': '#3B82F6',
@@ -97,12 +110,12 @@ export function renderDashboard(container, store) {
   const mixData = {};
   contentTypes.forEach(t => {
     const label = t.split(' ')[1] || t;
-    const count = filteredContent.filter(c => c.contentType === t || (c.contentType && c.contentType.includes(label))).length;
-    const percentage = totalContent > 0 ? Math.round((count / totalContent) * 100) : 0;
+    const count = mixFilteredContent.filter(c => c.contentType === t || (c.contentType && c.contentType.includes(label))).length;
+    const percentage = mixTotalContent > 0 ? Math.round((count / mixTotalContent) * 100) : 0;
     mixData[t] = { count, percentage };
   });
 
-  // Generate Conic Gradient for Pie Chart
+  // Generate Conic Gradient for Donut Chart
   let cumulativePct = 0;
   const gradientParts = contentTypes.map(t => {
     const item = mixData[t] || { percentage: 0 };
@@ -112,7 +125,7 @@ export function renderDashboard(container, store) {
     return `${color} ${start}% ${cumulativePct}%`;
   });
 
-  const pieChartStyle = totalContent > 0 
+  const donutChartStyle = mixTotalContent > 0 
     ? `background: conic-gradient(${gradientParts.join(', ')});`
     : `background: var(--c-border);`;
 
@@ -213,7 +226,7 @@ export function renderDashboard(container, store) {
 
       </div>
 
-      <!-- Top Stat Cards (Clickable In Progress Card) -->
+      <!-- Top Stat Cards -->
       <div class="stat-grid mb-4" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
         <div class="stat-card card p-2.5" style="border-top:4px solid #6366F1; padding: 10px 12px;">
           <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">Total Product Active<br><small class="text-muted" style="font-size:0.7rem;">สินค้า Active ในคลัง</small></div>
@@ -228,7 +241,7 @@ export function renderDashboard(container, store) {
           <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #10B981; margin-top:2px;">${publishedCount}</div>
         </div>
 
-        <!-- Interactive In Progress Stat Card with Popup Trigger -->
+        <!-- Interactive In Progress Stat Card -->
         <div id="btn-open-inprogress-modal" class="stat-card card p-2.5" style="border-top:4px solid #F59E0B; padding: 10px 12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;" title="คลิกเพื่อดูรายละเอียดแต่ละสถานะ">
           <div class="flex-between" style="align-items:flex-start;">
             <div class="stat-label" style="font-weight:700; font-size:0.78rem; line-height:1.2;">In Progress 🔍<br><small class="text-muted" style="font-size:0.7rem;">กำลังดำเนินการ (กดดูรายละเอียด)</small></div>
@@ -243,26 +256,36 @@ export function renderDashboard(container, store) {
         </div>
       </div>
 
-      <!-- Content Mix (Pie Chart Theme Adaptive) & Product Categories & Status -->
+      <!-- Content Mix (Donut Chart & Status Filter) & Product Categories & Status -->
       <div class="dash-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
         
-        <!-- Content Mix Pie Chart Card -->
+        <!-- Content Mix Donut Chart Card -->
         <div class="card" style="display:flex; flex-direction:column;">
-          <div class="card-header p-3 border-bottom">
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 Content Mix / สัดส่วนประเภทคอนเทนต์</h3>
+          <div class="card-header p-3 border-bottom flex-between flex-wrap gap-2">
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 Content Mix</h3>
+            
+            <!-- Content Status Filter for Content Mix -->
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label style="font-size:0.78rem; font-weight:700; color:var(--c-text-muted);">Status:</label>
+              <select id="dash-mix-filter-status" class="form-select" style="padding:3px 8px; font-size:0.8rem; width:135px;">
+                <option value="ALL" ${mixSelectedStatus === 'ALL' ? 'selected' : ''}>ทุกสถานะ (All)</option>
+                ${contentStatuses.map(st => `<option value="${esc(st)}" ${mixSelectedStatus === st ? 'selected' : ''}>${esc(st)}</option>`).join('')}
+              </select>
+            </div>
           </div>
+
           <div class="p-3" style="flex:1; display:flex; align-items:center;">
             <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
               
-              <!-- Donut / Pie Chart Element (Dark Mode Dynamic var(--c-surface) background) -->
-              <div style="position:relative; width:140px; height:140px; border-radius:50%; ${pieChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-                <div style="width:86px; height:86px; border-radius:50%; background:var(--c-surface); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-                  <span style="font-size:1.5rem; font-weight:800; color:var(--c-text);">${totalContent}</span>
-                  <span style="font-size:0.7rem; color:var(--c-text-muted);" class="text-muted">รายการ</span>
+              <!-- Beautiful Donut Chart Element (Total Content inside the hole) -->
+              <div style="position:relative; width:145px; height:145px; border-radius:50%; ${donutChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+                <div style="width:92px; height:92px; border-radius:50%; background:var(--c-surface); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:4px; border:1px solid var(--c-border);">
+                  <span style="font-size:0.68rem; font-weight:700; color:var(--c-text-muted); line-height:1.1;" class="text-muted">Total Content</span>
+                  <span style="font-size:1.5rem; font-weight:800; color:var(--c-text); line-height:1; margin-top:3px;">${mixTotalContent}</span>
                 </div>
               </div>
 
-              <!-- Pie Chart Legend & Numbers -->
+              <!-- Donut Chart Legend & Numbers -->
               <div style="flex:1; min-width:160px;">
                 ${contentTypes.map(t => {
                   const item = mixData[t] || { count: 0, percentage: 0 };
@@ -379,6 +402,7 @@ export function renderDashboard(container, store) {
   const ySel = container.querySelector('#dash-filter-year');
   const cSel = container.querySelector('#dash-filter-category');
   const ptSel = container.querySelector('#dash-filter-producttype');
+  const mixStSel = container.querySelector('#dash-mix-filter-status');
 
   if (ySel) {
     ySel.addEventListener('change', (e) => {
@@ -395,6 +419,12 @@ export function renderDashboard(container, store) {
   if (ptSel) {
     ptSel.addEventListener('change', (e) => {
       selectedProductType = e.target.value;
+      renderDashboard(container, store);
+    });
+  }
+  if (mixStSel) {
+    mixStSel.addEventListener('change', (e) => {
+      mixSelectedStatus = e.target.value;
       renderDashboard(container, store);
     });
   }
@@ -431,7 +461,6 @@ export function renderDashboard(container, store) {
 
 // Function to render In Progress Breakdown Modal Popup
 function openInProgressModal(inProgressList, store) {
-  // Group in-progress items by status (excluding Published)
   const statusCounts = {};
   const statusItems = {};
 
