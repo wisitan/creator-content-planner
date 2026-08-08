@@ -469,24 +469,32 @@ class Store extends Emitter {
 
   /* ── Computed Stats ── */
   getStats() {
-    const c = this._data.content;
+    const c = this._data.content || [];
+    const publishedCount = c.filter(x => x.status && (x.status.includes('Published') || x.status === '📤 Published')).length;
+    const inProgressCount = c.filter(x => !x.status || !x.status.includes('Published')).length;
     return {
-      totalProducts: this._data.products.length,
+      totalProducts: this._data.products?.length || 0,
       totalContent: c.length,
-      published: c.filter(x => x.status === '📤 Published').length,
-      inProgress: c.filter(x => ['✍️ Scripting','🎬 Filming','✂️ Editing','✅ Ready'].includes(x.status)).length,
-      sponsorDeals: this._data.sponsors.length,
+      published: publishedCount,
+      publishedContent: publishedCount,
+      inProgress: inProgressCount,
+      inProgressContent: inProgressCount,
+      sponsorDeals: this._data.sponsors?.length || 0,
     };
   }
 
   getContentMix() {
-    const c = this._data.content;
-    return {
-      '🛒 Affiliate': c.filter(x => x.contentType === '🛒 Affiliate').length,
-      '🎯 Personal Brand': c.filter(x => x.contentType === '🎯 Personal Brand').length,
-      '📚 Knowledge': c.filter(x => x.contentType === '📚 Knowledge').length,
-      '🤝 Sponsor': c.filter(x => x.contentType === '🤝 Sponsor').length,
-    };
+    const c = this._data.content || [];
+    const total = c.length;
+    const mix = {};
+    const types = ['🛒 Affiliate', '🎯 Personal Brand', '📚 Knowledge', '🤝 Sponsor'];
+    types.forEach(t => {
+      const label = t.split(' ')[1] || t;
+      const count = c.filter(x => x.contentType === t || (x.contentType && x.contentType.includes(label))).length;
+      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+      mix[t] = { count, percentage };
+    });
+    return mix;
   }
 
   getChannelDistribution() {
