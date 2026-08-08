@@ -7,7 +7,7 @@ import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 import { getLang, setLang, t } from './i18n.js';
 
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.9.1';
 
 // Apply saved Language & Theme
 setLang(store.getLanguage());

@@ -20,10 +20,10 @@ export function renderContent(container, store) {
 
   const columns = [
     { key: 'id', label: t('col_cnt_id'), type: 'text', width: '100px', editable: true },
-    { key: 'coverUrl', label: t('col_cnt_cover'), type: 'image', width: '120px' },
+    { key: 'coverUrl', label: t('col_cnt_cover'), type: 'image', width: '130px' },
     { key: 'title', label: t('col_cnt_title'), type: 'text', width: '200px' },
     { key: 'contentType', label: t('col_cnt_type'), type: 'dropdown', options: () => store.getSettingList('contentTypes'), badge: contentTypeBadge },
-    { key: 'productId', label: t('col_cnt_prod_id'), type: 'dropdown', options: () => store.getProducts().map(p => p.id), width: '100px' },
+    { key: 'productId', label: t('col_cnt_prod_id'), type: 'productPicker', width: '140px' },
     { key: 'productName', label: t('col_cnt_prod_name'), type: 'computed', compute: (row) => store.getProductName(row.productId), width: '160px' },
     { key: 'contentAngle', label: t('col_cnt_angle'), type: 'dropdown', options: () => store.getSettingList('contentAngles') },
     { key: 'contentPillar', label: t('col_cnt_pillar'), type: 'dropdown', options: () => store.getSettingList('contentPillars') },
@@ -40,6 +40,10 @@ export function renderContent(container, store) {
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getContent(),
+    getProducts: () => store.getProducts(),
+    getCategories: () => store.getSettingList('productCategories'),
+    getProductTypes: () => store.getSettingList('productTypes'),
+    getStatuses: () => store.getSettingList('productStatuses'),
     onAdd: () => store.addContent({ status: '💡 Idea' }),
     onChange: (id, field, value) => store.updateContent(id, field, value),
     onDelete: (id) => store.deleteContent(id),

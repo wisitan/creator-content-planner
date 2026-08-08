@@ -317,6 +317,42 @@ export function EditableTable(container, config) {
       `;
     }
 
+    if (col.type === 'productPicker' || col.key === 'productId') {
+      const pid = row[col.key] || '';
+      const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+      const pObj = products.find(p => String(p.id).trim() === String(pid).trim());
+      const imgUrl = pObj ? pObj.imageUrl : '';
+      const pName = pObj ? pObj.name : '';
+
+      return `
+        <div style="display:flex; align-items:center; gap:6px;">
+          ${imgUrl 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(row[idField])}" style="width:32px; height:32px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)} (Click to view full size)">` 
+            : `<span style="font-size:1.1rem;" title="No photo">📦</span>`
+          }
+          <button type="button" class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(row[idField])}" style="padding:2px 8px; font-size:0.78rem; font-weight:700; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to pick product from catalog">
+            ${esc(pid || '-- Select Product --')}
+          </button>
+        </div>
+      `;
+    }
+
+    if (col.type === 'image' || col.key === 'imageUrl' || col.key === 'coverUrl') {
+      const imgUrl = val || '';
+      return `
+        <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
+          ${imgUrl 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-field="${col.key}" data-id="${esc(row[idField])}" style="width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
+            : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`
+          }
+          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo / อัปโหลดรูป">
+            📷
+            <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" style="display:none;">
+          </label>
+        </div>
+      `;
+    }
+
     if (col.compute) {
       const computedVal = col.compute(row);
       return `<span class="cell-computed">${esc(computedVal)}</span>`;
@@ -1079,11 +1115,19 @@ export function EditableTable(container, config) {
 
   function openProductPickerModal(rowId, colKey) {
     const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
-    const categories = typeof config.getCategories === 'function' ? config.getCategories() : [];
-    const statuses = typeof config.getStatuses === 'function' ? config.getStatuses() : [];
+    const categories = typeof config.getCategories === 'function' ? config.getCategories() : (
+      Array.from(new Set(products.map(p => p.category).filter(Boolean)))
+    );
+    const productTypes = typeof config.getProductTypes === 'function' ? config.getProductTypes() : (
+      Array.from(new Set(products.map(p => p.productType || p.type).filter(Boolean)))
+    );
+    const statuses = typeof config.getStatuses === 'function' ? config.getStatuses() : (
+      Array.from(new Set(products.map(p => p.status).filter(Boolean)))
+    );
 
     let searchTerm = '';
     let selectedCategory = 'ALL';
+    let selectedType = 'ALL';
     let selectedStatus = 'ALL';
     let currentPage = 1;
     const PAGE_SIZE = 12;
@@ -1093,23 +1137,16 @@ export function EditableTable(container, config) {
       const pagEl = modalBody.querySelector('#product-picker-pagination');
       if (!listEl || !pagEl) return;
 
-      // 1. Filter products
+      // Filter products
       const filtered = products.filter(p => {
-        if (searchTerm) {
-          const s = searchTerm.toLowerCase();
-          const match = (p.id || '').toLowerCase().includes(s) || 
-                        (p.name || '').toLowerCase().includes(s) || 
-                        (p.brand || '').toLowerCase().includes(s) || 
-                        (p.category || '').toLowerCase().includes(s);
-          if (!match) return false;
-        }
-        if (selectedCategory !== 'ALL' && p.category !== selectedCategory) {
-          return false;
-        }
-        if (selectedStatus !== 'ALL' && p.status !== selectedStatus) {
-          return false;
-        }
-        return true;
+        const matchesSearch = !searchTerm || 
+          String(p.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(p.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(p.brand).toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCat = selectedCategory === 'ALL' || p.category === selectedCategory;
+        const matchesType = selectedType === 'ALL' || (p.productType || p.type) === selectedType;
+        const matchesStatus = selectedStatus === 'ALL' || p.status === selectedStatus;
+        return matchesSearch && matchesCat && matchesType && matchesStatus;
       });
 
       // Calculate Pagination
@@ -1200,12 +1237,17 @@ export function EditableTable(container, config) {
       }
     }
 
-    let catOptions = `<option value="ALL">📁 All Categories (ทุกหมวด)</option>`;
+    let catOptions = `<option value="ALL">📁 All Categories</option>`;
     categories.forEach(cat => {
       catOptions += `<option value="${esc(cat)}">${esc(cat)}</option>`;
     });
 
-    let statusOptions = `<option value="ALL">🏷️ All Statuses (ทุกสถานะ)</option>`;
+    let typeOptions = `<option value="ALL">🏷️ All Product Types</option>`;
+    productTypes.forEach(tp => {
+      typeOptions += `<option value="${esc(tp)}">${esc(tp)}</option>`;
+    });
+
+    let statusOptions = `<option value="ALL">🚦 All Statuses</option>`;
     statuses.forEach(st => {
       statusOptions += `<option value="${esc(st)}">${esc(st)}</option>`;
     });
