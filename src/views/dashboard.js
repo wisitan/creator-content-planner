@@ -98,7 +98,7 @@ export function renderDashboard(container, store) {
 
   const mixTotalContent = mixFilteredContent.length;
 
-  // Calculate Content Mix & Donut Chart
+  // Calculate Content Mix
   const mixColors = {
     '🛒 Affiliate': '#F97316',
     '🎯 Personal Brand': '#3B82F6',
@@ -115,19 +115,18 @@ export function renderDashboard(container, store) {
     mixData[t] = { count, percentage };
   });
 
-  // Generate Conic Gradient for Donut Chart
-  let cumulativePct = 0;
-  const gradientParts = contentTypes.map(t => {
+  // SVG Donut Chart Ring Segments (Clean empty center hole)
+  let svgOffset = 25; // 25% starts top (-90deg)
+  const svgSegments = contentTypes.map(t => {
     const item = mixData[t] || { percentage: 0 };
     const color = mixColors[t] || '#64748b';
-    const start = cumulativePct;
-    cumulativePct += item.percentage;
-    return `${color} ${start}% ${cumulativePct}%`;
-  });
-
-  const donutChartStyle = mixTotalContent > 0 
-    ? `background: conic-gradient(${gradientParts.join(', ')});`
-    : `background: var(--c-border);`;
+    const pct = item.percentage;
+    if (pct <= 0) return '';
+    const strokeDash = `${pct} ${100 - pct}`;
+    const strokeOffset = svgOffset;
+    svgOffset -= pct;
+    return `<circle cx="21" cy="21" r="15.91549430918954" fill="none" stroke="${color}" stroke-width="6.5" stroke-dasharray="${strokeDash}" stroke-dashoffset="${strokeOffset}"></circle>`;
+  }).join('');
 
   // Calculate Product Category & Status Breakdown
   const categoryBreakdown = {};
@@ -256,7 +255,7 @@ export function renderDashboard(container, store) {
         </div>
       </div>
 
-      <!-- Content Mix (Donut Chart & Status Filter) & Product Categories & Status -->
+      <!-- Content Mix (Pure SVG Donut Ring) & Product Categories & Status -->
       <div class="dash-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
         
         <!-- Content Mix Donut Chart Card -->
@@ -264,7 +263,7 @@ export function renderDashboard(container, store) {
           <div class="card-header p-3 border-bottom flex-between flex-wrap gap-2">
             <h3 style="margin: 0; font-size: 1.05rem; font-weight:700; color:var(--c-text);">📝 Content Mix</h3>
             
-            <!-- Content Status Filter for Content Mix -->
+            <!-- Content Status Filter -->
             <div style="display:flex; align-items:center; gap:6px;">
               <label style="font-size:0.78rem; font-weight:700; color:var(--c-text-muted);">Status:</label>
               <select id="dash-mix-filter-status" class="form-select" style="padding:3px 8px; font-size:0.8rem; width:135px;">
@@ -277,11 +276,19 @@ export function renderDashboard(container, store) {
           <div class="p-3" style="flex:1; display:flex; align-items:center;">
             <div style="display:flex; align-items:center; gap:20px; justify-content:center; flex-wrap:wrap; width:100%;">
               
-              <!-- Beautiful Donut Chart Element (Total Content inside the hole) -->
-              <div style="position:relative; width:145px; height:145px; border-radius:50%; ${donutChartStyle} display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-                <div style="width:92px; height:92px; border-radius:50%; background:var(--c-surface); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:4px; border:1px solid var(--c-border);">
+              <!-- Pure SVG Donut Chart Ring (Truly Hollow Center - No Background Fill) -->
+              <div style="position:relative; width:145px; height:145px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="145" height="145" viewBox="0 0 42 42" style="width:100%; height:100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));">
+                  <!-- Background Track Ring -->
+                  <circle cx="21" cy="21" r="15.91549430918954" fill="none" stroke="var(--c-border)" stroke-width="6.5"></circle>
+                  <!-- Dynamic Segments -->
+                  ${svgSegments}
+                </svg>
+                
+                <!-- Center Hole Text (Transparent overlay showing clean card background) -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
                   <span style="font-size:0.68rem; font-weight:700; color:var(--c-text-muted); line-height:1.1;" class="text-muted">Total Content</span>
-                  <span style="font-size:1.5rem; font-weight:800; color:var(--c-text); line-height:1; margin-top:3px;">${mixTotalContent}</span>
+                  <span style="font-size:1.55rem; font-weight:800; color:var(--c-text); line-height:1; margin-top:2px;">${mixTotalContent}</span>
                 </div>
               </div>
 
