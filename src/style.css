@@ -99,8 +99,37 @@
   color: #F8FAFC;
 }
 
-[data-theme="dark"] .etable tbody tr:hover {
-  background-color: #334155;
+[data-theme="dark"] .etable tr:nth-child(odd) td {
+  background-color: #0F172A !important;
+}
+
+[data-theme="dark"] .etable tr:nth-child(even) td {
+  background-color: #1E293B !important;
+}
+
+[data-theme="dark"] table.data-table tr:nth-child(odd) td {
+  background-color: #0F172A !important;
+}
+
+[data-theme="dark"] table.data-table tr:nth-child(even) td {
+  background-color: #1E293B !important;
+}
+
+[data-theme="dark"] .etable tbody tr:hover td {
+  background-color: #334155 !important;
+}
+
+[data-theme="dark"] .etable input:hover,
+[data-theme="dark"] .etable select:hover,
+[data-theme="dark"] .etable textarea:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .etable input:focus,
+[data-theme="dark"] .etable select:focus,
+[data-theme="dark"] .etable textarea:focus {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
 }
 
 [data-theme="dark"] .setting-list {
