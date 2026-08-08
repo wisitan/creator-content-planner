@@ -24,13 +24,15 @@ export function renderCalendar(container, store) {
 
   CalendarGrid(calContainer, {
     statusOptions: contentStatuses,
-    getItems: (year, month, statusFilter = 'ALL') => {
-      const items = store.getContentForMonth(year, month, statusFilter);
+    getItems: (year, month, statusFilter = 'ALL', dateTypeFilter = { showPlanned: true, showPublished: true }) => {
+      const items = store.getContentForMonth(year, month, statusFilter, dateTypeFilter);
       return items.map(c => ({
         id: c.id,
+        displayId: c.displayId,
         title: c.title || c.hook || c.contentAngle || c.id,
         contentType: c.contentType,
-        activeDate: c.activeDate || c.publishedDate || c.plannedDate,
+        activeDate: c.activeDate,
+        dateType: c.dateType,
         status: c.status,
         channel: c.channel,
         productName: store.getProductName(c.productId),
@@ -46,6 +48,7 @@ export function renderCalendar(container, store) {
       
       const prodName = store.getProductName(c.productId);
       const titleText = c.title || c.hook || c.id;
+      const isPublishedEntry = item.dateType === 'published';
 
       // Show Rich Content Item Modal with Teleprompter option
       const modalOverlay = document.createElement('div');
@@ -57,7 +60,13 @@ export function renderCalendar(container, store) {
           
           <div class="flex-between border-bottom pb-3 mb-3">
             <div>
-              <span class="badge badge-blue mb-1" style="font-size:0.8rem; font-weight:700;">${esc(c.id)}</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="badge badge-blue mb-1" style="font-size:0.8rem; font-weight:700;">${esc(c.id)}</span>
+                ${isPublishedEntry 
+                  ? `<span class="badge" style="background:#10B981; color:#fff; font-weight:700; font-size:0.75rem;">🟢 Published Date pin</span>`
+                  : `<span class="badge" style="background:#F97316; color:#fff; font-weight:700; font-size:0.75rem;">🟠 Planned Date pin</span>`
+                }
+              </div>
               <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--c-text);">
                 ${esc(titleText)}
               </h3>
@@ -74,6 +83,16 @@ export function renderCalendar(container, store) {
             </div>
 
             <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
+              <span class="text-muted" style="font-weight:600;">Planned Date:</span>
+              <span style="font-weight:700; color:#F97316;">🟠 ${esc(c.plannedDate || '-')}</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
+              <span class="text-muted" style="font-weight:600;">Published Date:</span>
+              <span style="font-weight:700; color:#10B981;">🟢 ${esc(c.publishedDate || '-')}</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
               <span class="text-muted" style="font-weight:600;">Content Type:</span>
               <span style="font-weight:700; color:var(--c-primary);">${esc(c.contentType || '-')}</span>
             </div>
@@ -86,11 +105,6 @@ export function renderCalendar(container, store) {
             <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
               <span class="text-muted" style="font-weight:600;">Channel:</span>
               <span style="font-weight:700;">📺 ${esc(c.channel || '-')}</span>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--c-border); padding-bottom:6px;">
-              <span class="text-muted" style="font-weight:600;">Active / Planned Date:</span>
-              <span style="font-weight:700;">📅 ${esc(c.publishedDate || c.plannedDate || '-')}</span>
             </div>
 
             ${c.script ? `

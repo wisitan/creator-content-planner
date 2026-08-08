@@ -513,22 +513,41 @@ class Store extends Emitter {
     return dist;
   }
 
-  getContentForMonth(year, month, statusFilter = 'ALL') {
-    return this._data.content.filter(c => {
-      const targetDateStr = c.status === '📤 Published' ? (c.publishedDate || c.plannedDate) : c.plannedDate;
-      if (!targetDateStr) return false;
-      const d = new Date(targetDateStr);
-      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
+  getContentForMonth(year, month, statusFilter = 'ALL', dateTypeFilter = { showPlanned: true, showPublished: true }) {
+    const result = [];
+    this._data.content.forEach(c => {
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      return matchesMonth && matchesStatus;
-    }).map(c => {
-      const activeDate = c.status === '📤 Published' ? (c.publishedDate || c.plannedDate) : c.plannedDate;
-      return {
-        ...c,
-        activeDate: activeDate,
-        productName: this.getProductName(c.productId)
-      };
+      if (!matchesStatus) return;
+
+      // 🟠 1. Planned Date Entry
+      if (dateTypeFilter.showPlanned && c.plannedDate) {
+        const d = new Date(c.plannedDate);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          result.push({
+            ...c,
+            displayId: `${c.id}-plan`,
+            activeDate: c.plannedDate,
+            dateType: 'planned',
+            productName: this.getProductName(c.productId)
+          });
+        }
+      }
+
+      // 🟢 2. Published Date Entry
+      if (dateTypeFilter.showPublished && c.publishedDate) {
+        const d = new Date(c.publishedDate);
+        if (d.getFullYear() === year && d.getMonth() === month) {
+          result.push({
+            ...c,
+            displayId: `${c.id}-pub`,
+            activeDate: c.publishedDate,
+            dateType: 'published',
+            productName: this.getProductName(c.productId)
+          });
+        }
+      }
     });
+    return result;
   }
 
   getProductName(productId) {
