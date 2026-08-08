@@ -50,7 +50,7 @@ export function renderCalendar(container, store) {
       const titleText = c.title || c.hook || c.id;
       const isPublishedEntry = item.dateType === 'published';
 
-      // Show Rich Content Item Modal with Premium Balanced Layout & Generous Padding
+      // Show Rich Content Item Modal with Centered OK/Close Button
       const modalOverlay = document.createElement('div');
       modalOverlay.className = 'modal-overlay open';
       modalOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.82) !important; z-index:99999; display:flex; align-items:center; justify-content:center; padding:24px;';
@@ -78,7 +78,7 @@ export function renderCalendar(container, store) {
             </button>
           </div>
 
-          <!-- Metadata Grid (2 Columns, Inset Card Boxes, No edge stretching) -->
+          <!-- Metadata Grid (2 Columns, Inset Card Boxes) -->
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px;" class="mb-4">
             
             <div class="p-2.5" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
@@ -113,7 +113,7 @@ export function renderCalendar(container, store) {
 
           </div>
 
-          <!-- Script & Outline Preview Box (Generous Inset Padding) -->
+          <!-- Script & Outline Preview Box -->
           ${c.script ? `
             <div class="p-3.5 mb-4" style="background:var(--c-bg); border:1px solid var(--c-border); border-radius:14px;">
               <div style="font-size:0.82rem; font-weight:800; color:var(--c-primary); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
@@ -123,12 +123,9 @@ export function renderCalendar(container, store) {
             </div>
           ` : ''}
 
-          <!-- Modal Footer Buttons -->
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--c-border); padding-top:20px; margin-top:10px;">
-            <a href="#content" class="btn btn-secondary btn-sm" id="btn-go-to-content" style="font-weight:700; padding:8px 16px; border-radius:10px;">
-              📝 Go to Content Planner
-            </a>
-            <button id="btn-dismiss-cal-item-modal" type="button" class="btn btn-primary btn-sm" style="padding:8px 24px; font-weight:700; border-radius:10px;">
+          <!-- Centered OK / Close Button -->
+          <div style="display:flex; align-items:center; justify-content:center; border-top:1px solid var(--c-border); padding-top:20px; margin-top:10px;">
+            <button id="btn-dismiss-cal-item-modal" type="button" class="btn btn-primary" style="padding:10px 42px; font-weight:700; border-radius:12px; font-size:0.92rem; box-shadow:0 4px 14px rgba(99,102,241,0.35);">
               OK / Close
             </button>
           </div>
@@ -146,8 +143,6 @@ export function renderCalendar(container, store) {
 
       modalOverlay.querySelector('#btn-close-cal-item-modal').addEventListener('click', closeModal);
       modalOverlay.querySelector('#btn-dismiss-cal-item-modal').addEventListener('click', closeModal);
-      const btnGo = modalOverlay.querySelector('#btn-go-to-content');
-      if (btnGo) btnGo.addEventListener('click', closeModal);
       modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) closeModal();
       });
