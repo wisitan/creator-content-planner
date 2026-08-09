@@ -69,7 +69,8 @@ export function renderChannels(container, store) {
     onDelete: (id) => store.deleteChannelEntry(id),
     addLabel: t('chan_add_btn'),
     emptyText: t('chan_empty'),
-    emptyIcon: '📺'
+    emptyIcon: '📺',
+    enableYearMonthFilter: true
   });
 }
 

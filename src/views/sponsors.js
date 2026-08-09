@@ -44,7 +44,8 @@ export function renderSponsors(container, store) {
     onDelete: (id) => store.deleteSponsor(id),
     addLabel: t('spon_add_btn'),
     emptyText: t('spon_empty'),
-    emptyIcon: '🤝'
+    emptyIcon: '🤝',
+    enableYearMonthFilter: true
   });
 }
 

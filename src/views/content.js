@@ -49,7 +49,8 @@ export function renderContent(container, store) {
     onDelete: (id) => store.deleteContent(id),
     addLabel: t('cnt_add_btn'),
     emptyText: t('cnt_empty'),
-    emptyIcon: '📝'
+    emptyIcon: '📝',
+    enableYearMonthFilter: true
   });
 }
 
