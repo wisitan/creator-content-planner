@@ -288,7 +288,9 @@ class Store extends Emitter {
 
       const p = existingWithId || existingWithValue;
       if (p) {
+        this._trackDelete(cleanId, 'product');
         p.id = cleanValue;
+        p.updatedAt = new Date().toISOString();
         this._changed('products');
         return { success: true };
       }
@@ -351,7 +353,9 @@ class Store extends Emitter {
 
       const c = existingWithId || existingWithValue;
       if (c) {
+        this._trackDelete(cleanId, 'content');
         c.id = cleanValue;
+        c.updatedAt = new Date().toISOString();
         this._changed('content');
         return { success: true };
       }
@@ -409,7 +413,9 @@ class Store extends Emitter {
 
       const e = existingWithId || existingWithValue;
       if (e) {
+        this._trackDelete(cleanId, 'channel');
         e.id = cleanValue;
+        e.updatedAt = new Date().toISOString();
         this._changed('channelTracker');
         return { success: true };
       }
@@ -468,7 +474,9 @@ class Store extends Emitter {
 
       const s = existingWithId || existingWithValue;
       if (s) {
+        this._trackDelete(cleanId, 'sponsor');
         s.id = cleanValue;
+        s.updatedAt = new Date().toISOString();
         this._changed('sponsors');
         return { success: true };
       }
