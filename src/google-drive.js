@@ -213,33 +213,23 @@ function mergeTwoWayData(local, drive) {
     const itemMap = new Map();
     const getTs = (item) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
 
-    // Process local items
+    // 1. Keep ALL local items safely (Local items currently in browser are ALWAYS preserved)
     (localList || []).forEach(item => {
       if (item && item.id) {
-        const id = String(item.id);
-        const delRecord = deletedMap.get(id);
-        if (delRecord) {
-          const delTs = new Date(delRecord.deletedAt).getTime();
-          const itemTs = getTs(item);
-          if (delTs >= itemTs) return; // Skip item if deleted
-        }
-        itemMap.set(id, item);
+        itemMap.set(String(item.id), item);
       }
     });
 
-    // Merge drive items
+    // 2. Process drive items: Add missing items from drive ONLY if not explicitly deleted locally
     (driveList || []).forEach(item => {
       if (!item || !item.id) return;
       const id = String(item.id);
-      const delRecord = deletedMap.get(id);
-      if (delRecord) {
-        const delTs = new Date(delRecord.deletedAt).getTime();
-        const itemTs = getTs(item);
-        if (delTs >= itemTs) return; // Skip item if deleted
-      }
 
       if (!itemMap.has(id)) {
-        itemMap.set(id, item);
+        const isLocallyDeleted = (local.deletedItems || []).some(d => String(d.id) === id);
+        if (!isLocallyDeleted) {
+          itemMap.set(id, item);
+        }
       } else {
         const localItem = itemMap.get(id);
         const localTs = getTs(localItem);
