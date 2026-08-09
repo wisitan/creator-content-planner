@@ -105,7 +105,7 @@ export const DICTIONARY = {
     col_cnt_status: "Status",
     col_cnt_pub_date: "Published Date",
     col_cnt_pub_url: "Published URL",
-    col_cnt_perf_notes: "Performance Notes",
+    col_cnt_perf_notes: "Notes",
 
     // Calendar View
     cal_title: "Monthly Calendar",
@@ -266,7 +266,7 @@ export const DICTIONARY = {
     col_cnt_status: "Status",
     col_cnt_pub_date: "Published Date",
     col_cnt_pub_url: "Published URL",
-    col_cnt_perf_notes: "Performance Notes",
+    col_cnt_perf_notes: "Notes",
 
     // Calendar View
     cal_title: "Calendar / ปฏิทินรายเดือน",

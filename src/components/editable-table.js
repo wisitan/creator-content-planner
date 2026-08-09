@@ -306,14 +306,9 @@ export function EditableTable(container, config) {
       const scriptText = row.script || val || '';
       const previewText = hookText || scriptText ? (hookText ? '🪝 ' + hookText : scriptText) : '';
       return `
-        <div style="display:flex; align-items:center; gap:6px;">
-          <button type="button" class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="padding:3px 8px; font-size:0.75rem; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to view/edit full script & hook">
-            📜 ${previewText ? esc(previewText.slice(0, 16)) + '...' : 'Edit Script'}
-          </button>
-          <button type="button" class="btn btn-primary btn-sm btn-quick-teleprompter" data-id="${esc(row[idField])}" style="padding:3px 10px; font-size:0.75rem; font-weight:700; background:#8b5cf6; border:none; border-radius:12px; cursor:pointer;" title="Open Teleprompter mode">
-            🎬 Teleprompter
-          </button>
-        </div>
+        <button type="button" class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="padding:3px 10px; font-size:0.78rem; font-weight:600; width:100%; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to view/edit full script & hook">
+          📜 ${previewText ? esc(previewText.slice(0, 20)) + '...' : 'Edit Script'}
+        </button>
       `;
     }
 
