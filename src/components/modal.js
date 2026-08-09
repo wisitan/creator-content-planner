@@ -7,10 +7,12 @@ export function showModal({
   body = '', 
   bodyHtml = '', 
   onConfirm, 
+  onCancel,
   confirmText = '', 
   confirmLabel = '', 
   cancelText = '', 
-  cancelLabel = '' 
+  cancelLabel = '',
+  closeOnOutsideClick = false
 }) {
   // Remove existing modal
   const existing = document.querySelector('.modal-overlay');
@@ -48,18 +50,22 @@ export function showModal({
   const close = () => overlay.remove();
 
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target.dataset.action === 'close') {
+    if (closeOnOutsideClick && e.target === overlay) {
+      if (onCancel) onCancel();
       close();
+      return;
+    }
+    if (e.target.dataset.action === 'close') {
+      if (onCancel) onCancel();
+      close();
+      return;
     }
     if (e.target.dataset.action === 'confirm' && onConfirm) {
       onConfirm(overlay.querySelector('.modal-body'));
       close();
+      return;
     }
   });
-
-  // ESC to close
-  const onKey = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
-  document.addEventListener('keydown', onKey);
 
   return { close, element: overlay };
 }
