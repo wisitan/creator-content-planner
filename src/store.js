@@ -101,7 +101,7 @@ class Store extends Emitter {
 
       if (!raw) return this._defaults();
       const parsed = JSON.parse(raw);
-      return {
+      const data = {
         settings: { ...DEFAULT_SETTINGS, ...parsed.settings, googleClientId: DEFAULT_GOOGLE_CLIENT_ID },
         products: parsed.products || [],
         content: parsed.content || [],
@@ -110,6 +110,9 @@ class Store extends Emitter {
         deletedItems: parsed.deletedItems || [],
         brand: { ...DEFAULT_BRAND, ...parsed.brand },
       };
+      // Migration: backfill updatedAt for legacy records that don't have it
+      this._migrateTimestamps(data);
+      return data;
     } catch (e) {
       console.warn('[Store] Corrupted data, trying backup snapshot', e);
       try {
@@ -130,7 +133,9 @@ class Store extends Emitter {
           }
         }
       } catch (err) {}
-      return this._defaults();
+      const defaults = this._defaults();
+      this._migrateTimestamps(defaults);
+      return defaults;
     }
   }
 
@@ -144,6 +149,23 @@ class Store extends Emitter {
       deletedItems: [],
       brand: clone(DEFAULT_BRAND),
     };
+  }
+
+  _migrateTimestamps(data) {
+    const now = new Date().toISOString();
+    const collections = ['products', 'content', 'channelTracker', 'sponsors'];
+    let migrated = false;
+    collections.forEach(key => {
+      (data[key] || []).forEach(item => {
+        if (item && item.id && !item.updatedAt) {
+          item.updatedAt = now;
+          migrated = true;
+        }
+      });
+    });
+    if (migrated) {
+      console.log('[Store] Migrated legacy records with updatedAt timestamps');
+    }
   }
 
   _persist() {
@@ -234,6 +256,7 @@ class Store extends Emitter {
       sellingPoints: '', productType: 'A สินค้าขายดี', targetAudience: '',
       imageUrl: '', status: 'To Review', notes: '', ...data,
     };
+    p.updatedAt = new Date().toISOString();
     this._data.products.push(p);
     this._changed('products');
     return p;
@@ -273,7 +296,7 @@ class Store extends Emitter {
     }
 
     const p = this.getProduct(cleanId) || this.getProduct(cleanValue);
-    if (p) { p[field] = value; this._changed('products'); return { success: true }; }
+    if (p) { p[field] = value; p.updatedAt = new Date().toISOString(); this._changed('products'); return { success: true }; }
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteProduct(id) {
@@ -298,6 +321,7 @@ class Store extends Emitter {
       plannedDate: '', status: '💡 Idea', publishedDate: '',
       publishedUrl: '', performanceNotes: '', ...data,
     };
+    c.updatedAt = new Date().toISOString();
     this._data.content.push(c);
     this._changed('content');
     return c;
@@ -335,7 +359,7 @@ class Store extends Emitter {
     }
 
     const c = this.getContentItem(cleanId) || this.getContentItem(cleanValue);
-    if (c) { c[field] = value; this._changed('content'); return { success: true }; }
+    if (c) { c[field] = value; c.updatedAt = new Date().toISOString(); this._changed('content'); return { success: true }; }
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteContent(id) {
@@ -355,6 +379,7 @@ class Store extends Emitter {
       avgWatchTime: '', productClicks: '', orders: '', revenue: '',
       notes: '', ...data,
     };
+    e.updatedAt = new Date().toISOString();
     this._data.channelTracker.push(e);
     this._changed('channelTracker');
     return e;
@@ -393,7 +418,7 @@ class Store extends Emitter {
 
     const e = this._data.channelTracker.find(x => String(x.id).trim().toLowerCase() === cleanId.toLowerCase()) ||
               this._data.channelTracker.find(x => String(x.id).trim().toLowerCase() === cleanValue.toLowerCase());
-    if (e) { e[field] = value; this._changed('channelTracker'); return { success: true }; }
+    if (e) { e[field] = value; e.updatedAt = new Date().toISOString(); this._changed('channelTracker'); return { success: true }; }
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteChannelEntry(id) {
@@ -413,6 +438,7 @@ class Store extends Emitter {
       contentIds: '', draftSent: false, approved: false, published: false,
       paymentStatus: 'Pending', paymentDate: '', notes: '', ...data,
     };
+    s.updatedAt = new Date().toISOString();
     this._data.sponsors.push(s);
     this._changed('sponsors');
     return s;
@@ -451,7 +477,7 @@ class Store extends Emitter {
 
     const s = this._data.sponsors.find(x => String(x.id).trim().toLowerCase() === cleanId.toLowerCase()) ||
               this._data.sponsors.find(x => String(x.id).trim().toLowerCase() === cleanValue.toLowerCase());
-    if (s) { s[field] = value; this._changed('sponsors'); return { success: true }; }
+    if (s) { s[field] = value; s.updatedAt = new Date().toISOString(); this._changed('sponsors'); return { success: true }; }
     return { error: true, message: 'ไม่พบรายการที่ต้องการแก้ไข' };
   }
   deleteSponsor(id) {

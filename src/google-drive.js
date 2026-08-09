@@ -195,42 +195,86 @@ export async function smartSyncWithDrive(localData, store) {
   };
 }
 
-/** Record-Level Smart Merge Algorithm (Last-Write-Wins + Soft Delete Aware) */
+/** Record-Level Smart Merge Algorithm (Directional Tombstone Sync) */
 function mergeTwoWayData(local, drive) {
-  // Merge tombstone deletion records first
-  const combinedDeleted = [...(local.deletedItems || []), ...(drive.deletedItems || [])];
-  const deletedMap = new Map();
-  combinedDeleted.forEach(d => {
+  // Build separate tombstone maps for each direction
+  const localDeletedMap = new Map();
+  (local.deletedItems || []).forEach(d => {
     if (d && d.id) {
-      const existing = deletedMap.get(String(d.id));
+      const id = String(d.id);
+      const existing = localDeletedMap.get(id);
       if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
-        deletedMap.set(String(d.id), d);
+        localDeletedMap.set(id, d);
       }
     }
   });
 
+  const driveDeletedMap = new Map();
+  (drive.deletedItems || []).forEach(d => {
+    if (d && d.id) {
+      const id = String(d.id);
+      const existing = driveDeletedMap.get(id);
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        driveDeletedMap.set(id, d);
+      }
+    }
+  });
+
+  // Safe timestamp: items without updatedAt use a fallback so old tombstones can't nuke them
+  const getTs = (item) => {
+    if (item.updatedAt) return new Date(item.updatedAt).getTime();
+    if (item.createdAt) return new Date(item.createdAt).getTime();
+    return 0;
+  };
+
   const mergeCollection = (localList = [], driveList = []) => {
     const itemMap = new Map();
-    const getTs = (item) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
 
-    // 1. Keep ALL local items safely (Local items currently in browser are ALWAYS preserved)
+    // Step 1: Process local items
+    // Apply DRIVE tombstones to local items (items deleted from another device)
     (localList || []).forEach(item => {
-      if (item && item.id) {
-        itemMap.set(String(item.id), item);
+      if (!item || !item.id) return;
+      const id = String(item.id);
+
+      const driveTombstone = driveDeletedMap.get(id);
+      if (driveTombstone) {
+        const deleteTs = new Date(driveTombstone.deletedAt).getTime();
+        const itemTs = getTs(item);
+        // Only delete if item has a timestamp AND tombstone is newer
+        // Items with no timestamp (legacy) are KEPT safe — user must delete manually
+        if (itemTs > 0 && deleteTs > itemTs) {
+          return; // Skip: this item was deleted from another device after last edit
+        }
+        if (itemTs === 0) {
+          // Legacy item with no timestamp — keep it safe, don't auto-delete
+          // It will get an updatedAt on next edit
+        }
       }
+      itemMap.set(id, item);
     });
 
-    // 2. Process drive items: Add missing items from drive ONLY if not explicitly deleted locally
+    // Step 2: Process drive items
+    // Apply LOCAL tombstones to drive items (items deleted from THIS device)
     (driveList || []).forEach(item => {
       if (!item || !item.id) return;
       const id = String(item.id);
 
-      if (!itemMap.has(id)) {
-        const isLocallyDeleted = (local.deletedItems || []).some(d => String(d.id) === id);
-        if (!isLocallyDeleted) {
-          itemMap.set(id, item);
+      const localTombstone = localDeletedMap.get(id);
+      if (localTombstone) {
+        const deleteTs = new Date(localTombstone.deletedAt).getTime();
+        const itemTs = getTs(item);
+        // Don't bring back items that were deleted locally
+        // Unless the drive item was updated AFTER the local deletion
+        if (itemTs === 0 || deleteTs >= itemTs) {
+          return; // Skip: this item was deleted locally
         }
+      }
+
+      if (!itemMap.has(id)) {
+        // New item from drive that doesn't exist locally — add it
+        itemMap.set(id, item);
       } else {
+        // Item exists both locally and on drive — keep the newer version
         const localItem = itemMap.get(id);
         const localTs = getTs(localItem);
         const driveTs = getTs(item);
@@ -256,17 +300,29 @@ function mergeTwoWayData(local, drive) {
   // Merge Settings
   const mergedSettings = { ...(drive.settings || {}), ...(local.settings || {}) };
 
+  // Combine tombstones from both sides (union)
+  const allDeletedMap = new Map();
+  [...(local.deletedItems || []), ...(drive.deletedItems || [])].forEach(d => {
+    if (d && d.id) {
+      const id = String(d.id);
+      const existing = allDeletedMap.get(id);
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        allDeletedMap.set(id, d);
+      }
+    }
+  });
+
   return {
     settings: mergedSettings,
     products: mergedProducts,
     content: mergedContent,
     channelTracker: mergedChannels,
     sponsors: mergedSponsors,
-    deletedItems: Array.from(deletedMap.values()),
+    deletedItems: Array.from(allDeletedMap.values()),
     brand: mergedBrand,
     meta: {
       lastUpdated: new Date().toISOString(),
-      syncMode: 'Smart-Two-Way-v2'
+      syncMode: 'Smart-Two-Way-v3'
     }
   };
 }
