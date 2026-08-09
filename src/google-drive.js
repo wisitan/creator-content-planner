@@ -197,24 +197,47 @@ export async function smartSyncWithDrive(localData, store) {
 
 /** Record-Level Smart Merge Algorithm (Last-Write-Wins + Soft Delete Aware) */
 function mergeTwoWayData(local, drive) {
-  const localDeleted = new Set((local.deletedItems || []).map(d => String(d.id)));
-  const driveDeleted = new Set((drive.deletedItems || []).map(d => String(d.id)));
+  // Merge tombstone deletion records first
+  const combinedDeleted = [...(local.deletedItems || []), ...(drive.deletedItems || [])];
+  const deletedMap = new Map();
+  combinedDeleted.forEach(d => {
+    if (d && d.id) {
+      const existing = deletedMap.get(String(d.id));
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        deletedMap.set(String(d.id), d);
+      }
+    }
+  });
 
   const mergeCollection = (localList = [], driveList = []) => {
     const itemMap = new Map();
     const getTs = (item) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
 
-    // Process local items first (Keep all local data as priority)
+    // Process local items
     (localList || []).forEach(item => {
       if (item && item.id) {
-        itemMap.set(String(item.id), item);
+        const id = String(item.id);
+        const delRecord = deletedMap.get(id);
+        if (delRecord) {
+          const delTs = new Date(delRecord.deletedAt).getTime();
+          const itemTs = getTs(item);
+          if (delTs >= itemTs) return; // Skip item if deleted
+        }
+        itemMap.set(id, item);
       }
     });
 
-    // Merge drive items (Add missing items from cloud or update if cloud item is newer)
+    // Merge drive items
     (driveList || []).forEach(item => {
       if (!item || !item.id) return;
       const id = String(item.id);
+      const delRecord = deletedMap.get(id);
+      if (delRecord) {
+        const delTs = new Date(delRecord.deletedAt).getTime();
+        const itemTs = getTs(item);
+        if (delTs >= itemTs) return; // Skip item if deleted
+      }
+
       if (!itemMap.has(id)) {
         itemMap.set(id, item);
       } else {
@@ -234,13 +257,6 @@ function mergeTwoWayData(local, drive) {
   const mergedContent = mergeCollection(local.content, drive.content);
   const mergedChannels = mergeCollection(local.channelTracker, drive.channelTracker);
   const mergedSponsors = mergeCollection(local.sponsors, drive.sponsors);
-
-  // Merge tombstone deletion records
-  const combinedDeleted = [...(local.deletedItems || []), ...(drive.deletedItems || [])];
-  const deletedMap = new Map();
-  combinedDeleted.forEach(d => {
-    if (!deletedMap.has(d.id)) deletedMap.set(d.id, d);
-  });
 
   // Merge Brand
   const localBrandTs = local.brand?.updatedAt ? new Date(local.brand.updatedAt).getTime() : 0;
