@@ -7,7 +7,7 @@ import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 import { getLang, setLang, t } from './i18n.js';
 
-const APP_VERSION = 'v1.9.9';
+const APP_VERSION = 'v2.0.0';
 
 // Apply saved Language & Theme
 setLang(store.getLanguage());
@@ -69,8 +69,7 @@ function buildShell() {
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary btn-sm" id="btn-manual-save" title="Save data to local browser storage immediately">💾 Save</button>
-        <button class="btn btn-secondary btn-sm" id="btn-gdrive-backup" title="Backup to Google Drive">☁️ Drive Backup</button>
-        <button class="btn btn-secondary btn-sm" id="btn-gdrive-sync" title="Sync from Google Drive">🔄 Drive Sync</button>
+        <button class="btn btn-secondary btn-sm" id="btn-gdrive-smart-sync" style="background:#8B5CF6; color:#ffffff; font-weight:700; border:none;" title="Smart Two-Way Sync with Google Drive (Merge without losing data)">🔄 Smart Sync</button>
         <button class="btn btn-secondary btn-sm" id="btn-export" title="Export data as JSON">📥 Export</button>
         <label class="btn btn-secondary btn-sm" title="Import data from JSON">
           📤 Import
@@ -112,8 +111,8 @@ function buildShell() {
     showToast(getLang() === 'th' ? 'บันทึกข้อมูลลงในเครื่องนี้เรียบร้อยแล้วค่ะ! 💾✅' : 'Data saved locally successfully! 💾✅', 'success');
   });
 
-  // Wire Google Drive Backup
-  document.getElementById('btn-gdrive-backup').addEventListener('click', async () => {
+  // Wire Google Drive Smart Two-Way Sync (Single Button Action)
+  document.getElementById('btn-gdrive-smart-sync').addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
       showToast(getLang() === 'th' ? 'กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ' : 'Please enter Google Client ID in ⚙️ Settings first.', 'error');
@@ -122,35 +121,15 @@ function buildShell() {
     }
     try {
       store.forceSave();
-      showToast(getLang() === 'th' ? 'กำลังเชื่อมต่อและอัปโหลดข้อมูลในเครื่องขึ้น Google Drive... ☁️' : 'Connecting & uploading local data to Google Drive... ☁️', 'info');
+      showToast(getLang() === 'th' ? 'กำลังทำการ Smart Sync รวมข้อมูลสองทางกับ Google Drive... 🔄☁️' : 'Performing Smart Two-Way Sync with Google Drive... 🔄☁️', 'info');
       await initGoogleDrive(googleClientId);
-      await backupToDrive(store._data, store);
-      showToast(getLang() === 'th' ? 'อัปโหลดข้อมูลขึ้น Google Drive สำเร็จเรียบร้อยแล้วค่ะ! ☁️⬆️✅' : 'Backup to Google Drive succeeded! ☁️⬆️✅', 'success');
-    } catch (err) {
-      showToast('Drive Backup Failed: ' + err.message, 'error');
-    }
-  });
-
-  // Wire Google Drive Sync
-  document.getElementById('btn-gdrive-sync').addEventListener('click', async () => {
-    const googleClientId = store.getSettings().googleClientId;
-    if (!googleClientId) {
-      showToast(getLang() === 'th' ? 'กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ' : 'Please enter Google Client ID in ⚙️ Settings first.', 'error');
-      window.location.hash = '#settings';
-      return;
-    }
-    if (!confirm(getLang() === 'th' ? 'ต้องการ Sync ดึงข้อมูลจาก Google Drive ลงมาอัปเดตในเครื่องใช่หรือไม่คะ?' : 'Sync and overwrite local data with Google Drive backup?')) return;
-    try {
-      showToast(getLang() === 'th' ? 'กำลังดึงข้อมูลจาก Google Drive... 🔄' : 'Syncing data from Google Drive... 🔄', 'info');
-      await initGoogleDrive(googleClientId);
-      const data = await syncFromDrive();
-      if (data) {
-        store.importData(data);
-        showToast(getLang() === 'th' ? 'Sync ข้อมูลจาก Google Drive สำเร็จเรียบร้อย! 🔄✅' : 'Synced from Google Drive successfully! 🔄✅', 'success');
+      const res = await smartSyncWithDrive(store._data, store);
+      if (res && res.success) {
+        showToast(getLang() === 'th' ? 'Smart Sync ข้อมูลไร้รอยต่อสำเร็จเรียบร้อย! 🔄☁️✅' : 'Smart Two-Way Sync completed successfully! 🔄☁️✅', 'success');
         navigate(currentRoute || 'dashboard');
       }
     } catch (err) {
-      showToast('Drive Sync Failed: ' + err.message, 'error');
+      showToast('Smart Sync Failed: ' + err.message, 'error');
     }
   });
 

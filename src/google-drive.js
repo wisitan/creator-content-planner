@@ -146,6 +146,126 @@ export async function syncFromDrive() {
   return data;
 }
 
+/** Smart Two-Way Sync (Merge Local & Cloud Data seamlessly without overwriting new items) */
+export async function smartSyncWithDrive(localData, store) {
+  if (!accessToken) {
+    await authenticateDrive();
+  }
+
+  const fileId = await findBackupFileId();
+  let driveData = null;
+
+  if (fileId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        driveData = await res.json();
+      }
+    } catch (err) {
+      console.warn('[Smart Sync] Could not fetch existing drive file:', err);
+    }
+  }
+
+  // If no Drive file exists yet, perform initial backup upload
+  if (!driveData) {
+    await backupToDrive(localData, store);
+    return {
+      success: true,
+      mode: 'initial_upload',
+      message: 'Created initial backup on Google Drive!'
+    };
+  }
+
+  // Perform Item-by-Item Record-Level Smart Merge
+  const mergedData = mergeTwoWayData(localData, driveData);
+
+  // Update local store with merged dataset
+  store.importData(mergedData);
+
+  // Upload merged dataset back to Google Drive
+  await backupToDrive(mergedData, store);
+
+  return {
+    success: true,
+    mode: 'merged',
+    totalRecords: (mergedData.products?.length || 0) + (mergedData.content?.length || 0),
+    message: 'Smart Two-Way Sync completed successfully!'
+  };
+}
+
+/** Record-Level Smart Merge Algorithm (Last-Write-Wins + Soft Delete Aware) */
+function mergeTwoWayData(local, drive) {
+  const localDeleted = new Set((local.deletedItems || []).map(d => String(d.id)));
+  const driveDeleted = new Set((drive.deletedItems || []).map(d => String(d.id)));
+
+  const mergeCollection = (localList = [], driveList = []) => {
+    const itemMap = new Map();
+    const getTs = (item) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+
+    // Process drive items
+    driveList.forEach(item => {
+      const id = String(item.id);
+      if (localDeleted.has(id) || driveDeleted.has(id)) return;
+      itemMap.set(id, item);
+    });
+
+    // Process local items (Last-Write-Wins)
+    localList.forEach(item => {
+      const id = String(item.id);
+      if (localDeleted.has(id) || driveDeleted.has(id)) return;
+
+      if (!itemMap.has(id)) {
+        itemMap.set(id, item);
+      } else {
+        const driveItem = itemMap.get(id);
+        const localTs = getTs(item);
+        const driveTs = getTs(driveItem);
+        if (localTs >= driveTs) {
+          itemMap.set(id, item);
+        }
+      }
+    });
+
+    return Array.from(itemMap.values());
+  };
+
+  const mergedProducts = mergeCollection(local.products, drive.products);
+  const mergedContent = mergeCollection(local.content, drive.content);
+  const mergedChannels = mergeCollection(local.channelTracker, drive.channelTracker);
+  const mergedSponsors = mergeCollection(local.sponsors, drive.sponsors);
+
+  // Merge tombstone deletion records
+  const combinedDeleted = [...(local.deletedItems || []), ...(drive.deletedItems || [])];
+  const deletedMap = new Map();
+  combinedDeleted.forEach(d => {
+    if (!deletedMap.has(d.id)) deletedMap.set(d.id, d);
+  });
+
+  // Merge Brand
+  const localBrandTs = local.brand?.updatedAt ? new Date(local.brand.updatedAt).getTime() : 0;
+  const driveBrandTs = drive.brand?.updatedAt ? new Date(drive.brand.updatedAt).getTime() : 0;
+  const mergedBrand = localBrandTs >= driveBrandTs ? { ...(drive.brand || {}), ...(local.brand || {}) } : { ...(local.brand || {}), ...(drive.brand || {}) };
+
+  // Merge Settings
+  const mergedSettings = { ...(drive.settings || {}), ...(local.settings || {}) };
+
+  return {
+    settings: mergedSettings,
+    products: mergedProducts,
+    content: mergedContent,
+    channelTracker: mergedChannels,
+    sponsors: mergedSponsors,
+    deletedItems: Array.from(deletedMap.values()),
+    brand: mergedBrand,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      syncMode: 'Smart-Two-Way-v2'
+    }
+  };
+}
+
 /** Search for backup file ID on Google Drive */
 async function findBackupFileId() {
   const query = encodeURIComponent(`name = '${BACKUP_FILENAME}' and trashed = false`);
