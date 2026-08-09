@@ -204,25 +204,24 @@ function mergeTwoWayData(local, drive) {
     const itemMap = new Map();
     const getTs = (item) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
 
-    // Process drive items
-    driveList.forEach(item => {
-      const id = String(item.id);
-      if (localDeleted.has(id) || driveDeleted.has(id)) return;
-      itemMap.set(id, item);
+    // Process local items first (Keep all local data as priority)
+    (localList || []).forEach(item => {
+      if (item && item.id) {
+        itemMap.set(String(item.id), item);
+      }
     });
 
-    // Process local items (Last-Write-Wins)
-    localList.forEach(item => {
+    // Merge drive items (Add missing items from cloud or update if cloud item is newer)
+    (driveList || []).forEach(item => {
+      if (!item || !item.id) return;
       const id = String(item.id);
-      if (localDeleted.has(id) || driveDeleted.has(id)) return;
-
       if (!itemMap.has(id)) {
         itemMap.set(id, item);
       } else {
-        const driveItem = itemMap.get(id);
-        const localTs = getTs(item);
-        const driveTs = getTs(driveItem);
-        if (localTs >= driveTs) {
+        const localItem = itemMap.get(id);
+        const localTs = getTs(localItem);
+        const driveTs = getTs(item);
+        if (driveTs > localTs) {
           itemMap.set(id, item);
         }
       }

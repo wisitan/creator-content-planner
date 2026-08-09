@@ -658,8 +658,8 @@ class Store extends Emitter {
 
     // 2. Helper merge array by ID while respecting Tombstones & Image Preservation
     const mergeArrayWithTombstones = (localArr = [], remoteArr = [], idKey = 'id') => {
-      // Discard local sample items so they don't pollute real Drive data
-      const cleanLocalArr = localArr.filter(item => !item || !item.isSample);
+      // Keep all local items during sync without discarding sample items
+      const cleanLocalArr = localArr;
 
       const map = new Map();
       remoteArr.forEach(item => {
