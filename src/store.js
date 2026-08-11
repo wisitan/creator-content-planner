@@ -530,31 +530,35 @@ class Store extends Emitter {
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
     const rawList = this._data.content.filter(c => {
-      const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
-      if (!targetDateStr) return false;
-
-      const datePart = targetDateStr.split('T')[0].split(' ')[0];
-      const parts = datePart.split(/[-/]/);
-      if (parts.length < 3) return false;
+      const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
+      if (!val) return false;
 
       let y, m;
-      if (parseInt(parts[0], 10) > 1000) {
-        y = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10) - 1;
-      } else if (parseInt(parts[2], 10) > 1000) {
-        y = parseInt(parts[2], 10);
-        m = parseInt(parts[1], 10) - 1;
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        y = d.getFullYear();
+        m = d.getMonth();
       } else {
-        return false;
+        const p = val.split(/[-/]/);
+        if (p.length >= 3) {
+          if (parseInt(p[0], 10) > 1000) { y = parseInt(p[0], 10); m = parseInt(p[1], 10) - 1; }
+          else { y = parseInt(p[2], 10); m = parseInt(p[1], 10) - 1; }
+        } else return false;
       }
 
       const matchesMonth = y === year && m === month;
       
       let matchesStatus = false;
-      if (statusFilter && typeof statusFilter.has === 'function') {
+      if (!statusFilter || statusFilter === 'ALL') {
+        matchesStatus = true;
+      } else if (typeof statusFilter === 'string') {
+        matchesStatus = c.status === statusFilter;
+      } else if (typeof statusFilter.has === 'function') {
         matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
+      } else if (Array.isArray(statusFilter)) {
+        matchesStatus = statusFilter.includes('ALL') || statusFilter.length === 0 || statusFilter.includes(c.status);
       } else {
-        matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+        matchesStatus = true; // Safe fallback
       }
 
       return matchesMonth && matchesStatus;
@@ -573,21 +577,22 @@ class Store extends Emitter {
 
     return uniqueList.map(c => {
       const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
-      const datePart = val.split('T')[0].split(' ')[0];
-      const parts = datePart.split(/[-/]/);
       let finalActiveDate = val;
 
-      if (parts.length >= 3) {
-        if (parseInt(parts[0], 10) > 1000) {
-          const yStr = parts[0];
-          const mStr = parseInt(parts[1], 10).toString().padStart(2, '0');
-          const dStr = parseInt(parts[2], 10).toString().padStart(2, '0');
-          finalActiveDate = `${yStr}-${mStr}-${dStr}`;
-        } else if (parseInt(parts[2], 10) > 1000) {
-          const yStr = parts[2];
-          const mStr = parseInt(parts[1], 10).toString().padStart(2, '0');
-          const dStr = parseInt(parts[0], 10).toString().padStart(2, '0');
-          finalActiveDate = `${yStr}-${mStr}-${dStr}`;
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        const yStr = d.getFullYear();
+        const mStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
+      } else {
+        const p = val.split(/[-/]/);
+        if (p.length >= 3) {
+          if (parseInt(p[0], 10) > 1000) {
+            finalActiveDate = `${p[0]}-${parseInt(p[1], 10).toString().padStart(2, '0')}-${parseInt(p[2], 10).toString().padStart(2, '0')}`;
+          } else {
+            finalActiveDate = `${p[2]}-${parseInt(p[1], 10).toString().padStart(2, '0')}-${parseInt(p[0], 10).toString().padStart(2, '0')}`;
+          }
         }
       }
 
