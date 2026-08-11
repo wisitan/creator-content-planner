@@ -508,6 +508,23 @@ class Store extends Emitter {
     obj[keys[keys.length - 1]] = value;
     this._changed('brand');
   }
+  getContentForMonth(year, month, statusFilter = 'ALL') {
+    return this._data.content.filter(c => {
+      if (!c.publishedDate) return false;
+      const d = new Date(c.publishedDate);
+      if (isNaN(d.getTime())) return false;
+
+      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
+      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      return matchesMonth && matchesStatus;
+    }).map(c => {
+      return {
+        ...c,
+        activeDate: c.publishedDate,
+        productName: this.getProductName(c.productId)
+      };
+    });
+  }
 
   /* ── Computed Stats ── */
   getStats() {

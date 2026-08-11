@@ -33,29 +33,30 @@ export function CalendarGrid(container, config) {
     const isPublished = statusStr.includes('Published');
     const pubDate = item.publishedDate || item.activeDate || '';
 
+    // 1. If status is Published -> BLUE COLOR (Completed 🟦)
     if (isPublished) {
       return {
-        style: 'background:var(--c-bg); color:var(--c-green, #16A34A); border-left:3px solid #22C55E;',
-        badgeClass: 'badge-green',
+        style: 'background:#EFF6FF; color:#1D4ED8; border-left:3px solid #3B82F6;',
+        badgeClass: 'badge-blue',
         statusText: 'Published'
       };
     }
 
-    // If publishedDate is past today's date and status is NOT Published -> ORANGE FONT/BORDER
+    // 2. If past publishedDate and NOT Published -> ORANGE COLOR (Overdue 🟧)
     if (pubDate && pubDate < todayStr) {
       return {
         style: 'background:#FFF7ED; color:#C2410C; border-left:3px solid #F97316; font-weight:600;',
         badgeClass: 'badge-orange',
         statusText: 'Overdue / Pending'
       };
-    } else {
-      // Not past due yet / On Track -> GREEN FONT/BORDER
-      return {
-        style: 'background:#F0FDF4; color:#166534; border-left:3px solid #16A34A;',
-        badgeClass: 'badge-green',
-        statusText: 'On Track'
-      };
-    }
+    } 
+    
+    // 3. If today or future publishedDate and NOT Published -> GREEN COLOR (On Track 🟩)
+    return {
+      style: 'background:#F0FDF4; color:#15803D; border-left:3px solid #22C55E;',
+      badgeClass: 'badge-green',
+      statusText: 'On Track'
+    };
   }
 
   function render() {
