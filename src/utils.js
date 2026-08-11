@@ -8,6 +8,12 @@ export function debounce(fn, ms = 350) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
+/** Detect if current client is a Mobile Device or Mobile Viewport */
+export function isMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 /** Generate short unique ID */
 let _seq = Date.now();
 export function uid(prefix = '') {

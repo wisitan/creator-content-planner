@@ -1051,6 +1051,13 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     display: none !important;
   }
 
+  .etable-mobile-card-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 10px 0 !important;
+  }
+
   /* 4. Calendar Horizontal Scroll Wrapper & Min-width */
   .cal-wrapper {
     width: 100% !important;
@@ -1339,6 +1346,11 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 /* ── 26. Mobile Bottom Navigation Bar & Native Mobile Experience ── */
 .mobile-bottom-nav {
   display: none;
+}
+
+/* Default Desktop Lock: Hide Mobile Cards on Desktop Viewports (> 768px) */
+.etable-mobile-card-list {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
