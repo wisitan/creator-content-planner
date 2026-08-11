@@ -529,36 +529,53 @@ class Store extends Emitter {
     this._changed('brand');
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
-    const rawList = this._data.content.filter(c => {
-      const val = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
-      if (!val) return false;
+    if (!this._data || !Array.isArray(this._data.content)) return [];
 
-      let y, m;
-      const d = new Date(val);
+    const rawList = this._data.content.filter(c => {
+      if (!c) return false;
+
+      const dateVal = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || c.createdAt || '';
+      if (!dateVal) return false;
+
+      let itemYear = null;
+      let itemMonth = null;
+
+      const d = new Date(dateVal);
       if (!isNaN(d.getTime())) {
-        y = d.getFullYear();
-        m = d.getMonth();
+        itemYear = d.getFullYear();
+        itemMonth = d.getMonth();
       } else {
-        const p = val.split(/[-/]/);
-        if (p.length >= 3) {
-          if (parseInt(p[0], 10) > 1000) { y = parseInt(p[0], 10); m = parseInt(p[1], 10) - 1; }
-          else { y = parseInt(p[2], 10); m = parseInt(p[1], 10) - 1; }
-        } else return false;
+        const str = String(dateVal).split('T')[0].trim();
+        const parts = str.split(/[-/.]/);
+        if (parts.length >= 3) {
+          const p0 = parseInt(parts[0], 10);
+          const p1 = parseInt(parts[1], 10);
+          const p2 = parseInt(parts[2], 10);
+          if (p0 > 1000) { itemYear = p0; itemMonth = p1 - 1; }
+          else if (p2 > 1000) { itemYear = p2; itemMonth = p1 - 1; }
+        }
       }
 
-      const matchesMonth = y === year && m === month;
-      
+      if (itemYear === null || itemMonth === null) return false;
+
+      // Handle Thai Buddhist Era (พ.ศ.) -> Convert 2569 to 2026
+      if (itemYear > 2400) {
+        itemYear -= 543;
+      }
+
+      const matchesMonth = itemYear === year && itemMonth === month;
+
       let matchesStatus = false;
       if (!statusFilter || statusFilter === 'ALL') {
         matchesStatus = true;
       } else if (typeof statusFilter === 'string') {
-        matchesStatus = c.status === statusFilter;
+        matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
       } else if (typeof statusFilter.has === 'function') {
         matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
       } else if (Array.isArray(statusFilter)) {
         matchesStatus = statusFilter.includes('ALL') || statusFilter.length === 0 || statusFilter.includes(c.status);
       } else {
-        matchesStatus = true; // Safe fallback
+        matchesStatus = true;
       }
 
       return matchesMonth && matchesStatus;
@@ -576,22 +593,29 @@ class Store extends Emitter {
     });
 
     return uniqueList.map(c => {
-      const val = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
-      let finalActiveDate = val;
+      const dateVal = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
+      let finalActiveDate = String(dateVal).split('T')[0].trim();
 
-      const d = new Date(val);
+      const d = new Date(dateVal);
       if (!isNaN(d.getTime())) {
-        const yStr = d.getFullYear();
+        let yNum = d.getFullYear();
+        if (yNum > 2400) yNum -= 543;
+        const yStr = String(yNum);
         const mStr = String(d.getMonth() + 1).padStart(2, '0');
         const dayStr = String(d.getDate()).padStart(2, '0');
         finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
       } else {
-        const p = val.split(/[-/]/);
-        if (p.length >= 3) {
-          if (parseInt(p[0], 10) > 1000) {
-            finalActiveDate = `${p[0]}-${parseInt(p[1], 10).toString().padStart(2, '0')}-${parseInt(p[2], 10).toString().padStart(2, '0')}`;
-          } else {
-            finalActiveDate = `${p[2]}-${parseInt(p[1], 10).toString().padStart(2, '0')}-${parseInt(p[0], 10).toString().padStart(2, '0')}`;
+        const parts = finalActiveDate.split(/[-/.]/);
+        if (parts.length >= 3) {
+          let p0 = parseInt(parts[0], 10);
+          let p1 = parseInt(parts[1], 10);
+          let p2 = parseInt(parts[2], 10);
+          if (p0 > 1000) {
+            if (p0 > 2400) p0 -= 543;
+            finalActiveDate = `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+          } else if (p2 > 1000) {
+            if (p2 > 2400) p2 -= 543;
+            finalActiveDate = `${p2}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
           }
         }
       }
