@@ -510,17 +510,20 @@ class Store extends Emitter {
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
     return this._data.content.filter(c => {
-      if (!c.publishedDate) return false;
-      const d = new Date(c.publishedDate);
+      const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate;
+      if (!targetDateStr) return false;
+      const d = new Date(targetDateStr);
       if (isNaN(d.getTime())) return false;
 
       const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
       return matchesMonth && matchesStatus;
     }).map(c => {
+      const dateVal = c.publishedPlan || c.publishedDate || c.plannedDate;
       return {
         ...c,
-        activeDate: c.publishedDate,
+        publishedPlan: dateVal,
+        activeDate: dateVal,
         productName: this.getProductName(c.productId)
       };
     });

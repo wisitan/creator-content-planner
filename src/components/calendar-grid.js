@@ -31,7 +31,7 @@ export function CalendarGrid(container, config) {
   function getItemColorStyle(item, todayStr) {
     const statusStr = item.status || '';
     const isPublished = statusStr.includes('Published');
-    const pubDate = item.publishedDate || item.activeDate || '';
+    const pubDate = item.publishedPlan || item.publishedDate || item.activeDate || '';
 
     // 1. If status is Published -> BLUE COLOR (Completed 🟦)
     if (isPublished) {
@@ -42,7 +42,7 @@ export function CalendarGrid(container, config) {
       };
     }
 
-    // 2. If past publishedDate and NOT Published -> ORANGE COLOR (Overdue 🟧)
+    // 2. If past publishedPlan and NOT Published -> ORANGE COLOR (Overdue 🟧)
     if (pubDate && pubDate < todayStr) {
       return {
         style: 'background:#FFF7ED; color:#C2410C; border-left:3px solid #F97316; font-weight:600;',
@@ -51,7 +51,7 @@ export function CalendarGrid(container, config) {
       };
     } 
     
-    // 3. If today or future publishedDate and NOT Published -> GREEN COLOR (On Track 🟩)
+    // 3. If today or future publishedPlan and NOT Published -> GREEN COLOR (On Track 🟩)
     return {
       style: 'background:#F0FDF4; color:#15803D; border-left:3px solid #22C55E;',
       badgeClass: 'badge-green',

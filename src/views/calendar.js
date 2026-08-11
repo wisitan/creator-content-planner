@@ -161,8 +161,7 @@ export function renderCalendar(container, store) {
               <div><strong>Channel:</strong> ${esc(fullItem.channel || '-')}</div>
               <div><strong>CTA Type:</strong> ${esc(fullItem.ctaType || '-')}</div>
               <div><strong>Status:</strong> ${esc(fullItem.status || '-')}</div>
-              <div><strong>Planned Date:</strong> ${esc(fullItem.plannedDate || '-')}</div>
-              <div><strong>Published Date:</strong> ${esc(fullItem.publishedDate || '-')}</div>
+              <div><strong>Published Plan:</strong> ${esc(fullItem.publishedPlan || fullItem.publishedDate || fullItem.plannedDate || '-')}</div>
             </div>
 
             ${fullItem.publishedUrl ? `
