@@ -74,8 +74,27 @@ function buildShell() {
       </div>
     </header>
     <main class="main-content" id="main-content"></main>
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav"></nav>
     <div class="toast-container" id="toast-container"></div>
   `;
+
+  // Build Mobile Bottom Nav
+  const mobileNav = document.getElementById('mobile-bottom-nav');
+  const MOBILE_ROUTES = [
+    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+    { id: 'products',  icon: '🛍️', label: 'Products' },
+    { id: 'content',   icon: '📝', label: 'Content' },
+    { id: 'calendar',  icon: '📅', label: 'Calendar' },
+    { id: 'settings',  icon: '⚙️', label: 'Settings' },
+  ];
+  MOBILE_ROUTES.forEach(r => {
+    const a = document.createElement('a');
+    a.className = 'mobile-bottom-nav-item';
+    a.href = '#' + r.id;
+    a.dataset.route = r.id;
+    a.innerHTML = `<span class="nav-icon">${r.icon}</span><span>${r.label}</span>`;
+    mobileNav.appendChild(a);
+  });
 
   // Mobile Drawer Toggle
   const sidebar = document.querySelector('.sidebar');
@@ -159,6 +178,10 @@ function navigate(routeId) {
   currentRoute = route.id;
 
   document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.route === route.id);
+  });
+
+  document.querySelectorAll('.mobile-bottom-nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.route === route.id);
   });
 

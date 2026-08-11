@@ -942,6 +942,10 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     padding: 10px !important;
   }
 
+  .table-responsive {
+    display: none !important;
+  }
+
   .dash-grid, .grid-2 {
     grid-template-columns: 1fr !important;
   }
@@ -1204,15 +1208,137 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 
   .color-rect-swatch,
   .brand-header-spotlight,
-  .card-section-header-banner {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-
   .badge {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+}
+
+/* ── 26. Mobile Bottom Navigation Bar & Native Mobile Experience ── */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #app {
+    padding-bottom: 65px !important;
+  }
+
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--c-bg-card);
+    border-top: 1px solid var(--c-border);
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    color: var(--c-text-muted);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 500;
+    gap: 2px;
+    transition: color 0.15s ease;
+  }
+
+  .mobile-bottom-nav-item .nav-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .mobile-bottom-nav-item.active {
+    color: var(--c-primary);
+    font-weight: 700;
+  }
+
+  /* Mobile Card Transformations for EditableTable */
+  .etable-mobile-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .etable-mobile-card {
+    background: var(--c-bg-card);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .etable-mobile-card:active {
+    transform: scale(0.98);
+    border-color: var(--c-primary);
+  }
+
+  .etable-mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .etable-mobile-card-id {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--c-primary);
+    background: var(--c-primary-light);
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .etable-mobile-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .etable-mobile-card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--c-text-secondary);
+  }
+
+  .etable-mobile-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--c-border);
+    font-size: 0.8rem;
+  }
+
+  /* Status Chips Horizontal Touch Scroll */
+  .status-chips-bar {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 6px !important;
+  }
+
+  .status-chips-bar::-webkit-scrollbar {
+    display: none !important;
   }
 }
 
