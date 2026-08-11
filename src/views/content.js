@@ -101,7 +101,7 @@ export function renderContent(container, store) {
       getCategories: () => store.getSettingList('productCategories'),
       getProductTypes: () => store.getSettingList('productTypes'),
       getStatuses: () => store.getSettingList('productStatuses'),
-      onAdd: () => store.addContent({ status: selectedStatus === 'ALL' ? '💡 Idea' : selectedStatus }),
+      onAdd: () => store.addContent({ status: (selectedStatuses.has('ALL') || selectedStatuses.size === 0) ? '💡 Idea' : [...selectedStatuses][0] }),
       onChange: (id, field, value) => store.updateContent(id, field, value),
       onDelete: (id) => store.deleteContent(id),
       addLabel: t('cnt_add_btn'),
