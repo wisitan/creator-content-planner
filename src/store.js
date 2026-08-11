@@ -112,6 +112,7 @@ class Store extends Emitter {
       };
       // Migration: backfill updatedAt for legacy records that don't have it
       this._migrateTimestamps(data);
+      this._migrateDates(data);
       return data;
     } catch (e) {
       console.warn('[Store] Corrupted data, trying backup snapshot', e);
@@ -166,6 +167,19 @@ class Store extends Emitter {
     if (migrated) {
       console.log('[Store] Migrated legacy records with updatedAt timestamps');
     }
+  }
+
+  _migrateDates(data) {
+    if (!data || !data.content) return;
+    data.content.forEach(c => {
+      if (c && typeof c === 'object') {
+        if (!c.publishedPlan) {
+          c.publishedPlan = c.publishedDate || c.plannedDate || '';
+        }
+        delete c.publishedDate;
+        delete c.plannedDate;
+      }
+    });
   }
 
   _persist() {
@@ -510,7 +524,7 @@ class Store extends Emitter {
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
     return this._data.content.filter(c => {
-      const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate;
+      const targetDateStr = c.publishedPlan;
       if (!targetDateStr) return false;
       const d = new Date(targetDateStr);
       if (isNaN(d.getTime())) return false;
@@ -519,11 +533,9 @@ class Store extends Emitter {
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
       return matchesMonth && matchesStatus;
     }).map(c => {
-      const dateVal = c.publishedPlan || c.publishedDate || c.plannedDate;
       return {
         ...c,
-        publishedPlan: dateVal,
-        activeDate: dateVal,
+        activeDate: c.publishedPlan,
         productName: this.getProductName(c.productId)
       };
     });
