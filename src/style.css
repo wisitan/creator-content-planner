@@ -889,7 +889,7 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 @media (max-width: 768px) {
   #app {
     grid-template-columns: 1fr !important;
-    grid-template-rows: var(--topbar-h) 1fr !important;
+    grid-template-rows: auto 1fr !important;
     grid-template-areas:
       "topbar"
       "main" !important;
@@ -929,11 +929,13 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   }
 
   .topbar {
-    padding: 8px 10px !important;
+    padding: 10px 12px !important;
     height: auto !important;
+    min-height: var(--topbar-h) !important;
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 6px !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    overflow: visible !important;
   }
 
   .topbar-actions {
@@ -943,8 +945,8 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     width: 100% !important;
     display: flex !important;
     justify-content: flex-start !important;
-    gap: 6px !important;
-    padding-bottom: 4px !important;
+    gap: 8px !important;
+    padding: 4px 0 !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
@@ -989,6 +991,12 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 
   .cal-grid-week .cal-cell {
     min-height: 280px !important;
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .cal-cell {

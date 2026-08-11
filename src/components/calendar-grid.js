@@ -15,7 +15,8 @@ export function CalendarGrid(container, config) {
   let year = now.getFullYear();
   let month = now.getMonth();
   let selectedStatus = 'ALL';
-  let viewMode = 'month'; // 'month', 'week', or 'day'
+  const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
+  let viewMode = isMobileView ? 'day' : 'month'; // 'month', 'week', or 'day'
 
   // Week & Day Views state
   let currentMonday = getMonday(now);
