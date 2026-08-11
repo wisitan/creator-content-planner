@@ -14,7 +14,7 @@ export function CalendarGrid(container, config) {
   const now = new Date();
   let year = now.getFullYear();
   let month = now.getMonth();
-  let selectedStatuses = new Set(['ALL']);
+  let selectedStatus = 'ALL';
   const isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
   let viewMode = isMobileView ? 'day' : 'month'; // 'month', 'week', or 'day'
 
@@ -94,19 +94,19 @@ export function CalendarGrid(container, config) {
       headerTitle = `${dayName}, ${dNum} ${mName} ${yNum}`;
     }
 
-    // Status Filter Chips Bar (Multi-Select Enabled)
+    // Status Filter Chips Bar (Replacing Dropdown List)
     let statusChipsHtml = `<div class="status-chips-bar" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">`;
-    const allActive = selectedStatuses.has('ALL');
+    const allActive = selectedStatus === 'ALL';
     statusChipsHtml += `
       <button class="btn btn-sm ${allActive ? 'btn-primary' : 'btn-secondary'} btn-status-chip" data-status="ALL" style="padding:2px 10px; font-size:0.78rem; border-radius:14px; font-weight:600;">
         🔍 All Statuses
       </button>
     `;
     statusOptions.forEach(st => {
-      const active = selectedStatuses.has(st);
+      const active = selectedStatus === st;
       statusChipsHtml += `
         <button class="btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'} btn-status-chip" data-status="${esc(st)}" style="padding:2px 10px; font-size:0.78rem; border-radius:14px; font-weight:500;">
-          ${active ? '✅ ' : ''}${esc(st)}
+          ${esc(st)}
         </button>
       `;
     });
@@ -142,7 +142,7 @@ export function CalendarGrid(container, config) {
       const dStr = String(selectedDayDate.getDate()).padStart(2, '0');
       const targetDateStr = `${yStr}-${mStr}-${dStr}`;
 
-      const items = getItems ? getItems(selectedDayDate.getFullYear(), selectedDayDate.getMonth(), selectedStatuses) : [];
+      const items = getItems ? getItems(selectedDayDate.getFullYear(), selectedDayDate.getMonth(), selectedStatus) : [];
       const dayItems = items.filter(it => it.activeDate === targetDateStr);
 
       const dayViewWrapper = document.createElement('div');
@@ -207,7 +207,7 @@ export function CalendarGrid(container, config) {
         grid.appendChild(dh);
       });
 
-      const items = getItems ? getItems(year, month, selectedStatuses) : [];
+      const items = getItems ? getItems(year, month, selectedStatus) : [];
 
       if (viewMode === 'month') {
         // MONTH VIEW
@@ -324,24 +324,11 @@ export function CalendarGrid(container, config) {
       render();
     });
 
-    // Status Chip Bar Multi-Selection Event Listener
+    // Status Chip Bar Event Listener
     header.addEventListener('click', (e) => {
       const chipBtn = e.target.closest('.btn-status-chip');
       if (chipBtn) {
-        const targetStatus = chipBtn.dataset.status;
-        if (targetStatus === 'ALL') {
-          selectedStatuses = new Set(['ALL']);
-        } else {
-          selectedStatuses.delete('ALL');
-          if (selectedStatuses.has(targetStatus)) {
-            selectedStatuses.delete(targetStatus);
-          } else {
-            selectedStatuses.add(targetStatus);
-          }
-          if (selectedStatuses.size === 0) {
-            selectedStatuses.add('ALL');
-          }
-        }
+        selectedStatus = chipBtn.dataset.status;
         render();
       }
     });

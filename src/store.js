@@ -528,90 +528,37 @@ class Store extends Emitter {
     obj[keys[keys.length - 1]] = value;
     this._changed('brand');
   }
-  getContentForMonth(year, month, statusFilter = 'ALL', dateTypeFilter = { showPlanned: true, showPublished: true }) {
-    if (!this._data || !Array.isArray(this._data.content)) return [];
+  getContentForMonth(year, month, statusFilter = 'ALL') {
+    const rawList = this._data.content.filter(c => {
+      const targetDateStr = c.publishedPlan;
+      if (!targetDateStr) return false;
+      const d = new Date(targetDateStr);
+      if (isNaN(d.getTime())) return false;
 
-    const result = [];
-    const parseDate = (val) => {
-      if (!val) return null;
-      let y = null, m = null, formatted = '';
-      const d = new Date(val);
-      if (!isNaN(d.getTime())) {
-        y = d.getFullYear();
-        if (y > 2400) y -= 543;
-        m = d.getMonth();
-        formatted = `${y}-${String(m + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      } else {
-        const str = String(val).split('T')[0].trim();
-        const parts = str.split(/[-/.]/);
-        if (parts.length >= 3) {
-          let p0 = parseInt(parts[0], 10);
-          let p1 = parseInt(parts[1], 10);
-          let p2 = parseInt(parts[2], 10);
-          if (p0 > 1000) {
-            if (p0 > 2400) p0 -= 543;
-            y = p0; m = p1 - 1;
-            formatted = `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
-          } else if (p2 > 1000) {
-            if (p2 > 2400) p2 -= 543;
-            y = p2; m = p1 - 1;
-            formatted = `${p2}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
-          }
-        }
-      }
-      if (y === null || m === null) return null;
-      return { y, m, formatted };
-    };
+      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
+      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      return matchesMonth && matchesStatus;
+    });
 
-    this._data.content.forEach(c => {
-      if (!c) return;
-
-      let matchesStatus = false;
-      if (!statusFilter || statusFilter === 'ALL') {
-        matchesStatus = true;
-      } else if (typeof statusFilter === 'string') {
-        matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      } else if (typeof statusFilter.has === 'function') {
-        matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
-      } else if (Array.isArray(statusFilter)) {
-        matchesStatus = statusFilter.includes('ALL') || statusFilter.length === 0 || statusFilter.includes(c.status);
-      } else {
-        matchesStatus = true;
-      }
-
-      if (!matchesStatus) return;
-
-      // 🟠 1. Planned Date Entry
-      const plannedDateVal = c.plannedDate || c.publishedPlan || '';
-      if (dateTypeFilter.showPlanned && plannedDateVal) {
-        const parsed = parseDate(plannedDateVal);
-        if (parsed && parsed.y === year && parsed.m === month) {
-          result.push({
-            ...c,
-            displayId: `${c.id}-plan`,
-            activeDate: parsed.formatted,
-            dateType: 'planned',
-            productName: this.getProductName(c.productId)
-          });
-        }
-      }
-
-      // 🟢 2. Published Date Entry (if distinct from planned date)
-      if (dateTypeFilter.showPublished && c.publishedDate && c.publishedDate !== c.plannedDate) {
-        const parsed = parseDate(c.publishedDate);
-        if (parsed && parsed.y === year && parsed.m === month) {
-          result.push({
-            ...c,
-            displayId: `${c.id}-pub`,
-            activeDate: parsed.formatted,
-            dateType: 'published',
-            productName: this.getProductName(c.productId)
-          });
-        }
+    // Deduplicate array by ID to guarantee zero duplicates in calendar output
+    const seenIds = new Set();
+    const uniqueList = [];
+    rawList.forEach(c => {
+      if (!c || !c.id) return;
+      const cleanId = String(c.id).trim().toLowerCase();
+      if (!seenIds.has(cleanId)) {
+        seenIds.add(cleanId);
+        uniqueList.push(c);
       }
     });
 
-    return result;
+    return uniqueList.map(c => {
+      return {
+        ...c,
+        activeDate: c.publishedPlan,
+        productName: this.getProductName(c.productId)
+      };
+    });
   }
 
   /* ── Computed Stats ── */
