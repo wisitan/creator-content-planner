@@ -326,16 +326,9 @@ export function EditableTable(container, config) {
         card.dataset.id = id;
 
         card.innerHTML = `
-          <div class="etable-mobile-card-header" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span class="etable-mobile-card-id">${esc(id)}</span>
-              ${statusBadgeHtml}
-            </div>
-            ${onDelete ? `
-              <button type="button" class="btn btn-danger btn-sm btn-delete-mobile-card" data-id="${esc(id)}" style="padding:2px 10px; font-size:0.75rem; border-radius:12px; font-weight:700; flex-shrink:0;">
-                🗑️ ลบ
-              </button>
-            ` : ''}
+          <div class="etable-mobile-card-header">
+            <span class="etable-mobile-card-id">${esc(id)}</span>
+            ${statusBadgeHtml}
           </div>
 
           <div style="display:flex; gap:12px; align-items:flex-start; margin-top:8px;">
@@ -355,22 +348,7 @@ export function EditableTable(container, config) {
           </div>
         `;
 
-        card.addEventListener('click', (e) => {
-          if (e.target.closest('.btn-delete-mobile-card')) {
-            e.stopPropagation();
-            if (confirm(`Delete row ${id}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
-              if (onDelete) {
-                onDelete(id);
-                if (Array.isArray(config.data)) {
-                  config.data = config.data.filter(item => String(item[idField]) !== String(id));
-                }
-                selectedRowIds.delete(String(id));
-                showToast(`Deleted ${id} successfully! 🗑️`, 'info');
-                render();
-              }
-            }
-            return;
-          }
+        card.addEventListener('click', () => {
           openRowDetailModal(id);
         });
 
