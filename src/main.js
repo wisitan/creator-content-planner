@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive, smartSyncWithDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.2.3';
+const APP_VERSION = 'v2.2.5';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
