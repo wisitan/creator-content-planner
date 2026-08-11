@@ -657,7 +657,7 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 2000 !important;
   animation: fadeIn .15s ease;
 }
 .modal {
@@ -669,6 +669,7 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   max-height: 85vh;
   overflow-y: auto;
   animation: slideUp .2s ease;
+  z-index: 2001 !important;
 }
 .modal-header {
   display: flex;
@@ -928,21 +929,34 @@ h3 { font-size: 1.1rem; font-weight: 600; }
   }
 
   .topbar {
-    padding: 0 10px !important;
+    padding: 8px 10px !important;
+    height: auto !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
   }
 
   .topbar-actions {
     overflow-x: auto !important;
     white-space: nowrap !important;
-    max-width: 60vw !important;
-    padding-bottom: 2px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none !important;
   }
 
   .main-content {
     padding: 10px !important;
   }
 
-  .table-responsive {
+  .table-responsive, table, .etable-container table {
     display: none !important;
   }
 
@@ -1339,6 +1353,33 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 
   .status-chips-bar::-webkit-scrollbar {
     display: none !important;
+  }
+
+  /* Mobile Modal Bottom Fix: elevate above bottom nav and make buttons sticky */
+  .modal-overlay {
+    z-index: 3000 !important;
+    padding: 10px !important;
+    align-items: flex-end !important;
+  }
+
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 82vh !important;
+    margin-bottom: 65px !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    z-index: 3001 !important;
+  }
+
+  .modal-footer {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: var(--c-bg-card) !important;
+    z-index: 3002 !important;
+    border-top: 1px solid var(--c-border) !important;
+    padding: 10px 14px 14px 14px !important;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.1) !important;
   }
 }
 
