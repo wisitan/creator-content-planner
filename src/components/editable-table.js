@@ -5,6 +5,7 @@
 import { esc, resizeImageFile, isMobileDevice } from '../utils.js';
 import { showModal, showImageModal, showTeleprompterModal } from './modal.js';
 import { showToast } from './toast.js';
+import { t } from '../i18n.js';
 
 export function EditableTable(container, config) {
   const {
@@ -343,7 +344,7 @@ export function EditableTable(container, config) {
           </div>
 
           <div class="etable-mobile-card-footer text-muted" style="margin-top:10px;">
-            <span>แตะเพื่อดู/แก้ไขรายละเอียด (Tap to Drill Down)</span>
+            <span>${t('common_tap_drilldown')}</span>
             <span style="color:var(--c-primary); font-weight:700;">➔</span>
           </div>
         `;
@@ -1014,23 +1015,22 @@ export function EditableTable(container, config) {
     });
 
     const modal = showModal({
-      title: `📱 Row Details (${rowId}) — รายละเอียดแนวตั้ง`,
+      title: `📱 ${t('common_edit')} (${rowId})`,
       body: `
         <div class="vertical-row-detail-modal" style="max-height:65vh; overflow-y:auto; padding-right:6px;">
           ${onDelete ? `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:10px 12px; background:#fff1f2; border:1px solid #fecdd3; border-radius:8px;">
-              <span style="font-size:0.85rem; font-weight:700; color:#9f1239;">🗑️ Delete Action / การลบรายการ</span>
+              <span style="font-size:0.85rem; font-weight:700; color:#9f1239;">🗑️ ${t('common_delete')}</span>
               <button type="button" class="btn btn-danger btn-sm btn-modal-delete-record" data-id="${esc(rowId)}" style="padding:4px 14px; font-size:0.82rem; font-weight:700; border-radius:14px;">
-                🗑️ ลบรายการนี้ (Delete Record)
+                🗑️ ${t('common_delete')}
               </button>
             </div>
           ` : ''}
-          <p class="text-muted mb-3" style="font-size:0.8rem;">(สามารถพิมพ์แก้ไขหรือไถหน้าจอขึ้นลงเพื่อดูข้อมูลทุกคอลัมน์ในแนวตั้งได้อย่างสะดวก)</p>
           ${fieldsHtml}
         </div>
       `,
-      confirmText: '💾 Save & Close / บันทึก',
-      cancelText: '❌ Close / ปิด',
+      confirmText: `💾 ${t('common_save')}`,
+      cancelText: `❌ ${t('common_close')}`,
       onConfirm: (modalBody) => {
         if (!modalBody) return;
 
@@ -1120,7 +1120,7 @@ export function EditableTable(container, config) {
       if (deleteBtn) {
         deleteBtn.addEventListener('click', () => {
           const delId = deleteBtn.dataset.id || rowId;
-          if (confirm(`Delete record ${delId}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
+          if (confirm(t('common_delete_confirm'))) {
             if (onDelete) {
               onDelete(delId);
               if (Array.isArray(config.data)) {

@@ -2,6 +2,7 @@ import { CalendarGrid } from '../components/calendar-grid.js';
 import { showModal, showTeleprompterModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { esc } from '../utils.js';
+import { t } from '../i18n.js';
 
 export function renderCalendar(container, store) {
   container.innerHTML = '';
@@ -13,9 +14,9 @@ export function renderCalendar(container, store) {
   cardHeader.className = 'card-header';
   cardHeader.innerHTML = `
     <div>
-      <h2>📅 Content Calendar / ปฏิทินวางแผนคอนเทนต์</h2>
+      <h2>📅 ${t('cal_title')}</h2>
       <p class="text-muted">
-        (กดที่การ์ดคอนเทนต์เพื่อแก้ไขรายละเอียดแบบด่วน และเปิด Teleprompter ได้ทันที | สลับมุมมอง Month / Week / Day View ได้ที่มุมขวาบน)
+        ${t('cal_help_text')}
       </p>
     </div>
   `;
@@ -53,16 +54,16 @@ export function renderCalendar(container, store) {
     const contentStatuses = store.getSettingList('contentStatuses') || [];
 
     const modal = showModal({
-      title: `📝 Quick Edit: ${esc(rowId)}`,
+      title: `📝 ${t('cal_quick_edit_title')}: ${esc(rowId)}`,
       body: `
         <div class="calendar-edit-popup" style="font-size:0.88rem; line-height:1.5;">
           <!-- Top Action Bar -->
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; flex-wrap:wrap; background:var(--c-bg); padding:10px 12px; border-radius:8px; border:1px solid var(--c-border);">
             <button type="button" class="btn btn-primary btn-sm btn-open-teleprompter" style="background:#8B5CF6; border-color:#7C3AED; font-weight:700; font-size:0.85rem; padding:6px 14px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;">
-              🎬 Teleprompter (อ่านบท)
+              ${t('common_teleprompter')}
             </button>
             <button type="button" class="btn btn-danger btn-sm btn-delete-cal-item" data-id="${esc(rowId)}" style="font-weight:700; font-size:0.8rem; padding:5px 12px; border-radius:6px;">
-              🗑️ ลบรายการนี้
+              🗑️ ${t('common_delete')}
             </button>
           </div>
 
@@ -76,51 +77,51 @@ export function renderCalendar(container, store) {
           <!-- Essential Quick Edit Fields Grid -->
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
             <div style="grid-column: span 2;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Title / หัวข้อคอนเทนต์</label>
-              <input type="text" class="form-input cal-field" data-field="title" value="${esc(fullItem.title || '')}" placeholder="ระบุชื่อคอนเทนต์..." style="width:100%;">
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_title')}</label>
+              <input type="text" class="form-input cal-field" data-field="title" value="${esc(fullItem.title || '')}" style="width:100%;">
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Status / สถานะ</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_status')}</label>
               <select class="form-select cal-field" data-field="status" style="width:100%;">
-                <option value="">-- เลือกสถานะ --</option>
+                <option value="">-- ${t('col_cnt_status')} --</option>
                 ${contentStatuses.map(s => `<option value="${esc(s)}" ${fullItem.status === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}
               </select>
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Published Date / วันที่เผยแพร่</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_pub_date')}</label>
               <input type="date" class="form-input cal-field" data-field="publishedDate" value="${esc(fullItem.publishedDate || '')}" style="width:100%;">
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Content Type / ประเภท</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_type')}</label>
               <select class="form-select cal-field" data-field="contentType" style="width:100%;">
-                <option value="">-- เลือกประเภท --</option>
+                <option value="">-- ${t('col_cnt_type')} --</option>
                 ${contentTypes.map(t => `<option value="${esc(t)}" ${fullItem.contentType === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
               </select>
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Product / สินค้าที่เกี่ยวข้อง</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_prod_name')}</label>
               <select class="form-select cal-field" data-field="productId" style="width:100%;">
-                <option value="">-- เลือกสินค้า --</option>
+                <option value="">-- ${t('col_cnt_prod_name')} --</option>
                 ${products.map(p => `<option value="${esc(p.id)}" ${fullItem.productId === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`).join('')}
               </select>
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Channel / ช่องทาง</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_channel')}</label>
               <select class="form-select cal-field" data-field="channel" style="width:100%;">
-                <option value="">-- เลือกช่องทาง --</option>
+                <option value="">-- ${t('col_cnt_channel')} --</option>
                 ${channels.map(c => `<option value="${esc(c)}" ${fullItem.channel === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
               </select>
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Content Pillar / เสาหลัก</label>
+              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">${t('col_cnt_pillar')}</label>
               <select class="form-select cal-field" data-field="contentPillar" style="width:100%;">
-                <option value="">-- เลือก Pillar --</option>
+                <option value="">-- ${t('col_cnt_pillar')} --</option>
                 ${contentPillars.map(p => `<option value="${esc(p)}" ${fullItem.contentPillar === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}
               </select>
             </div>
@@ -128,19 +129,19 @@ export function renderCalendar(container, store) {
 
           <!-- Hook Textarea -->
           <div style="margin-bottom:12px;">
-            <label style="font-size:0.8rem; font-weight:700; color:#D97706; display:block; margin-bottom:3px;">🪝 Hook (คำเกริ่นเปิดคลิป)</label>
-            <textarea class="form-input cal-field cal-hook-input" data-field="hook" rows="2" style="width:100%; border-left:3px solid #F59E0B;" placeholder="เขียน Hook ดึงดูดผู้ชมที่นี่...">${esc(fullItem.hook || '')}</textarea>
+            <label style="font-size:0.8rem; font-weight:700; color:#D97706; display:block; margin-bottom:3px;">🪝 ${t('col_cnt_hook')}</label>
+            <textarea class="form-input cal-field cal-hook-input" data-field="hook" rows="2" style="width:100%; border-left:3px solid #F59E0B;">${esc(fullItem.hook || '')}</textarea>
           </div>
 
           <!-- Script Textarea -->
           <div>
-            <label style="font-size:0.8rem; font-weight:700; color:#4F46E5; display:block; margin-bottom:3px;">📜 Script & Content Outline</label>
-            <textarea class="form-input cal-field cal-script-textarea" data-field="script" rows="9" style="width:100%; min-height:200px; border-left:3px solid #6366F1; line-height:1.6;" placeholder="เขียนบทพูดหรือรายละเอียดคอนเทนต์ที่นี่...">${esc(fullItem.script || '')}</textarea>
+            <label style="font-size:0.8rem; font-weight:700; color:#4F46E5; display:block; margin-bottom:3px;">📜 ${t('col_cnt_script')}</label>
+            <textarea class="form-input cal-field cal-script-textarea" data-field="script" rows="9" style="width:100%; min-height:200px; border-left:3px solid #6366F1; line-height:1.6;">${esc(fullItem.script || '')}</textarea>
           </div>
         </div>
       `,
-      confirmText: '💾 Save / บันทึกการแก้ไข',
-      cancelText: '❌ Close / ปิด',
+      confirmText: `💾 ${t('common_save')}`,
+      cancelText: `❌ ${t('common_close')}`,
       onConfirm: () => {
         // Collect all values from modal inputs
         modal.element.querySelectorAll('.cal-field').forEach(input => {
@@ -148,7 +149,7 @@ export function renderCalendar(container, store) {
           const val = input.value;
           store.updateContent(rowId, field, val);
         });
-        showToast(`Saved changes for ${rowId}! 💾`, 'success');
+        showToast(`Saved ${rowId}! 💾`, 'success');
         renderGrid();
       }
     });
@@ -188,7 +189,7 @@ export function renderCalendar(container, store) {
       const delBtn = modal.element.querySelector('.btn-delete-cal-item');
       if (delBtn) {
         delBtn.addEventListener('click', () => {
-          if (confirm(`Delete content ${rowId}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
+          if (confirm(t('common_delete_confirm'))) {
             store.deleteContent(rowId);
             showToast(`Deleted ${rowId} successfully! 🗑️`, 'info');
             modal.close();

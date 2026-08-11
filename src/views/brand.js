@@ -64,7 +64,7 @@ export function renderBrand(container, store) {
       </div>
       <div style="display:flex; gap:10px; align-items:center;">
         <button class="btn ${isEditMode ? 'btn-primary' : 'btn-secondary'} btn-sm" id="btnToggleEditMode" style="padding:6px 16px; font-weight:700; border-radius:20px;">
-          ${isEditMode ? '💾 Done / บันทึกหน้าการ์ด' : '✏️ Edit Brand & Rates / แก้ไขข้อมูล'}
+          ${isEditMode ? `💾 ${t('common_save')}` : `✏️ ${t('common_edit')}`}
         </button>
         <button class="btn btn-primary btn-sm" id="btnPrintRateCard" style="padding:6px 18px; font-weight:700; border-radius:20px; background:#8b5cf6; border:none; box-shadow:0 3px 10px rgba(139,92,246,0.3);">
           🖨️ Export PDF / Print Rate Card
@@ -178,7 +178,7 @@ export function renderBrand(container, store) {
             <!-- Distinct Card Header Banner -->
             <div class="card-section-header-banner p-3 flex-between" style="background:var(--c-primary-light); border-bottom:1px solid var(--c-border); -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
               <h3 style="margin:0; font-size:0.98rem; font-weight:800; color:var(--c-primary); display:flex; align-items:center; gap:6px;">
-                📌 Content Pillars / เสาหลักคอนเทนต์
+                📌 ${t('set_list_pillars')}
               </h3>
               ${isEditMode ? `<button class="btn btn-sm btn-secondary no-print" id="btnAddPillar">+ Add Pillar</button>` : ''}
             </div>
