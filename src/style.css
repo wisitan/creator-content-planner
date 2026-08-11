@@ -1443,10 +1443,10 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 
   /* Mobile Card Transformations for EditableTable */
   .etable-mobile-card-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px 0;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 10px 0 !important;
   }
 
   .etable-mobile-card {
