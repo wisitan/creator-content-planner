@@ -1,5 +1,5 @@
 import { EditableTable } from '../components/editable-table.js';
-import { uid } from '../utils.js';
+import { t } from '../i18n.js';
 
 export function renderChannels(container, store) {
   container.innerHTML = '';
@@ -8,8 +8,8 @@ export function renderChannels(container, store) {
   header.className = 'card-header';
   header.innerHTML = `
     <div>
-      <h2>📺 Channel Tracker / ติดตามผลงานช่องทางต่าง ๆ</h2>
-      <p class="text-muted">บันทึกสถิติ Views, Likes, Engagement % และ Conversion Rate ของแต่ละคอนเทนต์</p>
+      <h2>📺 ${t('chan_title')}</h2>
+      <p class="text-muted">${t('chan_subtitle')}</p>
     </div>
   `;
   container.appendChild(header);
@@ -21,20 +21,20 @@ export function renderChannels(container, store) {
   const columns = [
     { key: 'id', label: 'ID', type: 'text', width: '80px' },
     { key: 'contentId', label: 'Content ID', type: 'dropdown', options: () => ['', ...store.getContent().map(c => c.id)], width: '100px' },
-    { key: 'channel', label: 'Channel', type: 'dropdown', options: () => store.getSettingList('channels') },
-    { key: 'publishedDate', label: 'Published Date', type: 'date', width: '110px' },
-    { key: 'views', label: 'Views', type: 'number', width: '90px' },
+    { key: 'channel', label: t('channel_col_channel'), type: 'dropdown', options: () => store.getSettingList('channels') },
+    { key: 'publishedDate', label: t('col_cnt_pub_date'), type: 'date', width: '110px' },
+    { key: 'views', label: t('channel_col_views'), type: 'number', width: '90px' },
     { key: 'likes', label: 'Likes', type: 'number', width: '80px' },
     { key: 'comments', label: 'Comments', type: 'number', width: '85px' },
     { key: 'shares', label: 'Shares', type: 'number', width: '80px' },
     { key: 'saves', label: 'Saves', type: 'number', width: '80px' },
     { key: 'avgWatchTime', label: 'Avg Watch (s)', type: 'number', width: '90px' },
-    { key: 'productClicks', label: 'Product Clicks', type: 'number', width: '95px' },
-    { key: 'orders', label: 'Orders', type: 'number', width: '80px' },
-    { key: 'revenue', label: 'Revenue ฿', type: 'number', width: '100px' },
+    { key: 'productClicks', label: t('channel_col_clicks'), type: 'number', width: '95px' },
+    { key: 'orders', label: t('channel_col_orders'), type: 'number', width: '80px' },
+    { key: 'revenue', label: t('channel_col_revenue'), type: 'number', width: '100px' },
     { 
       key: 'engagementRate', 
-      label: 'Engagement %', 
+      label: t('channel_col_engagement'), 
       type: 'computed', 
       compute: (row) => {
         const v = Number(row.views) || 0;
@@ -43,28 +43,34 @@ export function renderChannels(container, store) {
         return eng.toFixed(2) + '%';
       }
     },
-    { 
-      key: 'conversionRate', 
-      label: 'Conversion %', 
-      type: 'computed', 
-      compute: (row) => {
-        const cl = Number(row.productClicks) || 0;
-        if (!cl) return '-';
-        return ((Number(row.orders || 0) / cl) * 100).toFixed(2) + '%';
-      }
-    },
-    { key: 'notes', label: 'Notes', type: 'text', width: '220px' }
+    { key: 'notes', label: t('col_prod_notes'), type: 'text', width: '220px' }
   ];
 
   EditableTable(tableContainer, {
     columns: columns,
     getData: () => store.getChannelTracker(),
     onAdd: () => store.addChannelEntry(),
-    onChange: (id, field, value) => store.updateChannelEntry(id, field, value),
+    onChange: (id, field, value) => {
+      const res = store.updateChannelEntry(id, field, value);
+      if (field === 'contentId' && value) {
+        const cItem = store.getContent().find(c => String(c.id).trim() === String(value).trim());
+        if (cItem) {
+          if (cItem.channel) {
+            store.updateChannelEntry(id, 'channel', cItem.channel);
+          }
+          const pDate = cItem.publishedDate || cItem.plannedDate;
+          if (pDate) {
+            store.updateChannelEntry(id, 'publishedDate', pDate);
+          }
+        }
+      }
+      return res;
+    },
     onDelete: (id) => store.deleteChannelEntry(id),
-    addLabel: '+ Add Entry / เพิ่มข้อมูล',
-    emptyText: 'No channel data yet · ยังไม่มีข้อมูล channel',
-    emptyIcon: '📺'
+    addLabel: t('chan_add_btn'),
+    emptyText: t('chan_empty'),
+    emptyIcon: '📺',
+    enableYearMonthFilter: true
   });
 }
 

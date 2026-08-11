@@ -3,7 +3,7 @@
    (With Multi-Row Selection/Delete, Excel Filtering, Year & Month Quick Filters, Image Zoom & Script Editor)
    ────────────────────────────────────────── */
 import { esc, resizeImageFile } from '../utils.js';
-import { showModal, showImageModal } from './modal.js';
+import { showModal, showImageModal, showTeleprompterModal } from './modal.js';
 import { showToast } from './toast.js';
 
 export function EditableTable(container, config) {
@@ -26,7 +26,7 @@ export function EditableTable(container, config) {
 
   // Year & Month Filters state
   const currentYear = new Date().getFullYear();
-  let selectedYear = '2026'; // Default initial year set to 2026
+  let selectedYear = 'ALL'; // Default to ALL years so no data is hidden on refresh
   let selectedMonths = new Set(); // 0 = JAN, 1 = FEB, ..., 11 = DEC (empty = all months)
 
   const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -301,21 +301,46 @@ export function EditableTable(container, config) {
       return `<button class="btn btn-secondary btn-sm btn-open-row-detail" data-id="${esc(val)}" style="font-weight:700; font-family:monospace;" title="Click to view/edit full row details in vertical popup / กดเพื่อเปิดดูรายละเอียดแถวแนวตั้ง">📱 ${esc(val)}</button>`;
     }
 
-    if (col.type === 'scriptModal') {
-      const scriptVal = row[col.key] || '';
-      const preview = scriptVal.length > 25 ? scriptVal.slice(0, 25) + '...' : (scriptVal || '✏️ Edit Details / Script');
-      return `<button class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📜 ${esc(preview)}</button>`;
+    if (col.type === 'scriptModal' || col.key === 'script') {
+      const hookText = row.hook || '';
+      const scriptText = row.script || val || '';
+      const previewText = hookText || scriptText ? (hookText ? '🪝 ' + hookText : scriptText) : '';
+      return `
+        <button type="button" class="btn btn-secondary btn-sm btn-open-script" data-field="${col.key}" style="padding:3px 10px; font-size:0.78rem; font-weight:600; width:100%; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to view/edit full script & hook">
+          📜 ${previewText ? esc(previewText.slice(0, 20)) + '...' : 'Edit Script'}
+        </button>
+      `;
     }
 
-    if (col.type === 'image') {
-      const imgUrl = row[col.key] || '';
+    if (col.type === 'productPicker' || col.key === 'productId') {
+      const pid = row[col.key] || '';
+      const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+      const pObj = products.find(p => String(p.id).trim() === String(pid).trim());
+      const imgUrl = pObj ? pObj.imageUrl : '';
+      const pName = pObj ? pObj.name : '';
+
+      return `
+        <div style="display:flex; align-items:center; gap:6px;">
+          ${imgUrl 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(row[idField])}" style="width:32px; height:32px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)} (Click to view full size)">` 
+            : `<span style="font-size:1.1rem;" title="No photo">📦</span>`
+          }
+          <button type="button" class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(row[idField])}" style="padding:2px 8px; font-size:0.78rem; font-weight:700; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Click to pick product from catalog">
+            ${esc(pid || '-- Select Product --')}
+          </button>
+        </div>
+      `;
+    }
+
+    if (col.type === 'image' || col.key === 'imageUrl' || col.key === 'coverUrl') {
+      const imgUrl = val || '';
       return `
         <div class="table-img-cell" style="display:flex; align-items:center; gap:6px;">
           ${imgUrl 
-            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-field="${col.key}" data-id="${esc(row[idField])}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
+            ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-field="${col.key}" data-id="${esc(row[idField])}" style="width:38px; height:38px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" title="Click to view full size / กดเพื่อดูรูปใหญ่">` 
             : `<span class="text-muted" style="font-size:0.75rem;">No Photo</span>`
           }
-          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo">
+          <label class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; cursor:pointer;" title="Upload photo / อัปโหลดรูป">
             📷
             <input type="file" accept="image/*" class="input-table-img" data-field="${col.key}" style="display:none;">
           </label>
@@ -553,6 +578,24 @@ export function EditableTable(container, config) {
       });
     });
 
+    // Quick Teleprompter Click Handler from Main Table Cell
+    container.querySelectorAll('.btn-quick-teleprompter').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        const currentData = getCurrentData();
+        const row = currentData.find(r => String(r[idField]) === String(id));
+        if (!row) return;
+
+        const hVal = (row.hook || '').trim();
+        const sVal = (row.script || '').trim();
+        const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+        const fullText = hookPart + sVal;
+        const currentTitle = hVal || row.title || id;
+        showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
+      });
+    });
+
     // Select All Checkbox Handler
     const cbSelectAll = container.querySelector('#cb-select-all');
     if (cbSelectAll) {
@@ -702,9 +745,33 @@ export function EditableTable(container, config) {
         value = target.value;
       }
 
-      if (onChange) onChange(id, field, value);
+      if (onChange) {
+        const res = onChange(id, field, value);
+        if (res && res.error) {
+          target.value = id;
+          showModal({
+            title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+            body: `
+              <div class="p-2">
+                <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(id)}) เรียบร้อยแล้วค่ะ</p>
+              </div>
+            `,
+            cancelText: '❌ ปิดหน้าต่างนี้',
+            onCancel: () => render(),
+          });
+          render();
+          return;
+        }
+        if (field === idField || field === 'id') {
+          tr.dataset.id = value;
+        }
+      }
 
-      if (target.tagName === 'SELECT') {
+      // Auto re-render table to instantly refresh computed columns (e.g., Product Name auto-show)
+      if (columns.some(c => c.compute || c.type === 'computed') || field === idField || field === 'id') {
+        render();
+      } else if (target.tagName === 'SELECT') {
         const col = columns.find(c => c.key === field);
         if (col && col.badge) {
           target.className = `cell-input cell-select ${col.badge(value)}`;
@@ -713,6 +780,15 @@ export function EditableTable(container, config) {
     });
 
     tbody.addEventListener('click', (e) => {
+      const btnPicker = e.target.closest('.btn-open-product-picker');
+      if (btnPicker) {
+        const tr = btnPicker.closest('tr');
+        const id = tr ? tr.dataset.id : btnPicker.dataset.id;
+        const field = btnPicker.dataset.field;
+        if (id && field) openProductPickerModal(id, field);
+        return;
+      }
+
       const btnDetail = e.target.closest('.btn-open-row-detail');
       if (btnDetail) {
         const id = btnDetail.dataset.id;
@@ -732,15 +808,20 @@ export function EditableTable(container, config) {
       const currentHook = rowData ? (rowData.hook || '') : '';
       const currentScript = rowData ? (rowData.script || rowData[field] || '') : '';
 
-      showModal({
+      const modal = showModal({
         title: `📜 Edit Script, Hook & Content Details (${id})`,
         body: `
+          <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--c-border);">
+            <button type="button" id="modal-btn-teleprompter" class="btn btn-primary" style="background:#8b5cf6; border:none; padding:8px 20px; font-weight:700; border-radius:20px; font-size:0.95rem; cursor:pointer; box-shadow:0 3px 10px rgba(139,92,246,0.3);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+              🎬 เปิดโหมด Teleprompter (อ่านบทอัดคลิป)
+            </button>
+          </div>
           <div class="form-group mb-3">
-            <label class="form-label" style="font-weight:bold;">🪝 Hook (คำเกริ่นเรียกร้องความสนใจ 3 วินาทีแรก):</label>
+            <label class="form-label" style="font-weight:bold;">🪝 HOOK (คำเกริ่นเรียกร้องความสนใจ 3 วินาทีแรก):</label>
             <input type="text" id="modal-hook-input" class="form-input mb-3" style="font-size:0.95rem;" value="${esc(currentHook)}" placeholder="เช่น หยุดดูก่อนถ้าคุณกำลังจะซื้อ...">
           </div>
           <div class="form-group mb-2">
-            <label class="form-label" style="font-weight:bold;">📜 Script & Outline (รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์ฉบับเต็ม):</label>
+            <label class="form-label" style="font-weight:bold;">📜 SCRIPT & OUTLINE (รายละเอียดสคริปต์, โครงเรื่อง และบรีฟคอนเทนต์ฉบับเต็ม):</label>
             <textarea id="modal-script-input" class="form-input" style="height:220px; font-family:var(--font); line-height:1.5; font-size:0.95rem;" placeholder="พิมพ์สคริปต์ บทพูด Hook, Body, CTA และบรีฟแบบละเอียดที่นี่...">${esc(currentScript)}</textarea>
           </div>
         `,
@@ -759,6 +840,20 @@ export function EditableTable(container, config) {
           render();
         }
       });
+
+      if (modal.element) {
+        const tpBtn = modal.element.querySelector('#modal-btn-teleprompter');
+        if (tpBtn) {
+          tpBtn.addEventListener('click', () => {
+            const hVal = document.getElementById('modal-hook-input')?.value.trim() || '';
+            const sVal = document.getElementById('modal-script-input')?.value.trim() || '';
+            const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+            const fullText = hookPart + sVal;
+            const currentTitle = hVal || id;
+            showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
+          });
+        }
+      }
     });
   }
 
@@ -771,6 +866,10 @@ export function EditableTable(container, config) {
     columns.forEach(col => {
       const val = row[col.key] ?? '';
       
+      if (col.key === 'hook' && columns.some(c => c.key === 'script' || c.type === 'scriptModal')) {
+        return; // Already rendered inside script block
+      }
+
       fieldsHtml += `<div class="form-group mb-3 pb-2" style="border-bottom:1px solid var(--c-border);">`;
       fieldsHtml += `<label class="form-label" style="font-weight:700; color:var(--c-primary);">${esc(col.label)}:</label>`;
 
@@ -785,21 +884,48 @@ export function EditableTable(container, config) {
             </label>
           </div>
         `;
-      } else if (col.type === 'scriptModal') {
+      } else if (col.type === 'scriptModal' || col.key === 'script') {
         const currentHook = row.hook || '';
         const currentScript = row.script || val || '';
         fieldsHtml += `
-          <div class="mb-2">
-            <label class="form-label" style="font-size:0.75rem; color:#D97706;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
-            <input type="text" class="form-input modal-row-field" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
+          <div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--c-border);">
+            <button type="button" class="btn btn-primary btn-open-teleprompter" data-id="${esc(rowId)}" style="padding:8px 20px; font-size:0.95rem; background:#8b5cf6; border:none; border-radius:20px; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(139,92,246,0.3);" title="เปิดโหมดอ่านบทอัดคลิปเต็มจอ">
+              🎬 เปิดโหมด Teleprompter (อ่านบทอัดคลิป)
+            </button>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" style="font-size:0.82rem; color:#D97706; font-weight:700;">🪝 Hook (คำเกริ่นเปิดคลิป):</label>
+            <input type="text" class="form-input modal-row-field tp-hook-input" data-field="hook" value="${esc(currentHook)}" placeholder="พิมพ์ Hook...">
           </div>
           <div>
-            <label class="form-label" style="font-size:0.75rem; color:#4F46E5;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
-            <textarea class="form-input modal-row-field" data-field="script" style="height:120px;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+            <label class="form-label" style="font-size:0.82rem; color:#4F46E5; font-weight:700;">📜 Script & Outline (สคริปต์ฉบับเต็ม):</label>
+            <textarea class="form-input modal-row-field tp-script-textarea" data-field="script" style="height:150px; font-family:inherit;" placeholder="พิมพ์สคริปต์...">${esc(currentScript)}</textarea>
+          </div>
+        `;
+      } else if (col.type === 'productPicker') {
+        const pid = val || '';
+        const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+        const pObj = products.find(p => p.id === pid);
+        const imgUrl = pObj ? pObj.imageUrl : '';
+        const pName = pObj ? pObj.name : '';
+
+        fieldsHtml += `
+          <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
+            ${imgUrl 
+              ? `<img src="${esc(imgUrl)}" class="table-img-preview" data-id="${esc(rowId)}" style="width:46px; height:46px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" title="Product Photo: ${esc(pName)}">` 
+              : `<div style="width:46px; height:46px; border-radius:6px; background:var(--c-bg); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">📦</div>`
+            }
+            <div style="flex:1;">
+              <button class="btn btn-secondary btn-sm btn-open-product-picker" data-field="${col.key}" data-id="${esc(rowId)}" style="padding:6px 12px; font-size:0.85rem; font-weight:700;">
+                📦 Select Product: ${esc(pid || '-- Pick Product --')}
+              </button>
+              ${pName ? `<div style="font-size:0.8rem; font-weight:600; color:var(--c-primary); margin-top:4px;">${esc(pName)}</div>` : ''}
+            </div>
           </div>
         `;
       } else if (col.compute) {
-        fieldsHtml += `<div class="form-input" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
+        fieldsHtml += `<div class="form-input modal-computed-cell" data-field="${col.key}" style="background:var(--c-bg); font-weight:600;">${esc(col.compute(row))}</div>`;
       } else if (col.readOnly || col.editable === false) {
         fieldsHtml += `<input type="text" class="form-input" value="${esc(val)}" readonly style="background:var(--c-bg); font-weight:700;">`;
       } else if (col.key === idField) {
@@ -838,7 +964,25 @@ export function EditableTable(container, config) {
         let currentTargetId = rowId;
         if (idInput && idInput.value && idInput.value !== rowId) {
           const newId = idInput.value.trim();
-          if (onChange) onChange(rowId, idField, newId);
+          if (onChange) {
+            const res = onChange(rowId, idField, newId);
+            if (res && res.error) {
+              idInput.value = rowId;
+              showModal({
+                title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+                body: `
+                  <div class="p-2">
+                    <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(rowId)}) เรียบร้อยแล้วค่ะ</p>
+                  </div>
+                `,
+                cancelText: '❌ ปิดหน้าต่างนี้',
+                onCancel: () => render(),
+              });
+              render();
+              return;
+            }
+          }
           currentTargetId = newId;
         }
 
@@ -859,22 +1003,71 @@ export function EditableTable(container, config) {
       }
     });
 
-    // Wire image preview zoom & upload inside vertical modal
+    // Wire image preview zoom, upload & dynamic computed values update inside vertical modal
     if (modal.element) {
+      modal.element.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.classList.contains('modal-row-field')) {
+          const field = target.dataset.field;
+          const val = target.value;
+          if (field && onChange) {
+            const res = onChange(rowId, field, val);
+            if (res && res.error) {
+              target.value = rowId;
+              showModal({
+                title: '⚠️ รหัส ID ซ้ำกันในระบบ!',
+                body: `
+                  <div class="p-2">
+                    <p class="text-danger font-weight-700 mb-2">${esc(res.message)}</p>
+                    <p class="text-muted" style="font-size:0.85rem;">ระบบป้องกันข้อมูลเขียนทับ: คืนค่ารหัสเดิม (${esc(rowId)}) เรียบร้อยแล้วค่ะ</p>
+                  </div>
+                `,
+                cancelText: '❌ ปิดหน้าต่างนี้',
+              });
+              return;
+            }
+            const updatedData = getCurrentData();
+            const updatedRow = updatedData.find(r => String(r[idField]) === String(rowId)) || row;
+            columns.forEach(col => {
+              if (col.compute) {
+                const computedEl = modal.element.querySelector(`.modal-computed-cell[data-field="${col.key}"]`);
+                if (computedEl) {
+                  computedEl.textContent = col.compute(updatedRow);
+                }
+              }
+            });
+            render();
+          }
+        }
+      });
+
       modal.element.querySelectorAll('.table-img-preview').forEach(imgEl => {
         imgEl.addEventListener('click', (e) => {
           e.stopPropagation();
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
           const src = e.currentTarget.getAttribute('src');
           const field = e.currentTarget.dataset.field;
-          const id = e.currentTarget.dataset.id || rowId;
           if (src) {
-            showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && id ? () => {
-              if (onChange) onChange(id, field, '');
+            showImageModal(src, '🖼️ Image Zoom Preview / ดูรูปภาพขนาดใหญ่', field && currentId ? () => {
+              if (onChange) onChange(currentId, field, '');
               showToast('Deleted photo successfully! 🗑️', 'info');
               modal.close();
+              openRowDetailModal(currentId);
               render();
             } : undefined);
           }
+        });
+      });
+
+      modal.element.querySelectorAll('.btn-open-product-picker').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
+          const field = btn.dataset.field;
+          openProductPickerModal(currentId, field);
+          modal.close();
         });
       });
 
@@ -882,19 +1075,226 @@ export function EditableTable(container, config) {
         input.addEventListener('change', async (e) => {
           const file = e.target.files[0];
           if (!file) return;
+          const idInput = modal.element.querySelector(`.modal-row-field[data-field="${idField}"]`) || modal.element.querySelector('.modal-row-field[data-field="id"]');
+          const currentId = idInput && idInput.value ? idInput.value.trim() : rowId;
           const field = e.target.dataset.field;
           try {
             const dataUrl = await resizeImageFile(file, 400);
-            if (onChange) onChange(rowId, field, dataUrl);
+            if (onChange) onChange(currentId, field, dataUrl);
             showToast('Uploaded image! 📷', 'success');
             modal.close();
-            openRowDetailModal(rowId);
+            openRowDetailModal(currentId);
             render();
           } catch (err) {
             showToast('Upload failed: ' + err.message, 'error');
           }
         });
       });
+
+      modal.element.querySelectorAll('.btn-open-teleprompter').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const hookInput = modal.element.querySelector('.tp-hook-input') || modal.element.querySelector('[data-field="hook"]');
+          const scriptArea = modal.element.querySelector('.tp-script-textarea') || modal.element.querySelector('[data-field="script"]');
+          const hVal = hookInput ? hookInput.value.trim() : (row.hook || '').trim();
+          const sVal = scriptArea ? scriptArea.value.trim() : (row.script || '').trim();
+          
+          const hookPart = hVal ? `🪝 Hook:\n${hVal}\n\n` : '';
+          const fullText = hookPart + sVal;
+          const currentTitle = hVal || row.title || rowId;
+          showTeleprompterModal(`🎬 ${currentTitle}`, fullText);
+        });
+      });
+    }
+  }
+
+  function openProductPickerModal(rowId, colKey) {
+    const products = typeof config.getProducts === 'function' ? config.getProducts() : [];
+    const categories = typeof config.getCategories === 'function' ? config.getCategories() : (
+      Array.from(new Set(products.map(p => p.category).filter(Boolean)))
+    );
+    const productTypes = typeof config.getProductTypes === 'function' ? config.getProductTypes() : (
+      Array.from(new Set(products.map(p => p.productType || p.type).filter(Boolean)))
+    );
+    const statuses = typeof config.getStatuses === 'function' ? config.getStatuses() : (
+      Array.from(new Set(products.map(p => p.status).filter(Boolean)))
+    );
+
+    let searchTerm = '';
+    let selectedCategory = 'ALL';
+    let selectedType = 'ALL';
+    let selectedStatus = 'ALL';
+    let currentPage = 1;
+    const PAGE_SIZE = 12;
+
+    function renderPickerBody(modalBody) {
+      const listEl = modalBody.querySelector('#product-picker-list');
+      const pagEl = modalBody.querySelector('#product-picker-pagination');
+      if (!listEl || !pagEl) return;
+
+      // Filter products
+      const filtered = products.filter(p => {
+        const matchesSearch = !searchTerm || 
+          String(p.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(p.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(p.brand).toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCat = selectedCategory === 'ALL' || p.category === selectedCategory;
+        const matchesType = selectedType === 'ALL' || (p.productType || p.type) === selectedType;
+        const matchesStatus = selectedStatus === 'ALL' || p.status === selectedStatus;
+        return matchesSearch && matchesCat && matchesType && matchesStatus;
+      });
+
+      // Calculate Pagination
+      const totalFiltered = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+      // Render Pagination Bar
+      pagEl.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+          <div style="font-size:0.8rem; font-weight:600;" class="text-muted">
+            พบ ${totalFiltered} รายการ (แสดง ${pageItems.length} รายการในหน้านี้)
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="btn-picker-prev" ${currentPage <= 1 ? 'disabled' : ''}>◀ Prev</button>
+            <span style="font-size:0.82rem; font-weight:700;">Page ${currentPage} / ${totalPages}</span>
+            <button class="btn btn-secondary btn-sm" id="btn-picker-next" ${currentPage >= totalPages ? 'disabled' : ''}>Next ▶</button>
+          </div>
+        </div>
+      `;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-muted" style="grid-column: 1 / -1;">ไม่พบสินค้าที่ตรงกับตัวกรอง 📦</div>`;
+        return;
+      }
+
+      let html = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap:10px; min-height:240px; align-content:start; padding:2px;">`;
+      
+      // Clear Option (Show only on Page 1)
+      if (currentPage === 1) {
+        html += `
+          <div class="card p-2 picker-item-card" data-pid="" style="cursor:pointer; border:1px dashed var(--c-border); display:flex; align-items:center; gap:10px; background:var(--c-bg);">
+            <span style="font-size:1.4rem;">🚫</span>
+            <div>
+              <div style="font-weight:700; font-size:0.85rem; color:var(--c-text-muted);">-- ไม่ระบุสินค้า / Clear --</div>
+              <div style="font-size:0.75rem;" class="text-muted">ปลดล็อกการผูกสินค้า</div>
+            </div>
+          </div>
+        `;
+      }
+
+      pageItems.forEach(p => {
+        html += `
+          <div class="card p-2 picker-item-card" data-pid="${esc(p.id)}" style="cursor:pointer; display:flex; align-items:center; gap:10px; transition:all 0.15s ease;" onmouseover="this.style.borderColor='var(--c-primary)'" onmouseout="this.style.borderColor='var(--c-border)'">
+            ${p.imageUrl 
+              ? `<img src="${esc(p.imageUrl)}" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; flex-shrink:0;">`
+              : `<div style="width:44px; height:44px; border-radius:6px; background:var(--c-bg); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">📦</div>`
+            }
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-weight:700; font-size:0.85rem; color:var(--c-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(p.id)}: ${esc(p.name || 'Untitled')}</div>
+              <div style="font-size:0.75rem; color:var(--c-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" class="text-muted">${esc(p.brand || p.category || '-')} | ${esc(p.status || '')}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      listEl.innerHTML = html;
+
+      // Click event for selecting item
+      listEl.querySelectorAll('.picker-item-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const selectedPid = card.dataset.pid;
+          if (onChange) onChange(rowId, colKey, selectedPid);
+          showToast(`Selected product ${selectedPid || 'None'}! 📦✅`, 'success');
+          modal.close();
+          render();
+        });
+      });
+
+      // Pagination Button Events
+      const btnPrev = pagEl.querySelector('#btn-picker-prev');
+      const btnNext = pagEl.querySelector('#btn-picker-next');
+      if (btnPrev && !btnPrev.disabled) {
+        btnPrev.addEventListener('click', () => {
+          currentPage--;
+          renderPickerBody(modalBody);
+        });
+      }
+      if (btnNext && !btnNext.disabled) {
+        btnNext.addEventListener('click', () => {
+          currentPage++;
+          renderPickerBody(modalBody);
+        });
+      }
+    }
+
+    let catOptions = `<option value="ALL">📁 All Categories</option>`;
+    categories.forEach(cat => {
+      catOptions += `<option value="${esc(cat)}">${esc(cat)}</option>`;
+    });
+
+    let typeOptions = `<option value="ALL">🏷️ All Product Types</option>`;
+    productTypes.forEach(tp => {
+      typeOptions += `<option value="${esc(tp)}">${esc(tp)}</option>`;
+    });
+
+    let statusOptions = `<option value="ALL">🚦 All Statuses</option>`;
+    statuses.forEach(st => {
+      statusOptions += `<option value="${esc(st)}">${esc(st)}</option>`;
+    });
+
+    const modal = showModal({
+      title: `📦 Select Product / เลือกสินค้าจากคลัง (${products.length} รายการ)`,
+      body: `
+        <div>
+          <!-- Search & Filter Controls -->
+          <div style="display:grid; grid-template-columns: 2fr 1.2fr 1fr; gap:8px; margin-bottom:10px;">
+            <input type="text" id="product-picker-search" class="form-input" placeholder="🔍 ค้นชื่อ, P001, แบรนด์..." style="font-size:0.85rem;">
+            <select id="product-picker-category" class="form-select" style="font-size:0.85rem;">${catOptions}</select>
+            <select id="product-picker-status" class="form-select" style="font-size:0.85rem;">${statusOptions}</select>
+          </div>
+          <!-- Pagination Control Bar -->
+          <div id="product-picker-pagination" class="mb-2 p-2 card" style="background:var(--c-bg);"></div>
+          <!-- List Container -->
+          <div id="product-picker-list"></div>
+        </div>
+      `,
+      confirmText: '',
+      cancelText: '❌ Cancel / ยกเลิก',
+    });
+
+    if (modal.element) {
+      renderPickerBody(modal.element);
+      const searchInput = modal.element.querySelector('#product-picker-search');
+      const catSelect = modal.element.querySelector('#product-picker-category');
+      const statusSelect = modal.element.querySelector('#product-picker-status');
+
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.addEventListener('input', (e) => {
+          searchTerm = e.target.value;
+          currentPage = 1;
+          renderPickerBody(modal.element);
+        });
+      }
+      if (catSelect) {
+        catSelect.addEventListener('change', (e) => {
+          selectedCategory = e.target.value;
+          currentPage = 1;
+          renderPickerBody(modal.element);
+        });
+      }
+      if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+          selectedStatus = e.target.value;
+          currentPage = 1;
+          renderPickerBody(modal.element);
+        });
+      }
     }
   }
 

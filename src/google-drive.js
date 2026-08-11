@@ -67,13 +67,27 @@ export function authenticateDrive() {
 }
 
 /** Backup data JSON directly to Google Drive */
-export async function backupToDrive(dataObj) {
+/** Backup data JSON directly from local storage to Google Drive (Local -> Drive 100%) */
+export async function backupToDrive(dataObj, store = null) {
   if (!accessToken) {
     await authenticateDrive();
   }
 
-  const jsonStr = JSON.stringify(dataObj, null, 2);
   const fileId = await findBackupFileId();
+
+  // Ensure metadata exists
+  const totalRecs = (dataObj.products?.length || 0) + 
+                    (dataObj.content?.length || 0) + 
+                    (dataObj.channelTracker?.length || 0) + 
+                    (dataObj.sponsors?.length || 0);
+
+  dataObj.meta = {
+    lastUpdated: new Date().toISOString(),
+    totalRecords: totalRecs,
+    deviceName: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'Mobile Device' : 'PC / Mac',
+  };
+
+  const jsonStr = JSON.stringify(dataObj, null, 2);
 
   if (fileId) {
     const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
@@ -130,6 +144,187 @@ export async function syncFromDrive() {
   if (!res.ok) throw new Error('Failed to download backup file from Google Drive.');
   const data = await res.json();
   return data;
+}
+
+/** Smart Two-Way Sync (Merge Local & Cloud Data seamlessly without overwriting new items) */
+export async function smartSyncWithDrive(localData, store) {
+  if (!accessToken) {
+    await authenticateDrive();
+  }
+
+  const fileId = await findBackupFileId();
+  let driveData = null;
+
+  if (fileId) {
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        driveData = await res.json();
+      }
+    } catch (err) {
+      console.warn('[Smart Sync] Could not fetch existing drive file:', err);
+    }
+  }
+
+  // If no Drive file exists yet, perform initial backup upload
+  if (!driveData) {
+    await backupToDrive(localData, store);
+    return {
+      success: true,
+      mode: 'initial_upload',
+      message: 'Created initial backup on Google Drive!'
+    };
+  }
+
+  // Perform Item-by-Item Record-Level Smart Merge
+  const mergedData = mergeTwoWayData(localData, driveData);
+
+  // Update local store with merged dataset
+  store.importData(mergedData);
+
+  // Upload merged dataset back to Google Drive
+  await backupToDrive(mergedData, store);
+
+  return {
+    success: true,
+    mode: 'merged',
+    totalRecords: (mergedData.products?.length || 0) + (mergedData.content?.length || 0),
+    message: 'Smart Two-Way Sync completed successfully!'
+  };
+}
+
+/** Record-Level Smart Merge Algorithm (Directional Tombstone Sync) */
+function mergeTwoWayData(local, drive) {
+  // Build separate tombstone maps for each direction
+  const localDeletedMap = new Map();
+  (local.deletedItems || []).forEach(d => {
+    if (d && d.id) {
+      const id = String(d.id);
+      const existing = localDeletedMap.get(id);
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        localDeletedMap.set(id, d);
+      }
+    }
+  });
+
+  const driveDeletedMap = new Map();
+  (drive.deletedItems || []).forEach(d => {
+    if (d && d.id) {
+      const id = String(d.id);
+      const existing = driveDeletedMap.get(id);
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        driveDeletedMap.set(id, d);
+      }
+    }
+  });
+
+  // Safe timestamp: items without updatedAt use a fallback so old tombstones can't nuke them
+  const getTs = (item) => {
+    if (item.updatedAt) return new Date(item.updatedAt).getTime();
+    if (item.createdAt) return new Date(item.createdAt).getTime();
+    return 0;
+  };
+
+  const mergeCollection = (localList = [], driveList = []) => {
+    const itemMap = new Map();
+
+    // Step 1: Process local items
+    // Apply DRIVE tombstones to local items (items deleted from another device)
+    (localList || []).forEach(item => {
+      if (!item || !item.id) return;
+      const id = String(item.id);
+
+      const driveTombstone = driveDeletedMap.get(id);
+      if (driveTombstone) {
+        const deleteTs = new Date(driveTombstone.deletedAt).getTime();
+        const itemTs = getTs(item);
+        // Only delete if item has a timestamp AND tombstone is newer
+        // Items with no timestamp (legacy) are KEPT safe — user must delete manually
+        if (itemTs > 0 && deleteTs > itemTs) {
+          return; // Skip: this item was deleted from another device after last edit
+        }
+        if (itemTs === 0) {
+          // Legacy item with no timestamp — keep it safe, don't auto-delete
+          // It will get an updatedAt on next edit
+        }
+      }
+      itemMap.set(id, item);
+    });
+
+    // Step 2: Process drive items
+    // Apply LOCAL tombstones to drive items (items deleted from THIS device)
+    (driveList || []).forEach(item => {
+      if (!item || !item.id) return;
+      const id = String(item.id);
+
+      const localTombstone = localDeletedMap.get(id);
+      if (localTombstone) {
+        const deleteTs = new Date(localTombstone.deletedAt).getTime();
+        const itemTs = getTs(item);
+        // Don't bring back items that were deleted locally
+        // Unless the drive item was updated AFTER the local deletion
+        if (itemTs === 0 || deleteTs >= itemTs) {
+          return; // Skip: this item was deleted locally
+        }
+      }
+
+      if (!itemMap.has(id)) {
+        // New item from drive that doesn't exist locally — add it
+        itemMap.set(id, item);
+      } else {
+        // Item exists both locally and on drive — keep the newer version
+        const localItem = itemMap.get(id);
+        const localTs = getTs(localItem);
+        const driveTs = getTs(item);
+        if (driveTs > localTs) {
+          itemMap.set(id, item);
+        }
+      }
+    });
+
+    return Array.from(itemMap.values());
+  };
+
+  const mergedProducts = mergeCollection(local.products, drive.products);
+  const mergedContent = mergeCollection(local.content, drive.content);
+  const mergedChannels = mergeCollection(local.channelTracker, drive.channelTracker);
+  const mergedSponsors = mergeCollection(local.sponsors, drive.sponsors);
+
+  // Merge Brand
+  const localBrandTs = local.brand?.updatedAt ? new Date(local.brand.updatedAt).getTime() : 0;
+  const driveBrandTs = drive.brand?.updatedAt ? new Date(drive.brand.updatedAt).getTime() : 0;
+  const mergedBrand = localBrandTs >= driveBrandTs ? { ...(drive.brand || {}), ...(local.brand || {}) } : { ...(local.brand || {}), ...(drive.brand || {}) };
+
+  // Merge Settings
+  const mergedSettings = { ...(drive.settings || {}), ...(local.settings || {}) };
+
+  // Combine tombstones from both sides (union)
+  const allDeletedMap = new Map();
+  [...(local.deletedItems || []), ...(drive.deletedItems || [])].forEach(d => {
+    if (d && d.id) {
+      const id = String(d.id);
+      const existing = allDeletedMap.get(id);
+      if (!existing || new Date(d.deletedAt) > new Date(existing.deletedAt)) {
+        allDeletedMap.set(id, d);
+      }
+    }
+  });
+
+  return {
+    settings: mergedSettings,
+    products: mergedProducts,
+    content: mergedContent,
+    channelTracker: mergedChannels,
+    sponsors: mergedSponsors,
+    deletedItems: Array.from(allDeletedMap.values()),
+    brand: mergedBrand,
+    meta: {
+      lastUpdated: new Date().toISOString(),
+      syncMode: 'Smart-Two-Way-v3'
+    }
+  };
 }
 
 /** Search for backup file ID on Google Drive */

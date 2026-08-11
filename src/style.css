@@ -99,8 +99,37 @@
   color: #F8FAFC;
 }
 
-[data-theme="dark"] .etable tbody tr:hover {
-  background-color: #334155;
+[data-theme="dark"] .etable tr:nth-child(odd) td {
+  background-color: #0F172A !important;
+}
+
+[data-theme="dark"] .etable tr:nth-child(even) td {
+  background-color: #1E293B !important;
+}
+
+[data-theme="dark"] table.data-table tr:nth-child(odd) td {
+  background-color: #0F172A !important;
+}
+
+[data-theme="dark"] table.data-table tr:nth-child(even) td {
+  background-color: #1E293B !important;
+}
+
+[data-theme="dark"] .etable tbody tr:hover td {
+  background-color: #334155 !important;
+}
+
+[data-theme="dark"] .etable input:hover,
+[data-theme="dark"] .etable select:hover,
+[data-theme="dark"] .etable textarea:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .etable input:focus,
+[data-theme="dark"] .etable select:focus,
+[data-theme="dark"] .etable textarea:focus {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
 }
 
 [data-theme="dark"] .setting-list {
@@ -595,11 +624,36 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 }
 
 /* ── 13. Modal ── */
+.modal-card-solid {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .modal-card-solid {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .modal-card-solid .text-muted {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .modal-card-solid div[style*="background:var(--c-bg)"],
+[data-theme="dark"] .modal-card-solid div[style*="background: var(--c-bg)"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15,23,42,.5);
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1141,21 +1195,19 @@ h3 { font-size: 1.1rem; font-weight: 600; }
     color: #0f172a !important;
   }
 
-  .color-rect-swatch {
-    border: 1px solid #94a3b8 !important;
+  .brand-board-sheet,
+  .brand-board-sheet * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
-  .color-rect-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px 10px !important;
-  }
-
-  .pillar-box, .stat-mini-box, .color-rect-item {
+  .color-rect-swatch,
+  .brand-header-spotlight,
+  .card-section-header-banner {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .badge {
