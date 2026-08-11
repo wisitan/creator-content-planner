@@ -533,10 +533,22 @@ class Store extends Emitter {
       const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
       if (!targetDateStr) return false;
 
-      const d = new Date(targetDateStr);
-      if (isNaN(d.getTime())) return false;
+      const datePart = targetDateStr.split('T')[0].split(' ')[0];
+      const parts = datePart.split(/[-/]/);
+      if (parts.length < 3) return false;
 
-      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
+      let y, m;
+      if (parseInt(parts[0], 10) > 1000) {
+        y = parseInt(parts[0], 10);
+        m = parseInt(parts[1], 10) - 1;
+      } else if (parseInt(parts[2], 10) > 1000) {
+        y = parseInt(parts[2], 10);
+        m = parseInt(parts[1], 10) - 1;
+      } else {
+        return false;
+      }
+
+      const matchesMonth = y === year && m === month;
       
       let matchesStatus = false;
       if (statusFilter && typeof statusFilter.has === 'function') {
@@ -548,7 +560,6 @@ class Store extends Emitter {
       return matchesMonth && matchesStatus;
     });
 
-    // Deduplicate array by ID to guarantee zero duplicates in calendar output
     const seenIds = new Set();
     const uniqueList = [];
     rawList.forEach(c => {
@@ -562,13 +573,22 @@ class Store extends Emitter {
 
     return uniqueList.map(c => {
       const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
-      const d = new Date(val);
+      const datePart = val.split('T')[0].split(' ')[0];
+      const parts = datePart.split(/[-/]/);
       let finalActiveDate = val;
-      if (!isNaN(d.getTime())) {
-        const yStr = d.getFullYear();
-        const mStr = String(d.getMonth() + 1).padStart(2, '0');
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
+
+      if (parts.length >= 3) {
+        if (parseInt(parts[0], 10) > 1000) {
+          const yStr = parts[0];
+          const mStr = parseInt(parts[1], 10).toString().padStart(2, '0');
+          const dStr = parseInt(parts[2], 10).toString().padStart(2, '0');
+          finalActiveDate = `${yStr}-${mStr}-${dStr}`;
+        } else if (parseInt(parts[2], 10) > 1000) {
+          const yStr = parts[2];
+          const mStr = parseInt(parts[1], 10).toString().padStart(2, '0');
+          const dStr = parseInt(parts[0], 10).toString().padStart(2, '0');
+          finalActiveDate = `${yStr}-${mStr}-${dStr}`;
+        }
       }
 
       return {
