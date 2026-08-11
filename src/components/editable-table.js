@@ -326,12 +326,19 @@ export function EditableTable(container, config) {
         card.dataset.id = id;
 
         card.innerHTML = `
-          <div class="etable-mobile-card-header">
-            <span class="etable-mobile-card-id">${esc(id)}</span>
-            ${statusBadgeHtml}
+          <div class="etable-mobile-card-header" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="etable-mobile-card-id">${esc(id)}</span>
+              ${statusBadgeHtml}
+            </div>
+            ${onDelete ? `
+              <button type="button" class="btn btn-danger btn-sm btn-delete-mobile-card" data-id="${esc(id)}" style="padding:2px 10px; font-size:0.75rem; border-radius:12px; font-weight:700; flex-shrink:0;">
+                🗑️ ลบ
+              </button>
+            ` : ''}
           </div>
 
-          <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div style="display:flex; gap:12px; align-items:flex-start; margin-top:8px;">
             ${coverUrl ? `<img src="${esc(coverUrl)}" style="width:55px; height:55px; object-fit:cover; border-radius:8px; border:1px solid var(--c-border); flex-shrink:0;">` : ''}
             <div style="flex:1;">
               <div class="etable-mobile-card-title">${esc(titleVal)}</div>
@@ -342,13 +349,28 @@ export function EditableTable(container, config) {
             </div>
           </div>
 
-          <div class="etable-mobile-card-footer text-muted">
+          <div class="etable-mobile-card-footer text-muted" style="margin-top:10px;">
             <span>แตะเพื่อดู/แก้ไขรายละเอียด (Tap to Drill Down)</span>
             <span style="color:var(--c-primary); font-weight:700;">➔</span>
           </div>
         `;
 
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-delete-mobile-card')) {
+            e.stopPropagation();
+            if (confirm(`Delete row ${id}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
+              if (onDelete) {
+                onDelete(id);
+                if (Array.isArray(config.data)) {
+                  config.data = config.data.filter(item => String(item[idField]) !== String(id));
+                }
+                selectedRowIds.delete(String(id));
+                showToast(`Deleted ${id} successfully! 🗑️`, 'info');
+                render();
+              }
+            }
+            return;
+          }
           openRowDetailModal(id);
         });
 
@@ -1017,6 +1039,14 @@ export function EditableTable(container, config) {
       title: `📱 Row Details (${rowId}) — รายละเอียดแนวตั้ง`,
       body: `
         <div class="vertical-row-detail-modal" style="max-height:65vh; overflow-y:auto; padding-right:6px;">
+          ${onDelete ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:10px 12px; background:#fff1f2; border:1px solid #fecdd3; border-radius:8px;">
+              <span style="font-size:0.85rem; font-weight:700; color:#9f1239;">🗑️ Delete Action / การลบรายการ</span>
+              <button type="button" class="btn btn-danger btn-sm btn-modal-delete-record" data-id="${esc(rowId)}" style="padding:4px 14px; font-size:0.82rem; font-weight:700; border-radius:14px;">
+                🗑️ ลบรายการนี้ (Delete Record)
+              </button>
+            </div>
+          ` : ''}
           <p class="text-muted mb-3" style="font-size:0.8rem;">(สามารถพิมพ์แก้ไขหรือไถหน้าจอขึ้นลงเพื่อดูข้อมูลทุกคอลัมน์ในแนวตั้งได้อย่างสะดวก)</p>
           ${fieldsHtml}
         </div>
@@ -1107,6 +1137,25 @@ export function EditableTable(container, config) {
           }
         }
       });
+
+      const deleteBtn = modal.element.querySelector('.btn-modal-delete-record');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          const delId = deleteBtn.dataset.id || rowId;
+          if (confirm(`Delete record ${delId}? คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?`)) {
+            if (onDelete) {
+              onDelete(delId);
+              if (Array.isArray(config.data)) {
+                config.data = config.data.filter(item => String(item[idField]) !== String(delId));
+              }
+              selectedRowIds.delete(String(delId));
+              showToast(`Deleted ${delId} successfully! 🗑️`, 'info');
+              modal.close();
+              render();
+            }
+          }
+        });
+      }
 
       modal.element.querySelectorAll('.table-img-preview').forEach(imgEl => {
         imgEl.addEventListener('click', (e) => {

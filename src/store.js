@@ -529,18 +529,60 @@ class Store extends Emitter {
     this._changed('brand');
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
-    const rawList = this._data.content.filter(c => {
-      const targetDateStr = c.publishedPlan;
-      if (!targetDateStr) return false;
-      const d = new Date(targetDateStr);
-      if (isNaN(d.getTime())) return false;
+    if (!this._data || !Array.isArray(this._data.content)) return [];
 
-      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
-      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+    const rawList = this._data.content.filter(c => {
+      if (!c) return false;
+
+      // Ignore plannedDate completely as instructed. Read strictly from publishedDate or legacy publishedPlan.
+      const dateVal = c.publishedDate || c.publishedPlan || '';
+      if (!dateVal) return false;
+
+      let itemYear = null;
+      let itemMonth = null;
+
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) {
+        itemYear = d.getFullYear();
+        itemMonth = d.getMonth();
+      } else {
+        const str = String(dateVal).split('T')[0].trim();
+        const parts = str.split(/[-/.]/);
+        if (parts.length >= 3) {
+          const p0 = parseInt(parts[0], 10);
+          const p1 = parseInt(parts[1], 10);
+          const p2 = parseInt(parts[2], 10);
+          if (p0 > 1000) { itemYear = p0; itemMonth = p1 - 1; }
+          else if (p2 > 1000) { itemYear = p2; itemMonth = p1 - 1; }
+        }
+      }
+
+      if (itemYear === null || itemMonth === null) return false;
+
+      // Auto-convert Thai BE years (>2400) to AD years (e.g. 2569 -> 2026)
+      if (itemYear > 2400) {
+        itemYear -= 543;
+      }
+
+      const matchesMonth = itemYear === year && itemMonth === month;
+
+      let matchesStatus = false;
+      if (!statusFilter || statusFilter === 'ALL') {
+        matchesStatus = true;
+      } else if (typeof statusFilter === 'string') {
+        matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      } else if (typeof statusFilter.has === 'function') {
+        matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
+      } else if (Array.isArray(statusFilter)) {
+        matchesStatus = statusFilter.includes('ALL') || statusFilter.length === 0 || statusFilter.includes(c.status);
+      } else {
+        matchesStatus = true;
+      }
+
       return matchesMonth && matchesStatus;
     });
 
-    // Deduplicate array by ID to guarantee zero duplicates in calendar output
+    // Deduplicate array strictly by ID to guarantee ZERO duplicate cards in calendar
     const seenIds = new Set();
     const uniqueList = [];
     rawList.forEach(c => {
@@ -553,87 +595,39 @@ class Store extends Emitter {
     });
 
     return uniqueList.map(c => {
+      const dateVal = c.publishedDate || c.publishedPlan || '';
+      let finalActiveDate = String(dateVal).split('T')[0].trim();
+
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) {
+        let yNum = d.getFullYear();
+        if (yNum > 2400) yNum -= 543;
+        const yStr = String(yNum);
+        const mStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
+      } else {
+        const parts = finalActiveDate.split(/[-/.]/);
+        if (parts.length >= 3) {
+          let p0 = parseInt(parts[0], 10);
+          let p1 = parseInt(parts[1], 10);
+          let p2 = parseInt(parts[2], 10);
+          if (p0 > 1000) {
+            if (p0 > 2400) p0 -= 543;
+            finalActiveDate = `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+          } else if (p2 > 1000) {
+            if (p2 > 2400) p2 -= 543;
+            finalActiveDate = `${p2}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+          }
+        }
+      }
+
       return {
         ...c,
-        activeDate: c.publishedPlan,
+        activeDate: finalActiveDate,
         productName: this.getProductName(c.productId)
       };
     });
-  }
-
-  /* ── Computed Stats ── */
-  getStats() {
-    const c = this._data.content || [];
-    const publishedCount = c.filter(x => x.status && (x.status.includes('Published') || x.status === '📤 Published')).length;
-    const inProgressCount = c.filter(x => !x.status || !x.status.includes('Published')).length;
-    return {
-      totalProducts: this._data.products?.length || 0,
-      totalContent: c.length,
-      published: publishedCount,
-      publishedContent: publishedCount,
-      inProgress: inProgressCount,
-      inProgressContent: inProgressCount,
-      sponsorDeals: this._data.sponsors?.length || 0,
-    };
-  }
-
-  getContentMix() {
-    const c = this._data.content || [];
-    const total = c.length;
-    const mix = {};
-    const types = ['🛒 Affiliate', '🎯 Personal Brand', '📚 Knowledge', '🤝 Sponsor'];
-    types.forEach(t => {
-      const label = t.split(' ')[1] || t;
-      const count = c.filter(x => x.contentType === t || (x.contentType && x.contentType.includes(label))).length;
-      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-      mix[t] = { count, percentage };
-    });
-    return mix;
-  }
-
-  getChannelDistribution() {
-    const dist = {};
-    this._data.content.forEach(c => {
-      if (c.channel) dist[c.channel] = (dist[c.channel] || 0) + 1;
-    });
-    return dist;
-  }
-
-  getContentForMonth(year, month, statusFilter = 'ALL', dateTypeFilter = { showPlanned: true, showPublished: true }) {
-    const result = [];
-    this._data.content.forEach(c => {
-      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      if (!matchesStatus) return;
-
-      // 🟠 1. Planned Date Entry
-      if (dateTypeFilter.showPlanned && c.plannedDate) {
-        const d = new Date(c.plannedDate);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          result.push({
-            ...c,
-            displayId: `${c.id}-plan`,
-            activeDate: c.plannedDate,
-            dateType: 'planned',
-            productName: this.getProductName(c.productId)
-          });
-        }
-      }
-
-      // 🟢 2. Published Date Entry
-      if (dateTypeFilter.showPublished && c.publishedDate) {
-        const d = new Date(c.publishedDate);
-        if (d.getFullYear() === year && d.getMonth() === month) {
-          result.push({
-            ...c,
-            displayId: `${c.id}-pub`,
-            activeDate: c.publishedDate,
-            dateType: 'published',
-            productName: this.getProductName(c.productId)
-          });
-        }
-      }
-    });
-    return result;
   }
 
   getProductName(productId) {
