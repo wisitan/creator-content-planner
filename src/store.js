@@ -528,42 +528,43 @@ class Store extends Emitter {
     obj[keys[keys.length - 1]] = value;
     this._changed('brand');
   }
-  getContentForMonth(year, month, statusFilter = 'ALL') {
+  getContentForMonth(year, month, statusFilter = 'ALL', dateTypeFilter = { showPlanned: true, showPublished: true }) {
     if (!this._data || !Array.isArray(this._data.content)) return [];
 
-    const rawList = this._data.content.filter(c => {
-      if (!c) return false;
-
-      const dateVal = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || c.createdAt || '';
-      if (!dateVal) return false;
-
-      let itemYear = null;
-      let itemMonth = null;
-
-      const d = new Date(dateVal);
+    const result = [];
+    const parseDate = (val) => {
+      if (!val) return null;
+      let y = null, m = null, formatted = '';
+      const d = new Date(val);
       if (!isNaN(d.getTime())) {
-        itemYear = d.getFullYear();
-        itemMonth = d.getMonth();
+        y = d.getFullYear();
+        if (y > 2400) y -= 543;
+        m = d.getMonth();
+        formatted = `${y}-${String(m + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       } else {
-        const str = String(dateVal).split('T')[0].trim();
+        const str = String(val).split('T')[0].trim();
         const parts = str.split(/[-/.]/);
         if (parts.length >= 3) {
-          const p0 = parseInt(parts[0], 10);
-          const p1 = parseInt(parts[1], 10);
-          const p2 = parseInt(parts[2], 10);
-          if (p0 > 1000) { itemYear = p0; itemMonth = p1 - 1; }
-          else if (p2 > 1000) { itemYear = p2; itemMonth = p1 - 1; }
+          let p0 = parseInt(parts[0], 10);
+          let p1 = parseInt(parts[1], 10);
+          let p2 = parseInt(parts[2], 10);
+          if (p0 > 1000) {
+            if (p0 > 2400) p0 -= 543;
+            y = p0; m = p1 - 1;
+            formatted = `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+          } else if (p2 > 1000) {
+            if (p2 > 2400) p2 -= 543;
+            y = p2; m = p1 - 1;
+            formatted = `${p2}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+          }
         }
       }
+      if (y === null || m === null) return null;
+      return { y, m, formatted };
+    };
 
-      if (itemYear === null || itemMonth === null) return false;
-
-      // Handle Thai Buddhist Era (พ.ศ.) -> Convert 2569 to 2026
-      if (itemYear > 2400) {
-        itemYear -= 543;
-      }
-
-      const matchesMonth = itemYear === year && itemMonth === month;
+    this._data.content.forEach(c => {
+      if (!c) return;
 
       let matchesStatus = false;
       if (!statusFilter || statusFilter === 'ALL') {
@@ -578,54 +579,39 @@ class Store extends Emitter {
         matchesStatus = true;
       }
 
-      return matchesMonth && matchesStatus;
-    });
+      if (!matchesStatus) return;
 
-    const seenIds = new Set();
-    const uniqueList = [];
-    rawList.forEach(c => {
-      if (!c || !c.id) return;
-      const cleanId = String(c.id).trim().toLowerCase();
-      if (!seenIds.has(cleanId)) {
-        seenIds.add(cleanId);
-        uniqueList.push(c);
-      }
-    });
-
-    return uniqueList.map(c => {
-      const dateVal = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
-      let finalActiveDate = String(dateVal).split('T')[0].trim();
-
-      const d = new Date(dateVal);
-      if (!isNaN(d.getTime())) {
-        let yNum = d.getFullYear();
-        if (yNum > 2400) yNum -= 543;
-        const yStr = String(yNum);
-        const mStr = String(d.getMonth() + 1).padStart(2, '0');
-        const dayStr = String(d.getDate()).padStart(2, '0');
-        finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
-      } else {
-        const parts = finalActiveDate.split(/[-/.]/);
-        if (parts.length >= 3) {
-          let p0 = parseInt(parts[0], 10);
-          let p1 = parseInt(parts[1], 10);
-          let p2 = parseInt(parts[2], 10);
-          if (p0 > 1000) {
-            if (p0 > 2400) p0 -= 543;
-            finalActiveDate = `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
-          } else if (p2 > 1000) {
-            if (p2 > 2400) p2 -= 543;
-            finalActiveDate = `${p2}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
-          }
+      // 🟠 1. Planned Date Entry
+      const plannedDateVal = c.plannedDate || c.publishedPlan || '';
+      if (dateTypeFilter.showPlanned && plannedDateVal) {
+        const parsed = parseDate(plannedDateVal);
+        if (parsed && parsed.y === year && parsed.m === month) {
+          result.push({
+            ...c,
+            displayId: `${c.id}-plan`,
+            activeDate: parsed.formatted,
+            dateType: 'planned',
+            productName: this.getProductName(c.productId)
+          });
         }
       }
 
-      return {
-        ...c,
-        activeDate: finalActiveDate,
-        productName: this.getProductName(c.productId)
-      };
+      // 🟢 2. Published Date Entry (if distinct from planned date)
+      if (dateTypeFilter.showPublished && c.publishedDate && c.publishedDate !== c.plannedDate) {
+        const parsed = parseDate(c.publishedDate);
+        if (parsed && parsed.y === year && parsed.m === month) {
+          result.push({
+            ...c,
+            displayId: `${c.id}-pub`,
+            activeDate: parsed.formatted,
+            dateType: 'published',
+            productName: this.getProductName(c.productId)
+          });
+        }
+      }
     });
+
+    return result;
   }
 
   /* ── Computed Stats ── */
