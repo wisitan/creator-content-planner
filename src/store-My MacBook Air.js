@@ -274,16 +274,17 @@ class Store extends Emitter {
 
   getContentForMonth(year, month, statusFilter = 'ALL') {
     return this._data.content.filter(c => {
-      const targetDateStr = c.publishedDate;
+      const targetDateStr = c.status === '📤 Published' ? (c.publishedDate || c.plannedDate) : c.plannedDate;
       if (!targetDateStr) return false;
       const d = new Date(targetDateStr);
       const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
       return matchesMonth && matchesStatus;
     }).map(c => {
+      const activeDate = c.status === '📤 Published' ? (c.publishedDate || c.plannedDate) : c.plannedDate;
       return {
         ...c,
-        activeDate: c.publishedDate,
+        activeDate: activeDate,
         productName: this.getProductName(c.productId)
       };
     });

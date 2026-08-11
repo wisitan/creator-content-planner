@@ -1,6 +1,6 @@
 /* ──────────────────────────────────────────
    Calendar Grid Component 
-   (With Month, Week & Day Views, Single-Line Content Format, Status Filter Chips, Dynamic Color Logic & Rich Item Modal)
+   (With Month, Week & Day Views, Single-Line Content Format, Status Filter & Rich Item Modal)
    ────────────────────────────────────────── */
 import { esc, fmtDate } from '../utils.js';
 
@@ -26,36 +26,6 @@ export function CalendarGrid(container, config) {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));
-  }
-
-  function getItemColorStyle(item, todayStr) {
-    const statusStr = item.status || '';
-    const isPublished = statusStr.includes('Published');
-    const pubDate = item.publishedDate || item.activeDate || '';
-
-    if (isPublished) {
-      return {
-        style: 'background:var(--c-bg); color:var(--c-green, #16A34A); border-left:3px solid #22C55E;',
-        badgeClass: 'badge-green',
-        statusText: 'Published'
-      };
-    }
-
-    // If publishedDate is past today's date and status is NOT Published -> ORANGE FONT/BORDER
-    if (pubDate && pubDate < todayStr) {
-      return {
-        style: 'background:#FFF7ED; color:#C2410C; border-left:3px solid #F97316; font-weight:600;',
-        badgeClass: 'badge-orange',
-        statusText: 'Overdue / Pending'
-      };
-    } else {
-      // Not past due yet / On Track -> GREEN FONT/BORDER
-      return {
-        style: 'background:#F0FDF4; color:#166534; border-left:3px solid #16A34A;',
-        badgeClass: 'badge-green',
-        statusText: 'On Track'
-      };
-    }
   }
 
   function render() {
@@ -92,23 +62,12 @@ export function CalendarGrid(container, config) {
       headerTitle = `${dayName}, ${dNum} ${mName} ${yNum}`;
     }
 
-    // Status Filter Chips Bar (Replacing Dropdown List)
-    let statusChipsHtml = `<div class="status-chips-bar" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">`;
-    const allActive = selectedStatus === 'ALL';
-    statusChipsHtml += `
-      <button class="btn btn-sm ${allActive ? 'btn-primary' : 'btn-secondary'} btn-status-chip" data-status="ALL" style="padding:2px 10px; font-size:0.78rem; border-radius:14px; font-weight:600;">
-        🔍 All Statuses
-      </button>
-    `;
+    let statusSelectHtml = `<select id="cal-status-filter" class="form-select" style="width: auto; font-size: 0.82rem; padding: 3px 8px;">`;
+    statusSelectHtml += `<option value="ALL">🔍 All Statuses</option>`;
     statusOptions.forEach(st => {
-      const active = selectedStatus === st;
-      statusChipsHtml += `
-        <button class="btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'} btn-status-chip" data-status="${esc(st)}" style="padding:2px 10px; font-size:0.78rem; border-radius:14px; font-weight:500;">
-          ${esc(st)}
-        </button>
-      `;
+      statusSelectHtml += `<option value="${esc(st)}"${st === selectedStatus ? ' selected' : ''}>${esc(st)}</option>`;
     });
-    statusChipsHtml += `</div>`;
+    statusSelectHtml += `</select>`;
 
     header.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px;">
@@ -118,9 +77,9 @@ export function CalendarGrid(container, config) {
         <button class="btn btn-ghost btn-sm" id="cal-today">Today</button>
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-          <span style="font-size:0.82rem; font-weight:600;" class="text-muted">Filter:</span>
-          ${statusChipsHtml}
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.82rem; font-weight:600;" class="text-muted">Status:</span>
+          ${statusSelectHtml}
         </div>
         <div class="view-toggle-btns" style="display:flex; gap:2px; background:var(--c-bg); padding:2px; border-radius:6px; border:1px solid var(--c-border);">
           <button id="cal-view-month" class="btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-secondary'}" style="padding:2px 7px; font-size:0.75rem;">📅 Month</button>
@@ -151,28 +110,33 @@ export function CalendarGrid(container, config) {
         dayViewWrapper.innerHTML = `
           <div class="empty-state" style="padding:30px 10px;">
             <div class="empty-icon" style="font-size:2.5rem;">📅</div>
-            <p class="text-muted font-weight-600 m-0">No content published for ${targetDateStr} · ไม่มีแผนคอนเทนต์สำหรับวันนี้</p>
+            <p class="text-muted font-weight-600 m-0">No content planned for ${targetDateStr} · ไม่มีแผนคอนเทนต์สำหรับวันนี้</p>
           </div>
         `;
       } else {
-        let cardsHtml = `<h4 class="mb-3" style="color:var(--c-primary); border-bottom:1px solid var(--c-border); padding-bottom:6px;">📋 Items for Today (${dayItems.length} items)</h4>`;
+        let cardsHtml = `<h4 class="mb-3" style="color:var(--c-primary); border-bottom:1px solid var(--c-border); padding-bottom:6px;">📋 Planned Items for Today (${dayItems.length} items)</h4>`;
         cardsHtml += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">`;
         
         dayItems.forEach(item => {
-          const colorObj = getItemColorStyle(item, todayStr);
+          const colorMap = {
+            '🛒 Affiliate': 'border-left:4px solid var(--c-affiliate);',
+            '🎯 Personal Brand': 'border-left:4px solid var(--c-branding);',
+            '📚 Knowledge': 'border-left:4px solid var(--c-knowledge);',
+            '🤝 Sponsor': 'border-left:4px solid var(--c-sponsor);',
+          };
+          const style = colorMap[item.contentType] || 'border-left:4px solid var(--c-primary);';
 
           cardsHtml += `
-            <div class="cal-day-item-card card p-3" style="${colorObj.style} cursor:pointer; position:relative;" data-id="${esc(item.id)}">
+            <div class="cal-day-item-card card p-3" style="${style} background:var(--c-bg); cursor:pointer; position:relative;" data-id="${esc(item.id)}">
               <div class="flex-between mb-2">
                 <span class="badge" style="font-size:0.8rem; font-weight:700;">${esc(item.id)}</span>
                 <span class="badge" style="font-size:0.75rem;">${esc(item.status || '')}</span>
               </div>
-              <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:6px; color:inherit;">${esc(item.title || item.hook || 'Untitled Content')}</h4>
+              <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:6px; color:var(--c-text);">${esc(item.title || item.hook || 'Untitled Content')}</h4>
               ${item.productName ? `<div style="font-size:0.8rem; margin-bottom:4px;" class="text-muted">📦 ${esc(item.productName)}</div>` : ''}
-              <div style="font-size:0.78rem; display:flex; gap:10px; flex-wrap:wrap; opacity:0.85;" class="mt-2">
+              <div style="font-size:0.78rem; display:flex; gap:10px; flex-wrap:wrap; color:var(--c-text-muted);" class="mt-2">
                 <span>🏷️ ${esc(item.contentType || '-')}</span>
                 <span>📌 ${esc(item.channel || '-')}</span>
-                <span>📅 Pub: ${esc(item.publishedDate || '-')}</span>
               </div>
             </div>
           `;
@@ -218,7 +182,7 @@ export function CalendarGrid(container, config) {
         const prevMonthDays = new Date(year, month, 0).getDate();
         for (let i = startOffset - 1; i >= 0; i--) {
           const d = prevMonthDays - i;
-          const cell = createCell(d, true, '', false, false, [], todayStr);
+          const cell = createCell(d, true, '');
           grid.appendChild(cell);
         }
 
@@ -230,7 +194,7 @@ export function CalendarGrid(container, config) {
           const isToday = dateStr === todayStr;
           const dayItems = items.filter(it => it.activeDate === dateStr);
 
-          const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems, todayStr);
+          const cell = createCell(d, false, dateStr, isWeekend, isToday, dayItems);
           grid.appendChild(cell);
         }
 
@@ -238,7 +202,7 @@ export function CalendarGrid(container, config) {
         const totalCells = startOffset + daysInMonth;
         const remaining = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
         for (let d = 1; d <= remaining; d++) {
-          const cell = createCell(d, true, '', false, false, [], todayStr);
+          const cell = createCell(d, true, '');
           grid.appendChild(cell);
         }
       } else {
@@ -257,7 +221,7 @@ export function CalendarGrid(container, config) {
           const dayItems = items.filter(it => it.activeDate === dateStr);
 
           const displayLabel = `${dayDate.getDate()} ${SHORT_MONTHS[dayDate.getMonth()]}`;
-          const cell = createCell(displayLabel, false, dateStr, isWeekend, isToday, dayItems, todayStr);
+          const cell = createCell(displayLabel, false, dateStr, isWeekend, isToday, dayItems);
           cell.classList.add('cal-cell-week');
           grid.appendChild(cell);
         }
@@ -322,13 +286,9 @@ export function CalendarGrid(container, config) {
       render();
     });
 
-    // Status Chip Bar Event Listener
-    header.addEventListener('click', (e) => {
-      const chipBtn = e.target.closest('.btn-status-chip');
-      if (chipBtn) {
-        selectedStatus = chipBtn.dataset.status;
-        render();
-      }
+    header.querySelector('#cal-status-filter').addEventListener('change', (e) => {
+      selectedStatus = e.target.value;
+      render();
     });
 
     header.querySelector('#cal-view-month').addEventListener('click', () => {
@@ -347,7 +307,7 @@ export function CalendarGrid(container, config) {
     });
   }
 
-  function createCell(dayLabel, otherMonth, dateStr, isWeekend = false, isToday = false, dayItems = [], todayStr = '') {
+  function createCell(dayLabel, otherMonth, dateStr, isWeekend = false, isToday = false, dayItems = []) {
     const cell = document.createElement('div');
     cell.className = 'cal-cell';
     if (otherMonth) cell.classList.add('other-month');
@@ -359,13 +319,19 @@ export function CalendarGrid(container, config) {
     if (dayItems.length > 0) {
       html += '<div class="cal-items">';
       dayItems.forEach(item => {
-        const colorObj = getItemColorStyle(item, todayStr);
+        const colorMap = {
+          '🛒 Affiliate': 'background:var(--c-affiliate-lt);color:var(--c-affiliate);border-left:3px solid var(--c-affiliate);',
+          '🎯 Personal Brand': 'background:var(--c-branding-lt);color:var(--c-branding);border-left:3px solid var(--c-branding);',
+          '📚 Knowledge': 'background:var(--c-knowledge-lt);color:var(--c-knowledge);border-left:3px solid var(--c-knowledge);',
+          '🤝 Sponsor': 'background:var(--c-sponsor-lt);color:var(--c-sponsor);border-left:3px solid var(--c-sponsor);',
+        };
+        const style = colorMap[item.contentType] || 'background:var(--c-bg);color:var(--c-text);';
         const titleText = item.title || item.hook || 'Untitled Content';
         const statusIcon = item.status ? item.status.split(' ')[0] : '';
 
-        // Single-line format strictly truncated with Dynamic Color Logic
+        // Single-line format strictly truncated: Content ID : Content Title
         html += `
-          <div class="cal-item" style="${colorObj.style}" data-id="${esc(item.id)}" title="${esc(item.id)} : ${esc(titleText)} (${esc(item.status || '')} - ${colorObj.statusText})">
+          <div class="cal-item" style="${style}" data-id="${esc(item.id)}" title="${esc(item.id)} : ${esc(titleText)} (${esc(item.status || '')})">
             <span class="cal-item-id">${esc(item.id)}</span>
             <span class="cal-item-sep">:</span>
             <span class="cal-item-title">${esc(titleText)}</span>
