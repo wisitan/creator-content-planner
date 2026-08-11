@@ -30,7 +30,7 @@ export function renderContent(container, store) {
     { key: 'channel', label: t('col_cnt_channel'), type: 'dropdown', options: () => store.getSettingList('channels') },
     { key: 'script', label: t('col_cnt_script'), type: 'scriptModal', width: '240px' },
     { key: 'ctaType', label: t('col_cnt_cta'), type: 'dropdown', options: () => store.getSettingList('ctaTypes') },
-    { key: 'publishedPlan', label: 'Published Plan', type: 'date', width: '120px' },
+    { key: 'publishedDate', label: t('col_cnt_pub_date'), type: 'date', width: '120px' },
     { key: 'status', label: t('col_cnt_status'), type: 'dropdown', options: () => store.getSettingList('contentStatuses'), badge: statusBadge },
     { key: 'publishedUrl', label: t('col_cnt_pub_url'), type: 'url', width: '170px' },
     { key: 'performanceNotes', label: t('col_cnt_perf_notes'), type: 'text', width: '220px' }

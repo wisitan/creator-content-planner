@@ -171,14 +171,21 @@ class Store extends Emitter {
 
   _migrateDates(data) {
     if (!data || !data.content) return;
+    const seen = new Set();
+    const cleanContent = [];
     data.content.forEach(c => {
-      if (c && typeof c === 'object') {
-        const val = c.publishedPlan || c.publishedDate || c.plannedDate || '';
-        c.publishedPlan = val;
-        c.publishedDate = val;
-        c.plannedDate = val;
+      if (c && typeof c === 'object' && c.id) {
+        if (!seen.has(c.id)) {
+          seen.add(c.id);
+          const val = c.publishedDate || c.publishedPlan || c.plannedDate || '';
+          c.publishedDate = val;
+          c.publishedPlan = val;
+          c.plannedDate = val;
+          cleanContent.push(c);
+        }
       }
     });
+    data.content = cleanContent;
   }
 
   _persist() {
