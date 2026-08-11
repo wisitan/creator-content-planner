@@ -135,7 +135,7 @@ export function renderCalendar(container, store) {
           <!-- Script Textarea -->
           <div>
             <label style="font-size:0.8rem; font-weight:700; color:#4F46E5; display:block; margin-bottom:3px;">📜 Script & Content Outline</label>
-            <textarea class="form-input cal-field cal-script-textarea" data-field="script" rows="4" style="width:100%; border-left:3px solid #6366F1;" placeholder="เขียนบทพูดหรือรายละเอียดคอนเทนต์ที่นี่...">${esc(fullItem.script || '')}</textarea>
+            <textarea class="form-input cal-field cal-script-textarea" data-field="script" rows="9" style="width:100%; min-height:200px; border-left:3px solid #6366F1; line-height:1.6;" placeholder="เขียนบทพูดหรือรายละเอียดคอนเทนต์ที่นี่...">${esc(fullItem.script || '')}</textarea>
           </div>
         </div>
       `,
