@@ -21,8 +21,11 @@ export function renderCalendar(container, store) {
   `;
   card.appendChild(cardHeader);
 
+  const calWrapper = document.createElement('div');
+  calWrapper.className = 'cal-wrapper';
   const calContainer = document.createElement('div');
-  card.appendChild(calContainer);
+  calWrapper.appendChild(calContainer);
+  card.appendChild(calWrapper);
   container.appendChild(card);
 
   CalendarGrid(calContainer, {
