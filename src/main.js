@@ -64,8 +64,7 @@ function buildShell() {
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary btn-sm" id="btn-manual-save" title="Save data to local browser storage immediately">💾 Save</button>
-        <button class="btn btn-secondary btn-sm" id="btn-gdrive-backup" title="Backup to Google Drive">☁️ Drive Backup</button>
-        <button class="btn btn-secondary btn-sm" id="btn-gdrive-sync" title="Sync from Google Drive">🔄 Drive Sync</button>
+        <button class="btn btn-secondary btn-sm" id="btn-gdrive-smartsync" style="background:#EEF2FF; color:#4F46E5; border-color:#C7D2FE; font-weight:600;" title="Smart Auto Sync with Google Drive (Backup & Restore)">🔄 Smart Drive Sync</button>
         <button class="btn btn-secondary btn-sm" id="btn-export" title="Export data as JSON">📥 Export</button>
         <label class="btn btn-secondary btn-sm" title="Import data from JSON">
           📤 Import
@@ -107,8 +106,8 @@ function buildShell() {
     showToast('บันทึกข้อมูลลงเครื่องเรียบร้อยแล้วค่ะ! 💾✅', 'success');
   });
 
-  // Wire Google Drive Backup
-  document.getElementById('btn-gdrive-backup').addEventListener('click', async () => {
+  // Wire Smart Google Drive Sync
+  document.getElementById('btn-gdrive-smartsync')?.addEventListener('click', async () => {
     const googleClientId = store.getSettings().googleClientId;
     if (!googleClientId) {
       showToast('กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ', 'error');
@@ -116,35 +115,19 @@ function buildShell() {
       return;
     }
     try {
-      showToast('กำลังเชื่อมต่อ Google Drive... ☁️', 'info');
+      showToast('กำลังเชื่อมต่อ Smart Drive Sync... 🔄☁️', 'info');
       await initGoogleDrive(googleClientId);
       await backupToDrive(store._data);
-      showToast('Backup ไปยัง Google Drive สำเร็จแล้ว! ☁️✅', 'success');
-    } catch (err) {
-      showToast('Drive Backup Failed: ' + err.message, 'error');
-    }
-  });
-
-  // Wire Google Drive Sync
-  document.getElementById('btn-gdrive-sync').addEventListener('click', async () => {
-    const googleClientId = store.getSettings().googleClientId;
-    if (!googleClientId) {
-      showToast('กรุณากรอก Google Client ID ในหน้า ⚙️ Settings ก่อนนะคะ', 'error');
-      window.location.hash = '#settings';
-      return;
-    }
-    if (!confirm('ต้องการ Sync ดึงข้อมูลจาก Google Drive มาทับข้อมูลปัจจุบันใช่หรือไม่?')) return;
-    try {
-      showToast('กำลัง Sync จาก Google Drive... 🔄', 'info');
-      await initGoogleDrive(googleClientId);
       const data = await syncFromDrive();
-      store._data = data;
-      store._persist();
-      store.emit('change', 'all');
-      showToast('Sync ข้อมูลจาก Google Drive สำเร็จเรียบร้อย! 🔄✅', 'success');
+      if (data && typeof data === 'object') {
+        store._data = data;
+        store._persist();
+        store.emit('change', 'all');
+      }
+      showToast('Smart Drive Sync สำเร็จเรียบร้อยแล้วค่ะ! 🔄☁️✅', 'success');
       navigate(currentRoute || 'dashboard');
     } catch (err) {
-      showToast('Drive Sync Failed: ' + err.message, 'error');
+      showToast('Smart Drive Sync Failed: ' + err.message, 'error');
     }
   });
 
