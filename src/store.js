@@ -533,16 +533,13 @@ class Store extends Emitter {
       const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
       if (!targetDateStr) return false;
 
-      const parts = targetDateStr.split('-');
-      if (parts.length < 3) return false;
+      const d = new Date(targetDateStr);
+      if (isNaN(d.getTime())) return false;
 
-      const y = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10) - 1;
-
-      const matchesMonth = y === year && m === month;
+      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
       
       let matchesStatus = false;
-      if (statusFilter instanceof Set) {
+      if (statusFilter && typeof statusFilter.has === 'function') {
         matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
       } else {
         matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
@@ -565,9 +562,18 @@ class Store extends Emitter {
 
     return uniqueList.map(c => {
       const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
+      const d = new Date(val);
+      let finalActiveDate = val;
+      if (!isNaN(d.getTime())) {
+        const yStr = d.getFullYear();
+        const mStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        finalActiveDate = `${yStr}-${mStr}-${dayStr}`;
+      }
+
       return {
         ...c,
-        activeDate: val,
+        activeDate: finalActiveDate,
         productName: this.getProductName(c.productId)
       };
     });
