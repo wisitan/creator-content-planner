@@ -530,13 +530,24 @@ class Store extends Emitter {
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
     const rawList = this._data.content.filter(c => {
-      const targetDateStr = c.publishedPlan;
+      const targetDateStr = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
       if (!targetDateStr) return false;
-      const d = new Date(targetDateStr);
-      if (isNaN(d.getTime())) return false;
 
-      const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
-      const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      const parts = targetDateStr.split('-');
+      if (parts.length < 3) return false;
+
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+
+      const matchesMonth = y === year && m === month;
+      
+      let matchesStatus = false;
+      if (statusFilter instanceof Set) {
+        matchesStatus = statusFilter.has('ALL') || statusFilter.size === 0 || statusFilter.has(c.status);
+      } else {
+        matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+      }
+
       return matchesMonth && matchesStatus;
     });
 
@@ -553,9 +564,10 @@ class Store extends Emitter {
     });
 
     return uniqueList.map(c => {
+      const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
       return {
         ...c,
-        activeDate: c.publishedPlan,
+        activeDate: val,
         productName: this.getProductName(c.productId)
       };
     });
