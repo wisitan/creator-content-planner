@@ -31,7 +31,7 @@ export function CalendarGrid(container, config) {
   function getItemColorStyle(item, todayStr) {
     const statusStr = item.status || '';
     const isPublished = statusStr.includes('Published');
-    const pubDate = item.publishedPlan || '';
+    const pubDate = item.publishedPlan || item.publishedDate || item.plannedDate || item.activeDate || '';
 
     // 1. If status is Published -> BLUE COLOR (Completed 🟦)
     if (isPublished) {

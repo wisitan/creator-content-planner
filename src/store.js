@@ -173,11 +173,10 @@ class Store extends Emitter {
     if (!data || !data.content) return;
     data.content.forEach(c => {
       if (c && typeof c === 'object') {
-        if (!c.publishedPlan) {
-          c.publishedPlan = c.publishedDate || c.plannedDate || '';
-        }
-        delete c.publishedDate;
-        delete c.plannedDate;
+        const val = c.publishedPlan || c.publishedDate || c.plannedDate || '';
+        c.publishedPlan = val;
+        c.publishedDate = val;
+        c.plannedDate = val;
       }
     });
   }
