@@ -15,7 +15,7 @@ export function renderCalendar(container, store) {
     <div>
       <h2>📅 Content Calendar / ปฏิทินวางแผนคอนเทนต์</h2>
       <p class="text-muted">
-        (กดที่การ์ดคอนเทนต์เพื่อแก้ไขรายละเอียดและเปิด Teleprompter ได้ทันที | สลับมุมมอง Month / Week / Day View ได้ที่มุมขวาบน)
+        (กดที่การ์ดคอนเทนต์เพื่อแก้ไขรายละเอียดแบบด่วน และเปิด Teleprompter ได้ทันที | สลับมุมมอง Month / Week / Day View ได้ที่มุมขวาบน)
       </p>
     </div>
   `;
@@ -48,14 +48,12 @@ export function renderCalendar(container, store) {
     const fullItem = store.getContentItem(rowId) || {};
     const products = store.getProducts() || [];
     const contentTypes = store.getSettingList('contentTypes') || [];
-    const contentAngles = store.getSettingList('contentAngles') || [];
     const contentPillars = store.getSettingList('contentPillars') || [];
     const channels = store.getSettingList('channels') || [];
-    const ctaTypes = store.getSettingList('ctaTypes') || [];
     const contentStatuses = store.getSettingList('contentStatuses') || [];
 
     const modal = showModal({
-      title: `📝 Edit Content: ${esc(rowId)}`,
+      title: `📝 Quick Edit: ${esc(rowId)}`,
       body: `
         <div class="calendar-edit-popup" style="font-size:0.88rem; line-height:1.5;">
           <!-- Top Action Bar -->
@@ -71,11 +69,11 @@ export function renderCalendar(container, store) {
           <!-- Cover Image Preview if exists -->
           ${fullItem.coverUrl ? `
             <div style="text-align:center; margin-bottom:12px;">
-              <img src="${esc(fullItem.coverUrl)}" style="max-height:160px; max-width:100%; object-fit:contain; border-radius:8px; border:1px solid var(--c-border);">
+              <img src="${esc(fullItem.coverUrl)}" style="max-height:140px; max-width:100%; object-fit:contain; border-radius:8px; border:1px solid var(--c-border);">
             </div>
           ` : ''}
 
-          <!-- Editable Fields Grid -->
+          <!-- Essential Quick Edit Fields Grid -->
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
             <div style="grid-column: span 2;">
               <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Title / หัวข้อคอนเทนต์</label>
@@ -120,32 +118,11 @@ export function renderCalendar(container, store) {
             </div>
 
             <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Content Angle / มุมขาย</label>
-              <select class="form-select cal-field" data-field="contentAngle" style="width:100%;">
-                <option value="">-- เลือกมุมขาย --</option>
-                ${contentAngles.map(a => `<option value="${esc(a)}" ${fullItem.contentAngle === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}
-              </select>
-            </div>
-
-            <div>
               <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Content Pillar / เสาหลัก</label>
               <select class="form-select cal-field" data-field="contentPillar" style="width:100%;">
                 <option value="">-- เลือก Pillar --</option>
                 ${contentPillars.map(p => `<option value="${esc(p)}" ${fullItem.contentPillar === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}
               </select>
-            </div>
-
-            <div>
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">CTA Type / ประเภท CTA</label>
-              <select class="form-select cal-field" data-field="ctaType" style="width:100%;">
-                <option value="">-- เลือก CTA --</option>
-                ${ctaTypes.map(cta => `<option value="${esc(cta)}" ${fullItem.ctaType === cta ? 'selected' : ''}>${esc(cta)}</option>`).join('')}
-              </select>
-            </div>
-
-            <div style="grid-column: span 2;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Published URL / ลิงก์ที่เผยแพร่แล้ว</label>
-              <input type="url" class="form-input cal-field" data-field="publishedUrl" value="${esc(fullItem.publishedUrl || '')}" placeholder="https://..." style="width:100%;">
             </div>
           </div>
 
@@ -156,15 +133,9 @@ export function renderCalendar(container, store) {
           </div>
 
           <!-- Script Textarea -->
-          <div style="margin-bottom:12px;">
+          <div>
             <label style="font-size:0.8rem; font-weight:700; color:#4F46E5; display:block; margin-bottom:3px;">📜 Script & Content Outline</label>
             <textarea class="form-input cal-field cal-script-textarea" data-field="script" rows="4" style="width:100%; border-left:3px solid #6366F1;" placeholder="เขียนบทพูดหรือรายละเอียดคอนเทนต์ที่นี่...">${esc(fullItem.script || '')}</textarea>
-          </div>
-
-          <!-- Performance Notes -->
-          <div>
-            <label style="font-size:0.8rem; font-weight:700; color:var(--c-muted); display:block; margin-bottom:3px;">Performance Notes / บันทึกผลลัพธ์</label>
-            <input type="text" class="form-input cal-field" data-field="performanceNotes" value="${esc(fullItem.performanceNotes || '')}" placeholder="บันทึกยอดวิว หรือข้อสังเกต..." style="width:100%;">
           </div>
         </div>
       `,
