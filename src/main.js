@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.1.1';
+const APP_VERSION = 'v2.1.2';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -117,14 +117,8 @@ function buildShell() {
     try {
       showToast('กำลังเชื่อมต่อ Smart Drive Sync... 🔄☁️', 'info');
       await initGoogleDrive(googleClientId);
-      await backupToDrive(store._data);
-      const data = await syncFromDrive();
-      if (data && typeof data === 'object') {
-        store._data = data;
-        store._persist();
-        store.emit('change', 'all');
-      }
-      showToast('Smart Drive Sync สำเร็จเรียบร้อยแล้วค่ะ! 🔄☁️✅', 'success');
+      const res = await smartSyncWithDrive(store._data, store);
+      showToast(res.message || 'Smart Drive Sync สำเร็จเรียบร้อยแล้วค่ะ! 🔄☁️✅', 'success');
       navigate(currentRoute || 'dashboard');
     } catch (err) {
       showToast('Smart Drive Sync Failed: ' + err.message, 'error');
