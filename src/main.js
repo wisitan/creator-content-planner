@@ -6,7 +6,7 @@ import { store } from './store.js';
 import { showToast } from './components/toast.js';
 import { initGoogleDrive, backupToDrive, syncFromDrive, smartSyncWithDrive } from './google-drive.js';
 
-const APP_VERSION = 'v2.1.8';
+const APP_VERSION = 'v2.1.9';
 
 export function applyTheme(theme) {
   if (theme === 'dark') {
@@ -85,6 +85,9 @@ function buildShell() {
     { id: 'products',  icon: '🛍️', label: 'Products' },
     { id: 'content',   icon: '📝', label: 'Content' },
     { id: 'calendar',  icon: '📅', label: 'Calendar' },
+    { id: 'channels',  icon: '📺', label: 'Channels' },
+    { id: 'brand',     icon: '👤', label: 'Brand' },
+    { id: 'sponsors',  icon: '🤝', label: 'Sponsors' },
     { id: 'settings',  icon: '⚙️', label: 'Settings' },
   ];
   MOBILE_ROUTES.forEach(r => {

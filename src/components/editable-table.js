@@ -291,74 +291,72 @@ export function EditableTable(container, config) {
     wrapper.innerHTML = html;
     container.appendChild(wrapper);
 
-    // Render Mobile Native Cards List only on Mobile Devices / Mobile Viewports
-    if (isMobileDevice()) {
-      const mobileCardList = document.createElement('div');
-      mobileCardList.className = 'etable-mobile-card-list';
+    // Render Mobile Native Cards List
+    const mobileCardList = document.createElement('div');
+    mobileCardList.className = 'etable-mobile-card-list';
 
-      if (filtered.length === 0) {
-        mobileCardList.innerHTML = `
-          <div class="empty-state card p-4 text-center">
-            <div class="empty-icon" style="font-size:2.5rem;">${emptyIcon}</div>
-            <p class="text-muted font-weight-600 m-0">${emptyText}</p>
+    if (filtered.length === 0) {
+      mobileCardList.innerHTML = `
+        <div class="empty-state card p-4 text-center">
+          <div class="empty-icon" style="font-size:2.5rem;">${emptyIcon}</div>
+          <p class="text-muted font-weight-600 m-0">${emptyText}</p>
+        </div>
+      `;
+    } else {
+      filtered.forEach(row => {
+        const id = row[idField] || row.id || '';
+        const titleCol = columns.find(c => c.key === 'name' || c.key === 'title' || c.key === 'label') || columns[1] || columns[0];
+        const titleVal = titleCol && titleCol.compute ? titleCol.compute(row) : (row[titleCol ? titleCol.key : 'id'] || 'Untitled');
+        
+        const statusCol = columns.find(c => c.key === 'status');
+        const statusVal = statusCol ? row[statusCol.key] : '';
+        const statusBadgeHtml = statusCol && statusCol.badge ? `<span class="${statusCol.badge(statusVal)}">${esc(statusVal)}</span>` : (statusVal ? `<span class="badge">${esc(statusVal)}</span>` : '');
+
+        const coverCol = columns.find(c => c.type === 'image' || c.key === 'coverUrl' || c.key === 'imageUrl');
+        const coverUrl = coverCol ? row[coverCol.key] : '';
+
+        const channelCol = columns.find(c => c.key === 'channel' || c.key === 'category' || c.key === 'platform' || c.key === 'brand');
+        const channelVal = channelCol ? row[channelCol.key] : '';
+
+        const dateCol = columns.find(c => c.key === 'publishedDate' || c.key === 'publishedPlan' || c.key === 'deadline');
+        const dateVal = dateCol ? row[dateCol.key] : '';
+
+        const card = document.createElement('div');
+        card.className = 'etable-mobile-card';
+        card.dataset.id = id;
+
+        card.innerHTML = `
+          <div class="etable-mobile-card-header">
+            <span class="etable-mobile-card-id">${esc(id)}</span>
+            ${statusBadgeHtml}
           </div>
-        `;
-      } else {
-        filtered.forEach(row => {
-          const id = row[idField] || row.id || '';
-          const titleCol = columns.find(c => c.key === 'name' || c.key === 'title' || c.key === 'label') || columns[1] || columns[0];
-          const titleVal = titleCol && titleCol.compute ? titleCol.compute(row) : (row[titleCol ? titleCol.key : 'id'] || 'Untitled');
-          
-          const statusCol = columns.find(c => c.key === 'status');
-          const statusVal = statusCol ? row[statusCol.key] : '';
-          const statusBadgeHtml = statusCol && statusCol.badge ? `<span class="${statusCol.badge(statusVal)}">${esc(statusVal)}</span>` : (statusVal ? `<span class="badge">${esc(statusVal)}</span>` : '');
 
-          const coverCol = columns.find(c => c.type === 'image' || c.key === 'coverUrl' || c.key === 'imageUrl');
-          const coverUrl = coverCol ? row[coverCol.key] : '';
-
-          const channelCol = columns.find(c => c.key === 'channel' || c.key === 'category' || c.key === 'platform' || c.key === 'brand');
-          const channelVal = channelCol ? row[channelCol.key] : '';
-
-          const dateCol = columns.find(c => c.key === 'publishedDate' || c.key === 'publishedPlan' || c.key === 'deadline');
-          const dateVal = dateCol ? row[dateCol.key] : '';
-
-          const card = document.createElement('div');
-          card.className = 'etable-mobile-card';
-          card.dataset.id = id;
-
-          card.innerHTML = `
-            <div class="etable-mobile-card-header">
-              <span class="etable-mobile-card-id">${esc(id)}</span>
-              ${statusBadgeHtml}
-            </div>
-
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-              ${coverUrl ? `<img src="${esc(coverUrl)}" style="width:55px; height:55px; object-fit:cover; border-radius:8px; border:1px solid var(--c-border); flex-shrink:0;">` : ''}
-              <div style="flex:1;">
-                <div class="etable-mobile-card-title">${esc(titleVal)}</div>
-                <div class="etable-mobile-card-meta">
-                  ${channelVal ? `<span>📌 ${esc(channelVal)}</span>` : ''}
-                  ${dateVal ? `<span>📅 ${esc(dateVal)}</span>` : ''}
-                </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            ${coverUrl ? `<img src="${esc(coverUrl)}" style="width:55px; height:55px; object-fit:cover; border-radius:8px; border:1px solid var(--c-border); flex-shrink:0;">` : ''}
+            <div style="flex:1;">
+              <div class="etable-mobile-card-title">${esc(titleVal)}</div>
+              <div class="etable-mobile-card-meta">
+                ${channelVal ? `<span>📌 ${esc(channelVal)}</span>` : ''}
+                ${dateVal ? `<span>📅 ${esc(dateVal)}</span>` : ''}
               </div>
             </div>
+          </div>
 
-            <div class="etable-mobile-card-footer text-muted">
-              <span>แตะเพื่อดู/แก้ไขรายละเอียด (Tap to Drill Down)</span>
-              <span style="color:var(--c-primary); font-weight:700;">➔</span>
-            </div>
-          `;
+          <div class="etable-mobile-card-footer text-muted">
+            <span>แตะเพื่อดู/แก้ไขรายละเอียด (Tap to Drill Down)</span>
+            <span style="color:var(--c-primary); font-weight:700;">➔</span>
+          </div>
+        `;
 
-          card.addEventListener('click', () => {
-            openRowDetailModal(id);
-          });
-
-          mobileCardList.appendChild(card);
+        card.addEventListener('click', () => {
+          openRowDetailModal(id);
         });
-      }
 
-      container.appendChild(mobileCardList);
+        mobileCardList.appendChild(card);
+      });
     }
+
+    container.appendChild(mobileCardList);
 
     wireEvents();
   }
