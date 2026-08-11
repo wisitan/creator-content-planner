@@ -1,5 +1,6 @@
 import { EditableTable, statusBadge, contentTypeBadge } from '../components/editable-table.js';
 import { t } from '../i18n.js';
+import { esc } from '../utils.js';
 
 export function renderContent(container, store) {
   container.innerHTML = '';
@@ -36,21 +37,68 @@ export function renderContent(container, store) {
     { key: 'performanceNotes', label: t('col_cnt_perf_notes'), type: 'text', width: '220px' }
   ];
 
-  EditableTable(tableContainer, {
-    columns: columns,
-    getData: () => store.getContent(),
-    getProducts: () => store.getProducts(),
-    getCategories: () => store.getSettingList('productCategories'),
-    getProductTypes: () => store.getSettingList('productTypes'),
-    getStatuses: () => store.getSettingList('productStatuses'),
-    onAdd: () => store.addContent({ status: '💡 Idea' }),
-    onChange: (id, field, value) => store.updateContent(id, field, value),
-    onDelete: (id) => store.deleteContent(id),
-    addLabel: t('cnt_add_btn'),
-    emptyText: t('cnt_empty'),
-    emptyIcon: '📝',
-    enableYearMonthFilter: true
-  });
+  let selectedStatus = 'ALL';
+  const statusOptions = store.getSettingList('contentStatuses') || [];
+
+  function renderTable() {
+    tableContainer.innerHTML = '';
+
+    // Status Filter Chips Bar
+    const filterBar = document.createElement('div');
+    filterBar.className = 'status-chips-bar p-3';
+    filterBar.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; align-items:center; background:var(--c-bg); border-bottom:1px solid var(--c-border); border-top-left-radius:8px; border-top-right-radius:8px;';
+
+    let chipsHtml = `<span style="font-size:0.82rem; font-weight:700;" class="text-muted mr-1">Filter Status:</span>`;
+    const allActive = selectedStatus === 'ALL';
+    chipsHtml += `
+      <button class="btn btn-sm ${allActive ? 'btn-primary' : 'btn-secondary'} btn-cnt-status-chip" data-status="ALL" style="padding:3px 12px; font-size:0.8rem; border-radius:14px; font-weight:600;">
+        🔍 All Statuses
+      </button>
+    `;
+    statusOptions.forEach(st => {
+      const active = selectedStatus === st;
+      chipsHtml += `
+        <button class="btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'} btn-cnt-status-chip" data-status="${esc(st)}" style="padding:3px 12px; font-size:0.8rem; border-radius:14px; font-weight:500;">
+          ${esc(st)}
+        </button>
+      `;
+    });
+    filterBar.innerHTML = chipsHtml;
+    tableContainer.appendChild(filterBar);
+
+    filterBar.addEventListener('click', (e) => {
+      const chipBtn = e.target.closest('.btn-cnt-status-chip');
+      if (chipBtn) {
+        selectedStatus = chipBtn.dataset.status;
+        renderTable();
+      }
+    });
+
+    const wrapper = document.createElement('div');
+    tableContainer.appendChild(wrapper);
+
+    EditableTable(wrapper, {
+      columns: columns,
+      getData: () => {
+        const allContent = store.getContent();
+        if (selectedStatus === 'ALL') return allContent;
+        return allContent.filter(c => c.status === selectedStatus);
+      },
+      getProducts: () => store.getProducts(),
+      getCategories: () => store.getSettingList('productCategories'),
+      getProductTypes: () => store.getSettingList('productTypes'),
+      getStatuses: () => store.getSettingList('productStatuses'),
+      onAdd: () => store.addContent({ status: selectedStatus === 'ALL' ? '💡 Idea' : selectedStatus }),
+      onChange: (id, field, value) => store.updateContent(id, field, value),
+      onDelete: (id) => store.deleteContent(id),
+      addLabel: t('cnt_add_btn'),
+      emptyText: t('cnt_empty'),
+      emptyIcon: '📝',
+      enableYearMonthFilter: true
+    });
+  }
+
+  renderTable();
 }
 
 export function render(container, store) {
