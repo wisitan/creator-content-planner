@@ -530,7 +530,7 @@ class Store extends Emitter {
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
     const rawList = this._data.content.filter(c => {
-      const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
+      const val = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
       if (!val) return false;
 
       let y, m;
@@ -576,7 +576,7 @@ class Store extends Emitter {
     });
 
     return uniqueList.map(c => {
-      const val = c.publishedPlan || c.publishedDate || c.plannedDate || c.date || '';
+      const val = c.plannedDate || c.publishedPlan || c.publishedDate || c.date || '';
       let finalActiveDate = val;
 
       const d = new Date(val);
