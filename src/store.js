@@ -529,7 +529,7 @@ class Store extends Emitter {
     this._changed('brand');
   }
   getContentForMonth(year, month, statusFilter = 'ALL') {
-    return this._data.content.filter(c => {
+    const rawList = this._data.content.filter(c => {
       const targetDateStr = c.publishedPlan;
       if (!targetDateStr) return false;
       const d = new Date(targetDateStr);
@@ -538,7 +538,21 @@ class Store extends Emitter {
       const matchesMonth = d.getFullYear() === year && d.getMonth() === month;
       const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
       return matchesMonth && matchesStatus;
-    }).map(c => {
+    });
+
+    // Deduplicate array by ID to guarantee zero duplicates in calendar output
+    const seenIds = new Set();
+    const uniqueList = [];
+    rawList.forEach(c => {
+      if (!c || !c.id) return;
+      const cleanId = String(c.id).trim().toLowerCase();
+      if (!seenIds.has(cleanId)) {
+        seenIds.add(cleanId);
+        uniqueList.push(c);
+      }
+    });
+
+    return uniqueList.map(c => {
       return {
         ...c,
         activeDate: c.publishedPlan,
