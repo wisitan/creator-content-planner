@@ -1,78 +1,134 @@
-# Codebase Architecture Audit & AI-Assisted Migration Plan
+# Codebase Architecture Audit
 
-## A. Current Architecture
-*   **Core Stack**: Vanilla JavaScript (ES6 Modules), CSS3, HTML5.
-*   **Build Tool**: Vite with `vite-plugin-singlefile` (compiles to a single `index.html`).
-*   **State Management**: Centralized custom `Store` class (extending an `Emitter` pattern). Data is loaded from and saved to `localStorage` synchronously.
-*   **Routing**: Custom Hash-based router (`main.js`) handling navigation between modular view functions.
-*   **UI/Component Model**: Manual DOM manipulation and string template literals (`innerHTML`). Views are functions that clear and reconstruct DOM elements.
-*   **Google Drive Sync**: Client-side implicit OAuth via Google Identity Services (GSI). Stores a JSON snapshot (`creator-content-planner-backup.json`). Uses a custom tombstone-based Two-Way merge algorithm.
-*   **Storage**: Browser `localStorage` (limited to ~5MB).
+This audit follows the principle of **"Validate → Stabilize → Grow → Scale"**. Recommendations avoid premature optimization and require measurable triggers before implementation.
 
-## B. Recommended Architecture (For AI-Assisted Scalability)
-To achieve the vision of a "Creator OS" with 100k+ users and to make the codebase highly compatible with AI coding agents:
-*   **Core Stack**: React or Vue 3 + TypeScript. (TypeScript is critical for AI agents to understand data structures without hallucinating properties).
-*   **Build Tool**: Vite (standard multi-file build).
-*   **State Management**: Zustand (React) or Pinia (Vue) for reactive state.
-*   **Local Storage/Persistence**: **IndexedDB** (via Dexie.js or LocalForage). This bypasses the 5MB `localStorage` limit, allowing massive content histories and offline image caching.
-*   **Sync Architecture**: CRDT-based offline-first sync (e.g., **Yjs** or **Automerge**) backed by Google Drive or a lightweight backend, replacing the custom tombstone logic which is error-prone at scale.
-*   **UI Framework**: TailwindCSS + Headless UI components (e.g., shadcn/ui or Radix). AI agents excel at writing Tailwind and utilizing standardized component libraries.
+## Priority Legend
+- **P0** = Must fix now
+- **P1** = Fix before growth
+- **P2** = Improve when justified
+- **P3** = Future exploration
 
-## C. Critical Problems
-1.  **`localStorage` Quota Limit**: `localStorage` has a strict ~5MB limit. As users add more content, affiliate links, and text, the app will suddenly fail to save, causing catastrophic data loss.
-2.  **XSS Vulnerability**: Extensive use of `element.innerHTML = \`<string>\`` without sanitization. If user data contains script tags, it will execute.
-3.  **Performance Bottleneck**: `store.js` writes the *entire* JSON string to `localStorage` synchronously on every keystroke/change. UI components re-render entirely by trashing and rebuilding DOM nodes.
-4.  **AI Code Maintainability**: Large files (e.g., `editable-table.js` is 65KB, `store.js` is 52KB) exceed optimal context windows for AI reasoning. AI struggles to precisely edit massive files using string templates without breaking surrounding HTML/JS.
+---
 
-## D. Problems That Can Wait
-1.  **Multi-user Collaboration**: The app is designed for single creators with their own Google Drive. Real-time collaboration isn't immediately necessary.
-2.  **Advanced Analytics**: Complex data visualizations can wait until the core data infrastructure is migrated.
-3.  **Backend Services**: Staying client-side (Local + GDrive) keeps costs at $0. A traditional database backend can wait until a monetization strategy necessitates it.
+## Finding 1: Unsanitized DOM Insertion (XSS Risk)
 
-## E. Recommended Folder Structure
-Restructure the app using a **Feature-Driven Architecture**. AI agents work best when all files related to a feature (UI, state, types) are colocated.
+### Current State
+The application uses template literals and `element.innerHTML` extensively to render UI components based on user data.
 
-```
-/src
-  /assets           # Static images, icons
-  /components       # Generic, reusable UI (Buttons, Modals, Inputs)
-  /features         # Feature-based modules
-    /content        # Content planner logic, types, UI
-    /products       # Affiliate products logic, types, UI
-    /sync           # Google drive & sync logic
-    /settings       # App settings
-  /hooks            # Global React/Vue hooks (e.g., useTheme)
-  /store            # Global state setup (Zustand/Pinia)
-  /utils            # Helpers (date formatting, ID generation)
-  /types            # Shared TypeScript interfaces
-  main.ts
-  App.tsx           # App Shell & Routing
-```
+### Risk
+If user-provided data (e.g., notes, descriptions) contains `<script>` tags or malicious HTML, it will execute in the browser.
 
-## F. Recommended Project Rules for AI Coding Agents (`.agents/rules`)
-1.  **Strict TypeScript**: Always define interfaces for data models before implementing logic.
-2.  **Component Isolation**: No UI component file should exceed 200 lines. Break down into sub-components.
-3.  **No `innerHTML`**: Never use `innerHTML` or `v-html`/`dangerouslySetInnerHTML`. Use declarative rendering.
-4.  **Atomic Commits**: Agents must implement one feature or fix one bug per commit.
-5.  **State Separation**: UI components must not contain complex business logic. Delegate logic to stores/hooks.
+### Impact
+Execution of arbitrary JavaScript, potentially leading to unauthorized access to the user's Google Drive backup or local state.
 
-## G. Recommended Reusable Workflows
-1.  **Data Migration Workflow**: A standard pattern to migrate local schemas from `v1 -> v2 -> v3` automatically on app load.
-2.  **Sync Conflict Resolution Workflow**: A UI flow to let the user manually resolve conflicts if the automated CRDT merge detects an unresolvable state.
-3.  **Export/Backup Workflow**: Scheduled background JSON exports to a fallback `.backup` file in Drive.
+### Trigger
+Immediate. Security vulnerabilities must be addressed regardless of the current scale.
 
-## H. Recommended Subagents (For Multi-Agent Development)
-1.  **`UI-Architect`**: Specialized in creating responsive Tailwind components and ensuring accessibility.
-2.  **`Data-Engineer`**: Specialized in IndexedDB schema design, query optimization, and state management.
-3.  **`QA-Agent`**: Automatically writes unit tests (Vitest) and end-to-end tests (Playwright) for new features.
+### Recommendation
+Implement a lightweight HTML sanitization utility (e.g., DOMPurify) and wrap all user inputs before passing them to `innerHTML`, or use `textContent` where applicable.
 
-## I. Migration/Refactoring Roadmap
-*   **Phase 1: Tooling & Typing**: Introduce TypeScript and Vite (multi-file). Create `.d.ts` definitions for the existing data model.
-*   **Phase 2: Storage Migration**: Replace `localStorage` with `IndexedDB` (Dexie.js). Write a migration script that moves `ccp_data_v1` to IndexedDB on first load.
-*   **Phase 3: UI Framework Adoption**: Incrementally rewrite views into React/Vue components. Start with simple views like `Settings`, move to `Content Planner` last.
-*   **Phase 4: Sync Upgrade**: Refactor Google Drive sync to use granular file updates or a CRDT model, removing the massive monolithic JSON payload.
+### Priority
+P0 (Must fix now)
 
-## J. Risks if we scale from 100 → 10,000 → 100,000 users
-*   **100 Users**: Current app is fine, though heavy users will hit the 5MB `localStorage` limit quickly.
-*   **10,000 Users**: Google Drive API rate limits (quota constraints per project/client ID) will be hit. The app uses implicit flow which might face stricter browser cookie/ITP restrictions. Data loss complaints will surge due to sync conflicts in the custom merge logic.
-*   **100,000 Users**: The single JSON file approach will cause unacceptably slow load/save times on mobile devices. A transition to a true backend (e.g., Firebase, Supabase) or robust local-first db with differential sync (e.g., PowerSync) will be absolutely mandatory.
+### Decision
+**Do now**
+
+---
+
+## Finding 2: `localStorage` Size Limitations
+
+### Current State
+All application state (`products`, `content`, etc.) is serialized to JSON and saved synchronously to `localStorage`.
+
+### Risk
+`localStorage` has a strict quota (usually around 5MB). Heavy users who add thousands of items or large text blocks will hit this limit.
+
+### Impact
+When the limit is hit, `QuotaExceededError` is thrown, causing catastrophic data loss for any unsaved changes since the last Google Drive backup.
+
+### Trigger
+When average active user payload exceeds 3MB, or when users request features that require local media/image caching.
+
+### Recommendation
+Migrate the local storage layer to **IndexedDB** using a wrapper like `localForage` or `Dexie.js`. This provides asynchronous, practically unlimited storage for text.
+
+### Priority
+P2 (Improve when justified)
+
+### Decision
+**Monitor**
+
+---
+
+## Finding 3: Component Complexity (Vanilla JS)
+
+### Current State
+The app uses Vanilla JS without a reactive framework. Files like `editable-table.js` and `store.js` are large (65KB and 52KB respectively).
+
+### Risk
+Manual DOM manipulation scales poorly in complexity. As features are added, tracking state changes across the DOM becomes prone to "ghost bugs" and memory leaks.
+
+### Impact
+Slower feature development velocity, increased bug rates, and difficulty for AI agents (or new human developers) to safely modify complex files without regressions.
+
+### Trigger
+When the frequency of UI state synchronization bugs increases, or when a major structural overhaul of the Content Planner view is requested.
+
+### Recommendation
+Incrementally migrate the UI layer to a modern framework (React/TypeScript or Vue).
+
+### Priority
+P2 (Improve when justified)
+
+### Decision
+**Defer**
+
+---
+
+## Finding 4: Tombstone Sync Architecture
+
+### Current State
+The app syncs with Google Drive using a custom "Smart Two-Way Sync" algorithm based on `updatedAt` timestamps and a `deletedItems` array (tombstones).
+
+### Risk
+If the user base grows heavily, edge cases in offline conflict resolution (e.g., editing the same field on two devices simultaneously offline) will result in data overwriting based purely on the latest timestamp.
+
+### Impact
+Silent data loss of specific field edits for power users operating across multiple devices.
+
+### Trigger
+When the app pivots to support real-time collaborative editing between multiple users, or if user support tickets regarding sync conflicts exceed 1% of the active user base.
+
+### Recommendation
+Implement a field-level merge strategy or adopt a CRDT library (like Yjs or Automerge).
+
+### Priority
+P3 (Future exploration)
+
+### Decision
+**Defer**
+
+---
+
+## Finding 5: Single JSON Backup File
+
+### Current State
+The entire state is uploaded and downloaded from Google Drive as a single monolithic JSON file (`creator-content-planner-backup.json`).
+
+### Risk
+As user data grows, the upload/download time and memory consumption on mobile devices will degrade.
+
+### Impact
+Slow sync times and potential timeout errors on slow networks.
+
+### Trigger
+When the average backup file size exceeds 5MB or sync duration exceeds 3 seconds on mobile networks.
+
+### Recommendation
+Transition to a delta-sync model, granular file updates, or a true backend database (e.g., Firebase, Supabase) if monetization supports it.
+
+### Priority
+P3 (Future exploration)
+
+### Decision
+**Defer**
